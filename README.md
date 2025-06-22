@@ -1,7 +1,7 @@
-###!!! Dont create pull requet to main branch 
-###!!! Dont use dev branch as your branch create a new branch for you
 
 ## ⚙️ Getting Started
+### !!! Dont create pull requet to main branch 
+### !!! Dont use dev branch as your branch create a new branch for you
 
 ###  Create a branch for you
 
