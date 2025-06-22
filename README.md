@@ -20,13 +20,9 @@ npm install
 ```
 ### create database and tables as per the backend/config/init.sql file
 
-### To run server only
+### To run
 ```bash
-npm run server
-```
-### To run both backend and frontend
-```bash
-npm start
+npm run dev
 ```
 
 
