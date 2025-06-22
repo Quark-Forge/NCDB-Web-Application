@@ -1,8 +1,6 @@
 
 ## ⚙️ Getting Started
 
-###  Create a branch for you
-
 ###  Clone the Repository
 ```bash
 git clone https://github.com/Quark-Forge/NCDB-Web-Application.git
