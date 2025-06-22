@@ -6,6 +6,9 @@
 git clone https://github.com/Quark-Forge/NCDB-Web-Application.git
 ```
 ### Checkout to your branch
+```bash
+git checkout [your-branch-name]
+```
 
 ### Pull the code from dev branch to your branch
 ```bash
