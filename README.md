@@ -16,14 +16,11 @@ git pull origin dev
 npm install
 ```
 ### create database and tables as per the backend/config/init.sql file
-### To run server only
+### To run 
 ```bash
-npm run server
+npm run dev
 ```
-### To run both backend and frontend
-```bash
-npm start
-```
+
 
 
 
