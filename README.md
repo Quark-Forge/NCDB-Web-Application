@@ -1,9 +1,5 @@
-###!!! Dont create pull requet to main branch 
-###!!! Dont use dev branch as your branch create a new branch for you
 
 ## ⚙️ Getting Started
-
-###  Create a branch for you
 
 ###  Clone the Repository
 ```bash
