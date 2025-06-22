@@ -24,5 +24,4 @@ npm install
 ```bash
 npm run dev
 ```
-### Don't create pull requet to main branch 
-### Don't use dev branch as your branch create a new branch for you
+### Don't create pull requet to main branch request to dev branch
