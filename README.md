@@ -1,3 +1,4 @@
+
 ## ⚙️ Getting Started
 
 ###  Clone the Repository
@@ -10,18 +11,14 @@ git clone https://github.com/Quark-Forge/NCDB-Web-Application.git
 ```bash
 git pull origin dev
 ```
-
 ### Install all dependencies
 ```bash
 npm install
 ```
 ### create database and tables as per the backend/config/init.sql file
-### To run 
+
+### To run
 ```bash
 npm run dev
 ```
-
-
-
-
 
