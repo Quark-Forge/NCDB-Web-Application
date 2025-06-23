@@ -1,8 +1,14 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Register from './pages/Register';
 
 const App = () => {
   return (
     <>
-      <h1>User Auth</h1>
+      <BrowserRouter>
+        <Routes>
+          <Route path='/' element={<Register />}></Route>
+        </Routes>
+      </BrowserRouter>
     </>
   )
 }
