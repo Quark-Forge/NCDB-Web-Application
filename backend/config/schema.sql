@@ -9,12 +9,14 @@ CREATE TABLE roles (
   name VARCHAR(50) NOT NULL UNIQUE
 );
 
-INSERT INTO roles (name) VALUES ('admin'), ('member'), ('credit_officer'), ('marketing_officer'), ('ceo');
+INSERT INTO roles (name) VALUES ('Admin'), ('Member'), ('Marketing Officer');
 
 CREATE TABLE users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
+  contact_number VARCHAR(15) NOT NULL UNIQUE,
+  address VARCHAR(255) NOT NULL,
   password VARCHAR(255) NOT NULL,
   role_id INT NOT NULL,
   is_supplier BOOLEAN DEFAULT false,
