@@ -7,7 +7,7 @@ import {
     getUserProfile, 
     updateUserProfile, 
     
-} from '../controllers/userController.js'
+} from '../controllers/userController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 

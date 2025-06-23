@@ -3,7 +3,7 @@ import { createUser, getUserByEmail, getUser, updateUser } from '../models/userM
 import { hashPassword, matchPassword } from '../utils/hash.js';
 import generateToken from '../utils/generateToken.js';
 
-//@desc Auth user/set token
+// @desc Auth user/set token
 // route POST /api/users/auth
 // @access Public
 const authUser = asyncHandler(async (req, res) => {
@@ -20,8 +20,7 @@ const authUser = asyncHandler(async (req, res) => {
 
 });
 
-
-//@desc  Register a new User
+// @desc  Register a new User
 // route POST /api/users
 // @access Public
 const registerUser = asyncHandler(async (req, res) => {
@@ -39,7 +38,7 @@ const registerUser = asyncHandler(async (req, res) => {
     res.status(201).json({ message: 'User created', id: user.insertId });
 });
 
-//@desc Logout User
+// @desc Logout User
 // route POST /api/users/logout
 // @access Public
 const logoutUser = asyncHandler(async (req, res) => {
@@ -50,7 +49,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     res.json({ message: 'User logged out' });
 });
 
-//@desc  Get User Profile
+// @desc  Get User Profile
 // route Get /api/users/profile
 // @access Private
 const getUserProfile = asyncHandler(async (req, res) => {
@@ -73,9 +72,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
         res.status(404);
         throw new Error('User not found');
     }
-
     let hashedPassword = user.password;
-
     if (password) {
         hashedPassword = await hashPassword(password);
     }
@@ -85,14 +82,12 @@ const updateUserProfile = asyncHandler(async (req, res) => {
         password: hashedPassword,
     });
     const updatedUser = await getUser(req.user.id);
-    
     res.status(200).json({
         id: updatedUser.id,
         name: updatedUser.name,
         email: updatedUser.email,
     });
 });
-
 
 export {
     authUser,
