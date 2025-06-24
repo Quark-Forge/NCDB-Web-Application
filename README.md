@@ -19,7 +19,7 @@ git pull origin dev
 npm install
 ```
 
-### create database and tables as per the backend/config/schema.sql file
+### create database and tables as per the backend/db/setup.sql file
 
 ### 6. To run
 ```bash
