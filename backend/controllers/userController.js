@@ -35,8 +35,8 @@ const authUser = asyncHandler(async (req, res) => {
 // @route POST /api/users
 // @access Public
 const registerUser = asyncHandler(async (req, res) => {
-    const { name, email, password, contact_number, address, role } = req.body;
-    if (!name || !email || !password || !contact_number || !address || !role) {
+    const { name, email, password, contact_number, address} = req.body;
+    if (!name || !email || !password || !contact_number || !address) {
         res.status(400);
         throw new Error('All fields are required');
     }
@@ -47,8 +47,8 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new Error('User already exists');
     }
     const hashedPassword = await hashPassword(password);
-    const user = await createUser({ name, email, contact_number, address, password: hashedPassword, role });
-    // await sendUserCredentials(email, password);
+    const user = await createUser({ name, email, contact_number, address, password: hashedPassword });
+    generateToken(res, user.insertId);
     res.status(201).json({
         message: 'User created',
         user: {
@@ -57,7 +57,6 @@ const registerUser = asyncHandler(async (req, res) => {
             email,
             contact_number,
             address,
-            role,
         },
     });
 });
