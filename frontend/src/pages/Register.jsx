@@ -63,14 +63,11 @@ const Register = () => {
 
     try {
       const payload = { name, email, password, address, contact_number };
-      console.log("Payload sent:", payload); // Debug
       const res = await register(payload).unwrap();
-      console.log("API Response:", res); // Debug
       dispatch(setCredentials({ ...res }));
       navigate("/home");
     } catch (err) {
       const errorMessage = err?.data?.message || err?.error || "Registration failed";
-      console.error("Error details:", err); // Debug
       toast.error(errorMessage);
     }
   };
