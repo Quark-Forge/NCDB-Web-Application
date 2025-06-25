@@ -1,7 +1,7 @@
 import pool from '../config/db.js';
 
-export const createUser = async ({ name, email, contact_number, address, password, role}) => {
-  const roleRow = await getRoleId(role);
+export const createUser = async ({ name, email, contact_number, address, password}) => {
+  const roleRow = await getRoleId('Customer');
   const role_id = roleRow?.id; 
   const sql = `INSERT INTO users (name, email, contact_number, address, password, role_id) VALUES (?, ?, ?, ?, ?, ?)`;
   const [result] = await pool.query(sql, [name, email, contact_number, address, password, role_id]);

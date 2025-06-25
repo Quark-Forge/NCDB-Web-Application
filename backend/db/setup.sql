@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS roles (
   name VARCHAR(50) NOT NULL UNIQUE
 );
 
-INSERT INTO roles (name) VALUES ('Admin'), ('Member'), ('Marketing Officer');
+INSERT INTO roles (name) VALUES ('Admin'), ('Member'), ('Marketing Officer'), ('Customer'), ('Supplier');
 
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,

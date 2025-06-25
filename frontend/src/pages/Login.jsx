@@ -11,7 +11,7 @@ const Login = () => {
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   const [login, { isLoading }] = useLoginMutation();
 
   const { userInfo } = useSelector((state) => state.auth);
@@ -20,13 +20,13 @@ const Login = () => {
     if (userInfo) {
       navigate('/home');
     }
-  },[navigate, userInfo]);
+  }, [navigate, userInfo]);
 
   const submitHandler = async (e) => {
     e.preventDefault();
     try {
       const res = await login({ email, password }).unwrap();
-      dispatch(setCredentials({...res}));
+      dispatch(setCredentials({ ...res }));
       navigate('/home');
     } catch (err) {
       toast.error(err?.data?.message || err.data);
@@ -36,7 +36,7 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-200">
       <div className="bg-white p-10 rounded-xl shadow-md w-full max-w-sm">
-        <h2 className="text-2xl font-bold text-center text-blue-600 mb-6">NCDB Portal</h2>
+        <h2 className="text-2xl font-bold text-center text-blue-600 mb-6">NCDB Mart</h2>
         <form onSubmit={submitHandler} className="space-y-5">
           <input
             type="email"
@@ -57,6 +57,11 @@ const Login = () => {
           <div className="text-sm text-blue-500 hover:underline cursor-pointer">
             Forgot password ?
           </div>
+          
+          {
+            isLoading && <h2 className='text-blue-500'>Loading...</h2>
+          }
+          
           <button
             type="submit"
             className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-md transition duration-200"
