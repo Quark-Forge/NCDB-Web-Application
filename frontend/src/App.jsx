@@ -1,14 +1,11 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Register from './pages/Register';
-
+import { Outlet } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/ReactToastify.css';
 const App = () => {
   return (
     <>
-      <BrowserRouter>
-        <Routes>
-          <Route path='/' element={<Register />}></Route>
-        </Routes>
-      </BrowserRouter>
+      <ToastContainer />
+      <Outlet />
     </>
   )
 }
