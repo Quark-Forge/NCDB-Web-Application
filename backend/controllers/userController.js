@@ -2,6 +2,7 @@ import asyncHandler from 'express-async-handler';
 import { createUser, getUserByEmail, getUser, updateUser, getAllUsers } from '../models/userModel.js';
 import { hashPassword, matchPassword } from '../utils/hash.js';
 import generateToken from '../utils/generateToken.js';
+import { sendUserCredentials } from '../utils/sendEmail.js';
 
 
 // @desc    Get all users
@@ -21,9 +22,9 @@ const authUser = asyncHandler(async (req, res) => {
     const existingUser = await getUserByEmail(email);
 
     if (existingUser && await matchPassword(password, existingUser.password)) {
-        const { id, name, email, role } = existingUser;
+        const { id, name, email, contact_number, address, role, } = existingUser;
         generateToken(res, id);
-        return res.status(200).json({ id, name, email, role });
+        return res.status(200).json({ id, name, email, contact_number, address, role });
     }
     res.status(401);
     throw new Error('Invalid email or password');
@@ -31,11 +32,11 @@ const authUser = asyncHandler(async (req, res) => {
 });
 
 // @desc  Register a new User
-// route POST /api/users
+// @route POST /api/users
 // @access Public
 const registerUser = asyncHandler(async (req, res) => {
-    const { name, email, password, contact_number, address, } = req.body;
-    if (!name || !email || !password || !contact_number || !address) {
+    const { name, email, password, contact_number, address, role } = req.body;
+    if (!name || !email || !password || !contact_number || !address || !role) {
         res.status(400);
         throw new Error('All fields are required');
     }
@@ -46,9 +47,8 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new Error('User already exists');
     }
     const hashedPassword = await hashPassword(password);
-    const user = await createUser({ name, email, contact_number, address, password: hashedPassword });
-
-    generateToken(res, user.insertId);
+    const user = await createUser({ name, email, contact_number, address, password: hashedPassword, role });
+    // await sendUserCredentials(email, password);
     res.status(201).json({
         message: 'User created',
         user: {
@@ -57,12 +57,13 @@ const registerUser = asyncHandler(async (req, res) => {
             email,
             contact_number,
             address,
+            role,
         },
     });
 });
 
 // @desc Logout User
-// route POST /api/users/logout
+// @route POST /api/users/logout
 // @access Public
 const logoutUser = asyncHandler(async (req, res) => {
     res.cookie('jwt', '', {
@@ -73,7 +74,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 });
 
 // @desc  Get User Profile
-// route Get /api/users/profile
+// @route Get /api/users/profile
 // @access Private
 const getUserProfile = asyncHandler(async (req, res) => {
     const user = {
