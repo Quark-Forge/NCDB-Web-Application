@@ -10,7 +10,6 @@ import {
 } from '../controllers/userController.js';
 import { authorize, protect } from '../middleware/authMiddleware.js';
 
-//
 router.get('/', protect, authorize('Admin') ,getUsers)
       .post('/', registerUser);
 router.post('/auth', authUser);
