@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import asyncHandler from 'express-async-handler';
-import { getUser } from '../models/userModel.js';
+import User from '../models/users.js';
+import { getRoleNameById } from '../controllers/roleController.js';
 
 const protect = asyncHandler(async (req, res, next) =>{
     let token;
@@ -8,7 +9,7 @@ const protect = asyncHandler(async (req, res, next) =>{
     if (token) {
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            const user = await getUser(decoded.userID);
+            const user = await User.findByPk(decoded.userID);
             if (!user) {
                 res.status(401);
                 throw new Error('Not authorized, user not found');
@@ -26,12 +27,27 @@ const protect = asyncHandler(async (req, res, next) =>{
 });
 
 const authorize = (...allowedRoles) => {
-  return (req, res, next) => {
-    const userRole = req.user?.role;
-    if (!allowedRoles.includes(userRole)) {
-      return res.status(403).json({ message: 'Access denied: no permissions' });
+  return async (req, res, next) => {
+    try {
+      const role_id = Number(req.user?.role_id);
+      if (!role_id) {
+        return res.status(401).json({ message: 'Missing or invalid role ID' });
+      }
+
+      const roleName = await getRoleNameById(role_id);
+      if (!roleName) {
+        return res.status(404).json({ message: 'Role not found' });
+      }
+
+      if (!allowedRoles.includes(roleName)) {
+        return res.status(403).json({ message: 'Access denied: insufficient permissions' });
+      }
+
+      next();
+    } catch (error) {
+      console.error('Authorization error:', error);
+      res.status(500).json({ message: 'Server error during authorization' });
     }
-    next();
   };
 };
 
