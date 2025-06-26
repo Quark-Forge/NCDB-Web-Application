@@ -25,5 +25,16 @@ CREATE TABLE IF NOT EXISTS users (
   FOREIGN KEY (role_id) REFERENCES roles(id)
 );
 
+CREATE TABLE IF NOT EXISTS suppliers (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(100) NOT NULL,
+  contact_number VARCHAR(20),
+  address TEXT
+);
+
+INSERT INTO `suppliers` (`id`, `name`, `contact_number`, `address`) VALUES 
+  (NULL, 'Supplier01', '0771238761', 'jaffna'), 
+  (NULL, 'Supplier02', '0752345675', 'vavuniya');
+
 
 
