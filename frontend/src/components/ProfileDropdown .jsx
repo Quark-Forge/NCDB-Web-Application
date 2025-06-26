@@ -2,10 +2,10 @@ import { useState, useRef, useEffect } from 'react';
 import { ChevronDown, LogOut, User } from 'lucide-react';
 import { useLogoutMutation } from '../slices/usersApiSlice';
 import { clearCredentials } from '../slices/authSlice';
-import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { Navigate, useNavigate } from 'react-router-dom';
 
-const ProfileDropdown = ({ onLogout, onProfile }) => {
+const ProfileDropdown = () => {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -15,11 +15,11 @@ const ProfileDropdown = ({ onLogout, onProfile }) => {
 
   const logoutHandler = async () => {
     try {
-        await logoutApiCall().unwrap();
-        dispatch(clearCredentials());
-        navigate('/');
+      await logoutApiCall().unwrap();
+      dispatch(clearCredentials());
+      navigate('/');
     } catch (err) {
-        console.log(err);
+      console.log(err);
     }
   }
 
@@ -51,8 +51,9 @@ const ProfileDropdown = ({ onLogout, onProfile }) => {
       {open && (
         <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg z-50">
           <button
-            onClick={onProfile}
+
             className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            onClick={() => navigate('/profile')}
           >
             <User className="w-4 h-4 mr-2" />
             Profile
