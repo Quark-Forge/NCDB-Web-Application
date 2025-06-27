@@ -1,24 +1,36 @@
 
 ## ⚙️ Getting Started
 
-###  Clone the Repository
+### 1.  Clone the Repository
 ```bash
 git clone https://github.com/Quark-Forge/NCDB-Web-Application.git
 ```
-### Checkout to your branch
 
-### Pull the code from dev branch to your branch
+### 2. Checkout to your branch
+```bash
+git checkout [your-branch-name]
+```
+
+### 3. Pull the code from dev branch to your branch
 ```bash
 git pull origin dev
 ```
-### Install all dependencies
+
+### 4. Install all dependencies
 ```bash
 npm install
 ```
-### create database and tables as per the backend/config/init.sql file
 
-### To run
+### create database with name ncdb as per the file backend/db/init.sql
+
+### To create tables
+```bash
+npm run init-db
+```
+
+### 6. To run
 ```bash
 npm run dev
 ```
 
+### 7. Don't create pull requet to main branch create pull request to dev branch

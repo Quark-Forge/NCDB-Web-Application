@@ -1,8 +1,11 @@
-
+import { Outlet } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/ReactToastify.css';
 const App = () => {
   return (
     <>
-      <h1>User Auth</h1>
+      <ToastContainer />
+      <Outlet />
     </>
   )
 }

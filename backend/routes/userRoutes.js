@@ -5,13 +5,13 @@ import {
     registerUser,
     logoutUser, 
     getUserProfile, 
-    updateUserProfile, 
-    
-} from '../controllers/userController.js'
-import { protect } from '../middleware/authMiddleware.js';
+    updateUserProfile,
+    getUsers,
+} from '../controllers/userController.js';
+import { authorize, protect } from '../middleware/authMiddleware.js';
 
-
-router.post('/', registerUser);
+router.get('/', protect, authorize('Admin') ,getUsers)
+      .post('/', registerUser);
 router.post('/auth', authUser);
 router.post('/logout', logoutUser);
 router
