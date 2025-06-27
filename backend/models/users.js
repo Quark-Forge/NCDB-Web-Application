@@ -1,5 +1,5 @@
 import sequelize from "../config/db.js";
-import { DataTypes, Sequelize } from "sequelize";
+import { DataTypes } from "sequelize";
 import Role from "./roles.js";
 
 const User = sequelize.define('User', {
@@ -11,6 +11,7 @@ const User = sequelize.define('User', {
   name: {
     type: DataTypes.STRING(100),
     allowNull: false,
+    unique: false,
     validate: {
       notEmpty: true,
       len: [5, 50],
@@ -25,10 +26,10 @@ const User = sequelize.define('User', {
     }
   },
   contact_number: {
-    type: DataTypes.STRING(200),
+    type: DataTypes.STRING(15),
     allowNull: false,
     unique: true,
-    
+
   },
   address: {
     type: DataTypes.TEXT,
@@ -38,6 +39,14 @@ const User = sequelize.define('User', {
   password: {
     type: DataTypes.STRING(200),
     allowNull: false,
+  },
+  role_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: Role,
+      key: 'id'
+    }
   },
 
 }, {

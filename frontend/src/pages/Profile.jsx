@@ -1,3 +1,4 @@
+import React from 'react'
 
 const Profile = () => {
   return (
@@ -5,4 +6,4 @@ const Profile = () => {
   )
 }
 
-export default Profile;
+export default Profile
