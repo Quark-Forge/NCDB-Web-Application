@@ -41,7 +41,7 @@ const ProfileDropdown = () => {
         className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"
       >
         <img
-          src="../../public/images/user.png"
+          src="../../images/user.png"
           alt="Avatar"
           className="w-8 h-8 rounded-full object-cover"
         />

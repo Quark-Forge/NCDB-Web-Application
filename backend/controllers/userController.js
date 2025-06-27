@@ -101,7 +101,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
         res.status(404);
         throw new Error('User not found');
     }
-
+    
     if (password) {
         user.password = await hashPassword(password);
     }

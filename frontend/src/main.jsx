@@ -20,12 +20,12 @@ const router = createBrowserRouter(
   createRoutesFromElements(
     <Route path='/' element={<App />}>
       <Route path='/' index={true} element={<Login />}></Route>
-      <Route path='/home' element={<Home />}></Route>
       <Route path='/register' element={<Register />}></Route>
 
       {/* Private Routes */}
       <Route path='' element={<PrivateRoute />}>
         <Route path='/profile' element={<Profile />}></Route>
+        <Route path='/home' element={<Home />}></Route>
       </Route>
     </Route>
 
