@@ -3,14 +3,14 @@ import sequelize from "../config/db.js";
 
 const Category = sequelize.define('Category', {
     id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
     },
     name: {
         type: DataTypes.STRING(100),
         allowNull: false,
-        unique: false,
+        unique: true,
     },
     description: {
         type: DataTypes.TEXT,
@@ -18,8 +18,9 @@ const Category = sequelize.define('Category', {
     }
 }, {
     tableName: 'categories',
-    timestamps: false,
+    timestamps: true,
     underscored: true,
+    paranoid: true,
 });
 
 export default Category;

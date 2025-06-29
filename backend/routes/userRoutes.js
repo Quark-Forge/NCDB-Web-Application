@@ -7,13 +7,17 @@ import {
     getUserProfile, 
     updateUserProfile,
     getUsers,
+    verifyEmail,
+    resendVerificationEmail,
 } from '../controllers/userController.js';
 import { authorize, protect } from '../middleware/authMiddleware.js';
 
 router.get('/', protect, authorize('Admin') ,getUsers)
       .post('/', registerUser);
+// router.get('/verify/:token', verifyEmail);
+// router.post('/resend-verification', resendVerificationEmail);
 router.post('/auth', authUser);
-router.post('/logout', logoutUser);
+router.post('/logout', protect, logoutUser);
 router
     .route('/profile')
     .get(protect, getUserProfile)

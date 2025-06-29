@@ -4,7 +4,8 @@ import { addSupplier, removeSupplier, updateSupplier } from '../controllers/supp
 const router = express.Router();
 
 router.post('/', addSupplier);
-router.put('/:id', updateSupplier)
-      .delete('/:id', removeSupplier);
+router.route('/:id')
+      .put(updateSupplier)
+      .delete(removeSupplier);
 
 export default router;

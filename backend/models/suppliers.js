@@ -3,14 +3,14 @@ import { DataTypes } from "sequelize";
 
 const Supplier = sequelize.define('Supplier', {
     id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
     },
     name: {
         type: DataTypes.STRING(100),
         allowNull: false,
-        unique:false,
+
     },
     contact_number: {
         type: DataTypes.STRING(15),
@@ -20,13 +20,21 @@ const Supplier = sequelize.define('Supplier', {
     address: {
         type: DataTypes.TEXT,
         allowNull: false,
-        unique: false,
     },
-  
+    email: {
+        type: DataTypes.STRING(100),
+        allowNull: false,
+        unique: true,
+        set(value) {
+            if (value) {
+                this.setDataValue('email', value.toLowerCase().trim());
+            }
+        }
+    },
 }, {
     tableName: 'suppliers',
-    timestamps: false,
-    underscored:true,
+    timestamps: true,
+    underscored: true,
 });
 
 export default Supplier;
