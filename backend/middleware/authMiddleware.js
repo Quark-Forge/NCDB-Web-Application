@@ -29,7 +29,7 @@ const protect = asyncHandler(async (req, res, next) =>{
 const authorize = (...allowedRoles) => {
   return async (req, res, next) => {
     try {
-      const role_id = Number(req.user?.role_id);
+      const role_id = req.user?.role_id;
       if (!role_id) {
         return res.status(401).json({ message: 'Missing or invalid role ID' });
       }

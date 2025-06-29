@@ -4,8 +4,8 @@ import Role from "./roles.js";
 
 const User = sequelize.define('User', {
   id: {
-    type: DataTypes.INTEGER,
-    autoIncrement: true,
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
     primaryKey: true,
   },
   name: {
@@ -21,15 +21,15 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING(200),
     allowNull: false,
     unique: true,
-    validate: {
-      isEmail: true,
+    validate: { isEmail: true },
+    set(value) {
+      this.setDataValue('email', value.toLowerCase());
     }
   },
   contact_number: {
     type: DataTypes.STRING(15),
     allowNull: false,
     unique: true,
-
   },
   address: {
     type: DataTypes.TEXT,
@@ -39,9 +39,19 @@ const User = sequelize.define('User', {
   password: {
     type: DataTypes.STRING(200),
     allowNull: false,
+    validate: {
+      len: {
+        args: [8, 200],
+        msg: 'Password must be at least 8 characters'
+      }
+    },
+  },
+  is_verified: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   },
   role_id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.UUID,
     allowNull: false,
     references: {
       model: Role,
@@ -55,6 +65,10 @@ const User = sequelize.define('User', {
   underscored: true,
 });
 
-User.belongsTo(Role, { foreignKey: 'role_id' });
+User.belongsTo(Role, {
+  foreignKey: 'role_id',
+  onUpdate: 'CASCADE',
+  onDelete: 'RESTRICT',
+});
 
 export default User;
