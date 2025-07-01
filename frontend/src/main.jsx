@@ -21,7 +21,8 @@ import EditProfile from './pages/EditProfile.jsx';
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route path='/' element={<App />}>
-      <Route path='/' index={true} element={<Login />}></Route>
+      <Route path='/' index={true} element={<Home />}></Route>
+      <Route path='/login' index={true} element={<Login />}></Route>
       <Route path='/register' element={<Register />}></Route>
       <Route path='/verify-email' element={<Vrification />}></Route>
       <Route path='/verify/:token' element = {<Verified />}></Route>
@@ -29,8 +30,8 @@ const router = createBrowserRouter(
 
       {/* Private Routes */}
       <Route path='' element={<PrivateRoute />}>
-        
-        <Route path='/home' element={<Home />}></Route>
+{/*         
+        <Route path='/home' element={<Home />}></Route> */}
       </Route>
     </Route>
 

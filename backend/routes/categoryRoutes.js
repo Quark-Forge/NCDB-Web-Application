@@ -17,7 +17,7 @@ router.route('/')
       .post(protect, authorize('Admin'),createCategory)
       .get(getAllCategories);
 
-router.route(protect, authorize('Admin'),'/:id')
+router.route('/:id')
       .get(getSingleCategory)
       .delete(protect, authorize('Admin'), disabledCategory)
       .post(protect, authorize('Admin'), restoreCategory)

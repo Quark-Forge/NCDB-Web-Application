@@ -107,69 +107,69 @@ const registerUser = asyncHandler(async (req, res) => {
 });
 
 // Email Verification
-// const verifyEmail = asyncHandler(async (req, res) => {
-//     const { token } = req.params;
-//     console.log(token);
+const verifyEmail = asyncHandler(async (req, res) => {
+    const { token } = req.params;
+    console.log(token);
     
 
-//     try {
-//         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-//         console.log(decoded);
-//         let user;
-//         try {
-//             user = await User.findByPk(decoded.UserID);
-//             console.log('User:', user ? user.toJSON() : null);
-//         } catch (dbErr) {
-//             console.error('Database Error:', dbErr.message);
-//             throw new Error('Database query failed');
-//         }
-//         console.log('is_verified:', user?.is_verified);
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        console.log(decoded);
+        let user;
+        try {
+            user = await User.findByPk(decoded.UserID);
+            console.log('User:', user ? user.toJSON() : null);
+        } catch (dbErr) {
+            console.error('Database Error:', dbErr.message);
+            throw new Error('Database query failed');
+        }
+        console.log('is_verified:', user?.is_verified);
 
 
-//         if (!user) {
-//             res.status(404);
-//             throw new Error('User not found');
-//         }
+        if (!user) {
+            res.status(404);
+            throw new Error('User not found');
+        }
 
-//         if (user.is_verified) {
-//             return res.status(200).json({ message: 'User already verified' });
-//         }
+        if (user.is_verified) {
+            return res.status(200).json({ message: 'User already verified' });
+        }
 
-//         const [updated] = await User.update(
-//             { is_verified: true },
-//             { where: { id: decoded.userID } }
-//         );
-//         if (updated === 0) {
-//             throw new Error('No rows updated. User might not exist.');
-//         }
+        const [updated] = await User.update(
+            { is_verified: true },
+            { where: { id: decoded.userID } }
+        );
+        if (updated === 0) {
+            throw new Error('No rows updated. User might not exist.');
+        }
 
-//         console.log(user.is_verified);
-//         res.status(200).json({ message: 'Email verified successfully. You can now log in.' });
+        console.log(user.is_verified);
+        res.status(200).json({ message: 'Email verified successfully. You can now log in.' });
 
-//     } catch (err) {
-//         res.status(400);
-//         throw new Error('Invalid or expired verification token');
-//     }
-// });
+    } catch (err) {
+        res.status(400);
+        throw new Error('Invalid or expired verification token');
+    }
+});
 
-// // Resend verification email
-// const resendVerificationEmail = asyncHandler(async (req, res) => {
-//     const { email } = req.body;
-//     const user = await User.findOne({ where: { email } });
-//     if (!user) {
-//         res.status(404);
-//         throw new Error('User not found');
-//     }
-//     if (user.is_verified) {
-//         res.status(400);
-//         throw new Error('User already verified');
-//     }
-//     const token = generateVerificationToken(user.id);
-//     const verifyUrl = `${process.env.FRONTEND_URL}/verify/${token}`;
-//     const htmlMessage = `...`; // Same as in registerUser
-//     await sendUserCredentials(email, 'Verify your account', htmlMessage);
-//     res.status(200).json({ message: 'Verification email resent' });
-// });
+// Resend verification email
+const resendVerificationEmail = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+    if (user.is_verified) {
+        res.status(400);
+        throw new Error('User already verified');
+    }
+    const token = generateVerificationToken(user.id);
+    const verifyUrl = `${process.env.FRONTEND_URL}/verify/${token}`;
+    const htmlMessage = `...`; // Same as in registerUser
+    await sendUserCredentials(email, 'Verify your account', htmlMessage);
+    res.status(200).json({ message: 'Verification email resent' });
+});
 
 
 // Logout User
