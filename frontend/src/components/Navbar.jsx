@@ -18,7 +18,7 @@ const Navbar = ({ cartCount = 0 }) => {
   };
 
   const handleCartClick = () => {
-    console.log('Cart clicked');
+    navigate('/cart');
   };
 
   const handleProfileClick = () => {
@@ -44,7 +44,7 @@ const Navbar = ({ cartCount = 0 }) => {
           </div>
 
           {/* Search Bar */}
-          <div className="hidden sm:block max-w-2xl">
+          <div className="hidden sm:block w-fit md:w-4xl">
             <form onSubmit={handleSearch} className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-5 w-5 text-gray-400" />
@@ -54,7 +54,7 @@ const Navbar = ({ cartCount = 0 }) => {
                 placeholder="Search products..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="block w-full md:w-3xl pl-10 pr-3 py-2 border border-gray-300 rounded-2xl md:rounded-3xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-2xl md:rounded-3xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               />
             </form>
           </div>
@@ -120,7 +120,7 @@ const Navbar = ({ cartCount = 0 }) => {
               placeholder="Search products..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="block w-full md:w-3xl pl-10 pr-3 py-2 border border-gray-300 rounded-2xl md:rounded-3xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-2xl md:rounded-3xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
           </form>
         </div>

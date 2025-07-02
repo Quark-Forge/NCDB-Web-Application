@@ -27,7 +27,7 @@ const authUser = asyncHandler(async (req, res) => {
         throw new Error('Please verify your email before logging in.');
     }
     if (existingUser && await matchPassword(password, existingUser.password)) {
-        const { id, name, email, contact_number, address, role, } = existingUser;
+        const { id, name, email, contact_number, address, role } = existingUser;
         generateToken(res, id);
         return res.status(200).json({ id, name, email, contact_number, address, role });
     }

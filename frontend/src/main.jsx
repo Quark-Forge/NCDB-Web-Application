@@ -17,6 +17,7 @@ import PrivateRoute from './components/PrivateRoute.jsx';
 import Verified from './pages/Verified.jsx';
 import Vrification from './pages/Vrification.jsx';
 import EditProfile from './pages/EditProfile.jsx';
+import Cart from './pages/Cart.jsx';
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -27,6 +28,7 @@ const router = createBrowserRouter(
       <Route path='/verify-email' element={<Vrification />}></Route>
       <Route path='/verify/:token' element = {<Verified />}></Route>
       <Route path='/profile/edit' element={<EditProfile />}></Route>
+      <Route path='/cart' element={<Cart />}></Route>
 
       {/* Private Routes */}
       <Route path='' element={<PrivateRoute />}>
