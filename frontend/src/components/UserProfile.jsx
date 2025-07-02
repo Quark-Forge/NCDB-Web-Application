@@ -1,8 +1,11 @@
 import React from 'react';
 import { X, Settings, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const UserProfile = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
+
+  const navigate = useNavigate();
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -82,7 +85,7 @@ const UserProfile = ({ isOpen, onClose }) => {
           <div className="p-4 border-t border-gray-200">
             <button 
               className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              onClick={() => console.log('Edit Profile clicked')}
+              onClick={() => navigate('/profile/edit')}
             >
               Edit Profile
             </button>

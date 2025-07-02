@@ -6,6 +6,7 @@ const formatSupplierResponse = (supplier) => ({
   id: supplier.id,
   name: supplier.name,
   contact_number: supplier.contact_number,
+  email: supplier.email,
   address: supplier.address,
   is_active: supplier.is_active,
   createdAt: supplier.createdAt,
@@ -34,8 +35,8 @@ export const addSupplier = asyncHandler(async (req, res) => {
 
   if (existingSupplier) {
     res.status(409); // 409 Conflict for duplicate resources
-    throw new Error(existingSupplier.contact_number === contact_number 
-      ? 'Supplier with this contact number already exists' 
+    throw new Error(existingSupplier.contact_number === contact_number
+      ? 'Supplier with this contact number already exists'
       : 'Supplier with this email already exists');
   }
 
@@ -49,7 +50,6 @@ export const addSupplier = asyncHandler(async (req, res) => {
   });
 
   res.status(201).json({
-    success: true,
     message: 'Supplier created successfully',
     data: formatSupplierResponse(newSupplier)
   });
@@ -59,13 +59,7 @@ export const addSupplier = asyncHandler(async (req, res) => {
 export const updateSupplier = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { name, address, contact_number, email, is_active } = req.body;
-
-  // Validate input
-  if (!name || !contact_number || !address) {
-    res.status(400);
-    throw new Error('Name, contact number and address are required');
-  }
-
+  
   // Find supplier
   const supplier = await Supplier.findByPk(id);
   if (!supplier) {
@@ -91,9 +85,9 @@ export const updateSupplier = asyncHandler(async (req, res) => {
   }
 
   // Update supplier
-  supplier.name = name;
-  supplier.address = address;
-  supplier.contact_number = contact_number;
+  supplier.name = name || supplier.name;
+  supplier.address = address || supplier.address;
+  supplier.contact_number = contact_number || supplier.contact_number;
   if (email) supplier.email = email;
   if (is_active !== undefined) supplier.is_active = is_active;
 
