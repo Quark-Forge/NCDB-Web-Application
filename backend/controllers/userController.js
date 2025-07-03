@@ -47,6 +47,7 @@ const registerUser = asyncHandler(async (req, res) => {
     }
     const hashedPassword = await hashPassword(password);
     const role = await Role.findOne({ where: { name: 'Customer' } });
+    
     const newUser = await User.create({
         name,
         email,
