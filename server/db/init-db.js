@@ -4,6 +4,7 @@ import User from '../models/users.js';
 import Supplier from '../models/suppliers.js';
 import Category from '../models/category.js';
 import Product from '../models/product.js';
+import SupplierItem from '../models/suplierItem.js';
 
 async function syncDatabase() {
   try {
