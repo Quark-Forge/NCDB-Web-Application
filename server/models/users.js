@@ -46,6 +46,11 @@ const User = sequelize.define('User', {
       }
     },
   },
+  image_url: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        unique: false,
+    },
   is_verified: {
     type: DataTypes.BOOLEAN,
     defaultValue: false

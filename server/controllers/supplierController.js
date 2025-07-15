@@ -26,10 +26,8 @@ export const addSupplier = asyncHandler(async (req, res) => {
   // Check for existing supplier by contact number or email
   const existingSupplier = await Supplier.findOne({
     where: {
-      [Op.or]: [
-        { contact_number },
-        ...(email ? [{ email }] : [])
-      ]
+        contact_number,
+        email
     }
   });
 

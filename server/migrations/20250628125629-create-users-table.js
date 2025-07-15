@@ -32,6 +32,10 @@ export const up = async (queryInterface, Sequelize) => {
       type: Sequelize.STRING(200),
       allowNull: false,
     },
+     image_url: {
+      type: Sequelize.TEXT,
+      allowNull: true,
+    },
     is_verified: {
       type: Sequelize.BOOLEAN,
       allowNull: false,

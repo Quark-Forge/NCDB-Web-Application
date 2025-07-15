@@ -21,8 +21,20 @@ export const up = async (queryInterface, Sequelize) => {
       type: Sequelize.DECIMAL(10, 2),
       allowNull: false,
     },
-    unit: {
+    discount_price: {
+      type: Sequelize.DECIMAL(10, 2),
+      allowNull: false,
+    },
+    quantity_per_unit: {
+      type: Sequelize.DECIMAL(10, 2),
+      allowNull: false,
+    },
+    unit_symbol: {
       type: Sequelize.STRING(20),
+      allowNull: false,
+    },
+    sku: {
+      type: Sequelize.STRING(50),
       allowNull: false,
     },
     image_url: {
