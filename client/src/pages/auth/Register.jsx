@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useRegisterMutation } from "../../slices/usersApiSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
-import { setCredentials } from "../slices/authSlice";
+import { setCredentials } from "../../slices/authSlice";
 import { useNavigate } from "react-router-dom";
-import { useUpdateUserMutation } from "../slices/usersApiSlice";
 
-const EditProfile = () => {
+const Register = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [contact_number, setContact_number] = useState("");
@@ -17,18 +17,13 @@ const EditProfile = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { userInfo } = useSelector((state) => state.auth);
-  const [UpdateProfile, { isLoading }] = useUpdateUserMutation();
-
-  useEffect(() => {
-    setName(userInfo.name);
-    setEmail(userInfo.email);
-    setContact_number(userInfo.contact_number);
-    setAddress(userInfo.address);
-  },[userInfo.name, userInfo.email, userInfo.contact_number, userInfo.address]);
+  const [register, { isLoading }] = useRegisterMutation();
 
   const validateField = (fieldName, value) => {
     let error = "";
-    if (fieldName === "email" && !/^\S+@\S+\.\S+$/.test(value)) {
+    if (!value) {
+      error = `${fieldName} is required`;
+    } else if (fieldName === "email" && !/^\S+@\S+\.\S+$/.test(value)) {
       error = "Invalid email format";
     } else if (fieldName === "contact_number" && !/^\d{10}$/.test(value)) {
       error = "Contact number must be 10 digits";
@@ -67,12 +62,11 @@ const EditProfile = () => {
     }
 
     try {
-      const payload = { id: userInfo.id, name, email, password, address, contact_number };
-      const res = await UpdateProfile(payload).unwrap();
-      dispatch(setCredentials({...res}));
-      toast.success('Profile Updated');
+      const payload = { name, email, password, address, contact_number };
+      const res = await register(payload).unwrap();
+      navigate('/verify-email', {state: { email: email }});
     } catch (err) {
-      const errorMessage = err?.data?.message || err?.error || "Update failed";
+      const errorMessage = err?.data?.message || err?.error || "Registration failed";
       toast.error(errorMessage);
     }
   };
@@ -84,7 +78,7 @@ const EditProfile = () => {
         className="bg-white p-10 rounded-xl shadow-lg w-full max-w-md space-y-5"
         noValidate
       >
-        <h2 className="text-2xl font-bold text-center text-gray-700">Update Profile</h2>
+        <h2 className="text-2xl font-bold text-center text-gray-700">User Registration</h2>
 
         <div>
           <input
@@ -167,16 +161,18 @@ const EditProfile = () => {
           />
           {errors.address && <p className="text-red-500 text-sm">{errors.address}</p>}
         </div>
+
         {isLoading && <h2 className="text-blue-500">Loading...</h2>}
+
         <button
           type="submit"
           className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-md transition duration-200"
         >
-          Update
+          Register
         </button>
       </form>
     </div>
   );
 };
 
-export default EditProfile;
+export default Register;

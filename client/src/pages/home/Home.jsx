@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { mockProducts } from '../data/products';
-import Navbar from '../components/Navbar';
-import ProductCard from '../components/ProductCard';
+import { mockProducts } from "../../data/products";
+import Navbar from '../../components/home/Navbar';
+import ProductCard from '../../components/home/ProductCard';
 
 const Home = () => {
   const [cartCount, setCartCount] = useState(0);

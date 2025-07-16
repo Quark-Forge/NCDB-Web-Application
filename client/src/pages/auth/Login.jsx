@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { useLoginMutation } from '../slices/usersApiSlice';
-import { setCredentials } from '../slices/authSlice';
+import { useLoginMutation } from '../../slices/usersApiSlice';
+import { setCredentials } from '../../slices/authSlice';
 import { toast } from 'react-toastify';
 
 const Login = () => {
@@ -63,7 +63,7 @@ const Login = () => {
           </button>
           <button
             className="w-full border-1 border-blue-500 hover:bg-blue-500 hover:text-white text-blue-500 py-2 rounded-md transition duration-200"
-            onClick={() => navigate('/register')}
+            onClick={() => navigate('/auth/register')}
           >
             Register
           </button>
