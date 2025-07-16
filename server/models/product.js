@@ -23,13 +23,23 @@ const Product = sequelize.define('Product', {
         allowNull: false,
         unique: false,
     },
-    quantity: {
-        type: DataTypes.INTEGER,
+    discount_price: {
+        type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
         unique: false,
     },
-    unit: {
+    quantity_per_unit: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+        unique: false,
+    },
+    unit_symbol: {
         type: DataTypes.STRING(20),
+        allowNull: false,
+        unique: false,
+    },
+    sku: {
+        type: DataTypes.STRING(50),
         allowNull: false,
         unique: false,
     },
@@ -37,20 +47,12 @@ const Product = sequelize.define('Product', {
         type: DataTypes.TEXT,
         allowNull: true,
         unique: false,
-    },
+    }, 
     category_id: {
         type: DataTypes.UUID,
         allowNull: false,
         references: {
             model: Category,
-            key: 'id'
-        }
-    },
-    supplier_id: {
-        type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Supplier,
             key: 'id'
         }
     },
@@ -62,6 +64,5 @@ const Product = sequelize.define('Product', {
 });
 
 Product.belongsTo(Category, { foreignKey: 'category_id' });
-Product.belongsTo(Supplier, { foreignKey: 'supplier_id' });
 
 export default Product;
