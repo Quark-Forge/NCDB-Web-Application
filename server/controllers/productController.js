@@ -3,10 +3,12 @@ import Category from '../models/category.js';
 import Product from '../models/product.js';
 import SupplierItem from '../models/suplierItem.js';
 import sequelize from '../config/db.js';
+import { Op } from 'sequelize';
 
 // Add new product
 export const addProduct = asyncHandler(async (req, res) => {
-    const { name, 
+    const { 
+        name, 
         sku, 
         description, 
         price, 
@@ -101,12 +103,84 @@ export const addProduct = asyncHandler(async (req, res) => {
     }
 });
 
-// get all products
+// Get all products
 export const getAllProducts = asyncHandler(async (req, res) => {
-    const allPorducts = await Product.findAll();
+    const { search, category, sort, page = 1,  limit = 20,  } = req.query;
+    const where = {};
+
+    // Search by product name
+    if (search) {
+        where.name = { [Op.like]: `%${search}%` };
+    }
+
+    // Sorting
+    let order = [['created_at', 'DESC']]; // default
+    if (sort === 'price_asc') order = [['price', 'ASC']];
+    else if (sort === 'price_desc') order = [['price', 'DESC']];
+    else if (sort === 'name') order = [['name', 'ASC']];
+
+    const offset = (page - 1) * limit;
+
+    // Include category and filter by category name if provided
+    const include = [{
+        model: Category,
+        where: category ? { name: category } : undefined,
+        attributes: ['id', 'name'],
+        required: !!category
+    }];
+
+     const products = await Product.findAll({
+        where,
+        order,
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        include,
+    });
+
     res.status(200).json({
         success: true,
-        message: 'All Products',
-        data: allPorducts,
+        message: 'Filtered, searched, and sorted products',
+        data: products,
     });
 });
+
+// Get Product by ID
+export const getProductById = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    if (!id) {
+        res.status(400);
+        throw new Error('No ID provided in the params');
+    }
+
+    const product = await Product.findByPk(id);
+
+    if (!product) {
+        res.status(404);
+        throw new Error(`Product with ID ${id} not found`);
+    }
+
+    res.status(200).json({
+        success: true,
+        message: `Product details for ID ${id}`,
+        data: product,
+    });
+});
+
+// Update Porduct details
+// export const updateProduct = asyncHandler(async (req, res) => {
+//     const { 
+//         name, 
+//         sku, 
+//         description, 
+//         price, 
+//         discount_price, 
+//         quantity_per_unit, 
+//         quantity, 
+//         unit_symbol, 
+//         image_url, 
+//         category_id, 
+//         supplier_id 
+//     } = req.body;
+    
+// });
+

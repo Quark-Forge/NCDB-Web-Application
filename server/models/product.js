@@ -25,7 +25,7 @@ const Product = sequelize.define('Product', {
     },
     discount_price: {
         type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
+        allowNull: true,
         unique: false,
     },
     quantity_per_unit: {
