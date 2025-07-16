@@ -1,22 +1,18 @@
 import React from 'react';
 import { X, Settings, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux'; // ✅ Import useSelector
 
 const UserProfile = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const navigate = useNavigate();
+  const { userInfo } = useSelector((state) => state.auth); // ✅ Get userInfo from Redux
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      {/* Overlay */}
-      <div 
-        className="absolute inset-0 bg-black bg-opacity-50" 
-        onClick={onClose}
-      ></div>
-
-      {/* Popup Panel */}
-      <div className="relative w-full max-w-sm bg-white h-full shadow-xl transform transition-transform duration-300 ease-in-out translate-x-0">
+    <div className="fixed inset-0 z-50 flex justify-end pointer-events-none">
+      {/* Popup Panel - Overlapping only, no overlay */}
+      <div className="relative w-full max-w-sm bg-white h-full shadow-xl transform transition-transform duration-300 ease-in-out translate-x-0 pointer-events-auto">
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex justify-between items-center p-4 border-b border-gray-200">
@@ -32,19 +28,18 @@ const UserProfile = ({ isOpen, onClose }) => {
           {/* Profile Details */}
           <div className="p-6 flex-1 overflow-y-auto">
             <div className="flex items-center space-x-4 mb-6">
-              {/* <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
-                <span className="text-2xl text-white font-semibold">
-                  JD
-                </span>
-              </div> */}
               <img
-  src="../../images/user.png"
-  alt="User Profile"
-  className="w-16 h-16 rounded-full object-cover"
-/>
+                src="/images/user.png"
+                alt="User Profile"
+                className="w-16 h-16 rounded-full object-cover"
+              />
               <div>
-                <h3 className="text-xl font-medium text-gray-800">John Doe</h3>
-                <p className="text-sm text-gray-500">john.doe@example.com</p>
+                <h3 className="text-xl font-medium text-gray-800">
+                  {userInfo?.name || "Guest"}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {userInfo?.email || "No email available"}
+                </p>
               </div>
             </div>
 
@@ -52,12 +47,8 @@ const UserProfile = ({ isOpen, onClose }) => {
             <div className="space-y-4">
               <div>
                 <h4 className="text-sm font-medium text-gray-700">Account Details</h4>
-                <p className="text-sm text-gray-600 mt-1">
-                  Member since: January 2024
-                </p>
-                <p className="text-sm text-gray-600">
-                  Orders: 12
-                </p>
+                <p className="text-sm text-gray-600 mt-1">Member since: January 2024</p>
+                <p className="text-sm text-gray-600">Orders: 12</p>
               </div>
 
               {/* Settings Options */}
