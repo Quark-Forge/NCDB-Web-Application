@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { ChevronDown, LogOut, User } from 'lucide-react';
-import { useLogoutMutation } from '../slices/usersApiSlice';
-import { clearCredentials } from '../slices/authSlice';
+import { useLogoutMutation } from '../../slices/usersApiSlice';
+import { clearCredentials } from '../../slices/authSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import { Navigate, useNavigate } from 'react-router-dom';
 
