@@ -20,7 +20,7 @@ const Verified = () => {
         const errorMessage = err.response?.data?.message || 'Verification failed';
         toast.error(errorMessage);
         // Redirect back if verification fails
-        navigate('/verify-email', { state: { email: email } });
+        navigate('/user/verify-email', { state: { email: email } });
       }
     };
     verifyEmail();

@@ -28,8 +28,10 @@ const authUser = asyncHandler(async (req, res) => {
     }
     if (existingUser && await matchPassword(password, existingUser.password)) {
         const { id, name, email, contact_number, address, role_id } = existingUser;
+        const role = await Role.findByPk(role_id);
+        const user_role = role.name;
         generateToken(res, id);
-        return res.status(200).json({ id, name, email, contact_number, address, role_id });
+        return res.status(200).json({ id, name, email, contact_number, address,role_id, user_role });
     }
     res.status(401);
     throw new Error('Invalid email or password');

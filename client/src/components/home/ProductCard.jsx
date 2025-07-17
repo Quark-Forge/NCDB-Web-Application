@@ -1,4 +1,3 @@
-// src/components/ProductCard.jsx
 import React, { useState } from 'react';
 import { ShoppingCart, Heart, Star } from 'lucide-react';
 
@@ -12,11 +11,9 @@ const ProductCard = ({ product, onAddToCart }) => {
     console.log(`${isWishlisted ? 'Removed from' : 'Added to'} wishlist:`, product.name);
   };
 
-  const handleAddToCart = async (e) => {
+  const handleAddToCart = (e) => {
     e.stopPropagation();
     setIsLoading(true);
-    
-    // Simulate API call
     setTimeout(() => {
       onAddToCart(product);
       setIsLoading(false);
@@ -24,46 +21,49 @@ const ProductCard = ({ product, onAddToCart }) => {
   };
 
   const handleCardClick = () => {
-    // Navigate to product details page
     console.log('Navigate to product:', product.id);
   };
 
-  const renderStars = (rating) => {
-    return [...Array(5)].map((_, i) => (
-      <Star
-        key={i}
-        className={`h-4 w-4 ${
-          i < Math.floor(rating)
-            ? 'fill-yellow-400 text-yellow-400'
-            : i < rating
-            ? 'fill-yellow-200 text-yellow-400'
-            : 'text-gray-300'
-        }`}
-      />
-    ));
+  const renderPrice = () => {
+    const price = parseFloat(product.price);
+    const discountPrice = parseFloat(product.discount_price);
+    const hasDiscount = discountPrice < price;
+
+    return (
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xl font-bold text-blue-600">
+            Rs {hasDiscount ? discountPrice.toFixed(2) : price.toFixed(2)}
+          </span>
+          {hasDiscount && (
+            <span className="text-sm text-gray-500 line-through">
+              Rs {price.toFixed(2)}
+            </span>
+          )}
+        </div>
+        {hasDiscount && (
+          <span className="text-sm text-green-600 font-semibold">
+            Save Rs {(price - discountPrice).toFixed(2)}
+          </span>
+        )}
+      </div>
+    );
   };
 
   return (
-    <div 
+    <div
       onClick={handleCardClick}
       className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group cursor-pointer transform hover:-translate-y-1"
     >
       {/* Product Image */}
       <div className="relative overflow-hidden">
         <img
-          src={product.image}
+          src={product.image_url || '/placeholder.jpg'}
           alt={product.name}
           className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
           loading="lazy"
         />
-        
-        {/* Discount Badge
-        {product.discount && (
-          <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-md text-sm font-semibold shadow-lg">
-            -{product.discount}%
-          </div>
-        )} */}
-        
+
         {/* Wishlist Button */}
         <button
           onClick={handleWishlist}
@@ -75,55 +75,26 @@ const ProductCard = ({ product, onAddToCart }) => {
             }`}
           />
         </button>
-
-        {/* Quick View Overlay */}
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
-          <span className="text-white font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            Quick View
-          </span>
-        </div>
       </div>
 
       {/* Product Info */}
       <div className="p-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-2 line-clamp-2 hover:text-blue-600 transition-colors">
+        {/* Name */}
+        <h3 className="text-lg font-semibold text-gray-800 mb-1 line-clamp-2 hover:text-blue-600 transition-colors">
           {product.name}
         </h3>
-        
-        {/* Rating
-        <div className="flex items-center mb-3">
-          <div className="flex items-center">
-            {renderStars(product.rating)}
-          </div>
-          <span className="text-sm text-gray-600 ml-2">
-            {product.rating} ({product.reviews} reviews)
-          </span>
-        </div> */}
+
+        {/* Quantity */}
+        <p className="text-sm text-gray-500 mb-1">
+          Quantity: {product.quantity_per_unit} {product.unit_symbol}
+        </p>
 
         {/* Price */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            <span className="text-xl font-bold text-blue-600">
-              Rs {product.price.toFixed(2)}
-            </span>
-            {/* {product.originalPrice && product.originalPrice > product.price && (
-              <span className="text-sm text-gray-500 line-through">
-                Rs {product.originalPrice.toFixed(2)}
-              </span>
-            )} */}
-          </div>
-          {/* {product.originalPrice && product.originalPrice > product.price && (
-            <span className="text-sm text-green-600 font-semibold">
-              Save Rs{(product.originalPrice - product.price).toFixed(2)}
-            </span>
-          )} */}
-        </div>
+        {renderPrice()}
 
-        {/* Stock Status */}
+        {/* Stock */}
         <div className="mb-4">
-          <span className="text-sm text-green-600 font-medium">
-            ✓ In Stock
-          </span>
+          <span className="text-sm text-green-600 font-medium">✓ In Stock</span>
         </div>
 
         {/* Add to Cart Button */}
