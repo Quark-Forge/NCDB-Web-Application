@@ -64,7 +64,7 @@ const Register = () => {
     try {
       const payload = { name, email, password, address, contact_number };
       const res = await register(payload).unwrap();
-      navigate('/verify-email', {state: { email: email }});
+      navigate('/auth/verify-email', {state: { email: email }});
     } catch (err) {
       const errorMessage = err?.data?.message || err?.error || "Registration failed";
       toast.error(errorMessage);
