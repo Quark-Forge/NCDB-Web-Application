@@ -6,11 +6,21 @@ export const productsApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // GET /api/products
     getProducts: builder.query({
-      query: () => ({
-        url: PRODUCTS_URL,
-        method: 'GET',
-      }),
-      providesTags: ['Product'],
+      query: ({ search, category, sort, page, limit }) => {
+        const params = new URLSearchParams();
+
+        if (search) params.append('search', search);
+        if (category) params.append('category', category);
+        if (sort) params.append('sort', sort);
+        if (page) params.append('page', page);
+        if (limit) params.append('limit', limit);
+
+        return {
+          url: `${PRODUCTS_URL}?${params.toString()}`,
+          method: 'GET',
+        };
+      },
+      providesTags: ['product'],
     }),
 
     // GET /api/products/:id
@@ -19,7 +29,7 @@ export const productsApiSlice = apiSlice.injectEndpoints({
         url: `${PRODUCTS_URL}/${id}`,
         method: 'GET',
       }),
-      providesTags: ['Product'],
+      providesTags: ['product'],
     }),
 
     // POST /api/products
@@ -29,7 +39,7 @@ export const productsApiSlice = apiSlice.injectEndpoints({
         method: 'POST',
         body: data,
       }),
-      invalidatesTags: ['Product'],
+      invalidatesTags: ['product'],
     }),
 
     // PUT /api/products/:id
@@ -39,7 +49,7 @@ export const productsApiSlice = apiSlice.injectEndpoints({
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: ['Product'],
+      invalidatesTags: ['product'],
     }),
 
     // DELETE /api/products/:id
@@ -48,7 +58,7 @@ export const productsApiSlice = apiSlice.injectEndpoints({
         url: `${PRODUCTS_URL}/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['Product'],
+      invalidatesTags: ['product'],
     }),
   }),
 });

@@ -9,9 +9,18 @@ const Home = () => {
   const [cartItems, setCartItems] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const productsPerPage = 6;
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('');
+  const [sort, setSort] = useState('price_asc');
 
 
-  const { data, isLoading, error } = useGetProductsQuery();
+  const { data, isLoading, error } = useGetProductsQuery({
+    search,
+    category,
+    sort,
+    page: 1,
+    limit: 10,
+  });
   const products = data?.data || [];
 
   // test
@@ -43,9 +52,13 @@ const Home = () => {
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
       {/* Navbar */}
-      <Navbar cartCount={cartCount} />
+      <Navbar 
+        cartCount={cartCount}
+        search={search}
+        setSearch={setSearch}
+      />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -77,7 +90,7 @@ const Home = () => {
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-200 ${currentPage === 1
+                className={`px-4 py-2 rounded-3xl font-semibold transition-colors duration-200 ${currentPage === 1
                   ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                   : 'bg-blue-600 text-white hover:bg-blue-700'
                   }`}
@@ -89,7 +102,7 @@ const Home = () => {
                 <button
                   key={number}
                   onClick={() => handlePageChange(number)}
-                  className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-200 ${currentPage === number
+                  className={`px-4 py-2 rounded-3xl font-semibold transition-colors duration-200 ${currentPage === number
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-200 text-gray-700 hover:bg-blue-100'
                     }`}
@@ -101,7 +114,7 @@ const Home = () => {
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-200 ${currentPage === totalPages
+                className={`px-4 py-2 rounded-3xl font-semibold transition-colors duration-200 ${currentPage === totalPages
                   ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                   : 'bg-blue-600 text-white hover:bg-blue-700'
                   }`}

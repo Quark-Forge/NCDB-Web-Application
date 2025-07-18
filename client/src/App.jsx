@@ -14,7 +14,6 @@ const App = () => {
             <AppRoutes/>
           </BrowserRouter>
       </Provider>
-
     </>
   )
 }

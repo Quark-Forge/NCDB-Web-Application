@@ -57,12 +57,12 @@ const Login = () => {
           
           <button
             type="submit"
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-md transition duration-200"
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-3xl transition duration-200"
           >
             Login
           </button>
           <button
-            className="w-full border-1 border-blue-500 hover:bg-blue-500 hover:text-white text-blue-500 py-2 rounded-md transition duration-200"
+            className="w-full border-1 border-blue-500 hover:bg-blue-500 hover:text-white text-blue-500 py-2 rounded-3xl transition duration-200"
             onClick={() => navigate('/auth/register')}
           >
             Register

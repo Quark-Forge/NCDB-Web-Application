@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 import { ShoppingCart, Heart, Star } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 
 const ProductCard = ({ product, onAddToCart }) => {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const { userInfo } = useSelector((state) => state.auth);
 
   const handleWishlist = (e) => {
     e.stopPropagation();
@@ -12,6 +17,9 @@ const ProductCard = ({ product, onAddToCart }) => {
   };
 
   const handleAddToCart = (e) => {
+    if (!userInfo) {
+      navigate('/auth/login');
+    }
     e.stopPropagation();
     setIsLoading(true);
     setTimeout(() => {
@@ -65,16 +73,20 @@ const ProductCard = ({ product, onAddToCart }) => {
         />
 
         {/* Wishlist Button */}
-        <button
-          onClick={handleWishlist}
-          className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition-all duration-200 hover:scale-110"
-        >
-          <Heart
-            className={`h-4 w-4 transition-colors ${
-              isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-400 hover:text-red-400'
-            }`}
-          />
-        </button>
+        {
+          userInfo ? (
+            <button
+              onClick={handleWishlist}
+              className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition-all duration-200 hover:scale-110"
+            >
+              <Heart
+                className={`h-4 w-4 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-400 hover:text-red-400'
+                  }`}
+              />
+            </button>
+          ) : null
+        }
+
       </div>
 
       {/* Product Info */}
@@ -101,11 +113,10 @@ const ProductCard = ({ product, onAddToCart }) => {
         <button
           onClick={handleAddToCart}
           disabled={isLoading}
-          className={`w-full font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 ${
-            isLoading
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg transform hover:scale-105'
-          } text-white`}
+          className={`w-full font-semibold py-2 px-4 rounded-3xl transition-all duration-200 flex items-center justify-center space-x-2 ${isLoading
+            ? 'bg-gray-400 cursor-not-allowed'
+            : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg transform hover:scale-105'
+            } text-white`}
         >
           {isLoading ? (
             <>
