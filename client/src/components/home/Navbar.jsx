@@ -5,7 +5,6 @@ import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 
 const Navbar = ({ cartCount = 0, search, setSearch }) => {
-  const [searchQuery, setSearchQuery] = useState('');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const navigate = useNavigate();
@@ -14,6 +13,7 @@ const Navbar = ({ cartCount = 0, search, setSearch }) => {
   const handleSearch = (e) => {
     e.preventDefault();
     console.log('Searching for:', search);
+    set
     
   };
 
