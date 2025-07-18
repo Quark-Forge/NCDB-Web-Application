@@ -46,7 +46,7 @@ const UserProfile = ({ isOpen, onClose }) => {
           <div className="p-6 flex-1 overflow-y-auto">
             <div className="flex items-center space-x-4 mb-6">
               <img
-                src={userInfo?.avatar || "/images/user.png"}
+                src={userInfo?.image_url || "/images/user.png"}
                 alt="User Profile"
                 className="w-16 h-16 rounded-full object-cover"
                 onError={(e) => {
@@ -65,12 +65,12 @@ const UserProfile = ({ isOpen, onClose }) => {
 
             {/* Profile Info */}
             <div className="space-y-4">
-              <div>
+              {/* <div>
                 <h4 className="text-sm font-medium text-gray-700">Account Details</h4>
                 <p className="text-sm text-gray-600 mt-1">
-                  Member since: {userInfo?.createdAt ? new Date(userInfo.createdAt).toLocaleDateString() : "N/A"}
+                  Member since: {userInfo?.created_at ? new Date(userInfo.created_at).toLocaleDateString() : "N/A"}
                 </p>
-              </div>
+              </div> */}
 
               {/* Settings Options */}
               <div>
@@ -109,7 +109,7 @@ const UserProfile = ({ isOpen, onClose }) => {
           {/* Footer */}
           <div className="p-4 border-t border-gray-200">
             <button 
-              className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              className="w-full py-2 bg-blue-600 text-white rounded-3xl hover:bg-blue-700 transition-colors disabled:opacity-50"
               onClick={() => navigate('/user/profile/edit')}
               disabled={isLoading}
             >

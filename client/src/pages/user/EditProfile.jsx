@@ -170,7 +170,7 @@ const EditProfile = () => {
         {isLoading && <h2 className="text-blue-500">Loading...</h2>}
         <button
           type="submit"
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-md transition duration-200"
+          className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-3xl transition duration-200"
         >
           Update
         </button>
