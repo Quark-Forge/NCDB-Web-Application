@@ -103,6 +103,11 @@ export const addProduct = asyncHandler(async (req, res) => {
     }
 });
 
+// Helper function to chnage text to titlecase
+function toTitleCase(str) {
+    return str.replace(/\b\w/g, char => char.toUpperCase());
+}
+
 // Get all products
 export const getAllProducts = asyncHandler(async (req, res) => {
     const { search, category, sort, page = 1,  limit = 20,  } = req.query;
@@ -117,7 +122,8 @@ export const getAllProducts = asyncHandler(async (req, res) => {
     let order = [['created_at', 'DESC']]; // default
     if (sort === 'price_asc') order = [['price', 'ASC']];
     else if (sort === 'price_desc') order = [['price', 'DESC']];
-    else if (sort === 'name') order = [['name', 'ASC']];
+    else if (sort === 'name_asc') order = [['name', 'ASC']];
+    else if (sort === 'name_desc') order = [['name', 'DESC']]; 
 
     const offset = (page - 1) * limit;
 
@@ -129,7 +135,7 @@ export const getAllProducts = asyncHandler(async (req, res) => {
         required: !!category
     }];
 
-     const products = await Product.findAll({
+    const { count, rows: products } = await Product.findAndCountAll({
         where,
         order,
         limit: parseInt(limit),
@@ -137,10 +143,17 @@ export const getAllProducts = asyncHandler(async (req, res) => {
         include,
     });
 
+    const updatedProducts = products.map(product => ({
+        ...product.toJSON(),
+        name: toTitleCase(product.name),
+    }));
+
+
     res.status(200).json({
         success: true,
         message: 'Filtered, searched, and sorted products',
-        data: products,
+        data: updatedProducts,
+        totalCount: count,
     });
 });
 
@@ -159,10 +172,15 @@ export const getProductById = asyncHandler(async (req, res) => {
         throw new Error(`Product with ID ${id} not found`);
     }
 
+    const updatedProduct = {
+        ...product.toJSON(),
+        name: toTitleCase(product.name),
+    };
+
     res.status(200).json({
         success: true,
         message: `Product details for ID ${id}`,
-        data: product,
+        data: updatedProduct,
     });
 });
 

@@ -48,7 +48,7 @@ export const createCategory = asyncHandler(async (req, res) => {
     });
 });
 
-// Helper function to chnage text to lowercase
+// Helper function to chnage text to titlecase
 function toTitleCase(str) {
     return str.replace(/\b\w/g, char => char.toUpperCase());
 }
@@ -56,9 +56,15 @@ function toTitleCase(str) {
 // Get All categories
 export const getAllCategories = asyncHandler(async (req, res) => {
     const categories = await Category.findAll({ paranoid: false });
+
+    const updatedCategories = categories.map(category => ({
+        ...category.toJSON(),
+        name: toTitleCase(category.name),
+    }));
+
     return res.status(200).json({
         message: 'all categories including disabled',
-        data: categories,
+        data: updatedCategories,
     });
 });
 
@@ -66,9 +72,15 @@ export const getAllCategories = asyncHandler(async (req, res) => {
 // Get only active categories
 export const getActiveCategories = asyncHandler(async (req, res) => {
     const categories = await Category.findAll();
+
+    const updatedCategories = categories.map(category => ({
+        ...category.toJSON(),
+        name: toTitleCase(category.name),
+    }));
+
     return res.status(200).json({
         message: 'Active categories only',
-        data: categories,
+        data: updatedCategories,
     });
 });
 
