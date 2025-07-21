@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { mockProducts } from "../../data/products";
 import Navbar from '../../components/home/Navbar';
 import ProductCard from '../../components/home/ProductCard';
-import { useGetProductsQuery } from '../../slices/ProductsApiSlice';
+import { useGetProductsQuery } from '../../slices/productsApiSlice';
+import { useGetCategoriesQuery } from '../../slices/categoryApiSlice';
+
 
 const Home = () => {
   const [cartCount, setCartCount] = useState(0);
@@ -18,13 +20,19 @@ const Home = () => {
     search,
     category,
     sort,
-    page: 1,
-    limit: 10,
+    page: currentPage,
+    limit: productsPerPage,
   });
+  const { data: categoryData, isLoading: categoryLoading, error: categoryError } = useGetCategoriesQuery();
+
   const products = data?.data || [];
+  const categories = categoryData?.data || [];
+
 
   // test
   console.log("API response:", data);
+  console.log("Categories response", categoryData);
+
 
 
   const handleAddToCart = (product) => {
@@ -52,9 +60,9 @@ const Home = () => {
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-100">
       {/* Navbar */}
-      <Navbar 
+      <Navbar
         cartCount={cartCount}
         search={search}
         setSearch={setSearch}
@@ -67,6 +75,48 @@ const Home = () => {
           <h2 className="text-3xl font-bold text-gray-800 mb-4">Featured Products</h2>
           <p className="text-gray-600">Discover our latest collection of premium products</p>
         </div>
+
+        <div>
+          {/* Categories to filter option */}
+          {
+            categoryLoading ? (
+              <p>Loading categories...</p>
+            ) : categoryError ? (
+              <p className="text-red-500">Failed to load Categorise</p>
+            ) : (
+              <select
+                className="mb-6 px-4 py-2 dropdown-content menu rounded-md border border-gray-300"
+                name="categories"
+                id="categories"
+                onChange={(e) => setCategory(e.target.value)}
+              >
+                {
+                  categories.map((category) => (
+                    <option
+                      key={category.id}
+                      value={category.name}
+                    >
+                      {category.name}
+                    </option>
+                  ))
+                }
+              </select>
+            )
+          }
+          {/* Sorting */}
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            className="ml-4 mb-6 px-4 py-2 rounded-md border border-gray-300"
+          >
+            <option value="price_asc">Price: Low to High</option>
+            <option value="price_desc">Price: High to Low</option>
+            <option value="name_asc">Name: A to Z</option>
+            <option value="name_desc">Name: Z to A</option>
+          </select>
+        </div>
+        
+
 
         {/* Handle loading & error states */}
         {isLoading ? (

@@ -17,6 +17,8 @@ router.route('/')
       .post(protect, authorize('Admin'),createCategory)
       .get(getAllCategories);
 
+router.get('/active', getActiveCategories);
+
 router.route('/:id')
       .get(getSingleCategory)
       .delete(protect, authorize('Admin'), disabledCategory)
@@ -24,8 +26,6 @@ router.route('/:id')
       .put(protect, authorize('Admin'), updateCategory);
       
 router.delete('/delete/:id', deleteCategory);
-
-router.get('/active', getActiveCategories);
 
 
 export default router;
