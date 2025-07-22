@@ -110,7 +110,7 @@ function toTitleCase(str) {
 
 // Get all products
 export const getAllProducts = asyncHandler(async (req, res) => {
-    const { search, category, sort, page = 1,  limit = 20,  } = req.query;
+    const { search, category, sort, page = 1,  limit = 10,  } = req.query;
     const where = {};
 
     // Search by product name
