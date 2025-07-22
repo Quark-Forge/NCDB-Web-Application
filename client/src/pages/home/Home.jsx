@@ -1,21 +1,19 @@
 import React, { useState } from 'react';
-import { mockProducts } from "../../data/products";
 import Navbar from '../../components/home/Navbar';
 import ProductCard from '../../components/home/ProductCard';
 import { useGetProductsQuery } from '../../slices/productsApiSlice';
 import { useGetCategoriesQuery } from '../../slices/categoryApiSlice';
 
-
 const Home = () => {
   const [cartCount, setCartCount] = useState(0);
   const [cartItems, setCartItems] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 6;
+  const productsPerPage = 8;
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
-  const [sort, setSort] = useState('price_asc');
+  const [sort, setSort] = useState('created_at_desc');
 
-
+  // Fetch products with pagination
   const { data, isLoading, error } = useGetProductsQuery({
     search,
     category,
@@ -23,33 +21,22 @@ const Home = () => {
     page: currentPage,
     limit: productsPerPage,
   });
+
+  // Fetch categories
   const { data: categoryData, isLoading: categoryLoading, error: categoryError } = useGetCategoriesQuery();
 
   const products = data?.data || [];
+  const totalCount = data?.totalCount || 0;
+  const totalPages = Math.ceil(totalCount / productsPerPage);
+
   const categories = categoryData?.data || [];
 
-
-  // test
-  console.log("API response:", data);
-  console.log("Categories response", categoryData);
-
-
-
   const handleAddToCart = (product) => {
-    setCartCount(prevCount => prevCount + 1);
-    setCartItems(prevItems => [...prevItems, product]);
+    setCartCount(prev => prev + 1);
+    setCartItems(prev => [...prev, product]);
     console.log('Added to cart:', product);
   };
 
-  // Calculate pagination details
-  const totalProducts = products.length;
-  const totalPages = Math.ceil(totalProducts / productsPerPage);
-  const startIndex = (currentPage - 1) * productsPerPage;
-  const endIndex = startIndex + productsPerPage;
-  const currentProducts = products.slice(startIndex, endIndex);
-
-
-  // Handle page change
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
@@ -61,14 +48,8 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      {/* Navbar */}
-      <Navbar
-        cartCount={cartCount}
-        search={search}
-        setSearch={setSearch}
-      />
+      <Navbar cartCount={cartCount} search={search} setSearch={setSearch} />
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section */}
         <div className="mb-8">
@@ -76,49 +57,41 @@ const Home = () => {
           <p className="text-gray-600">Discover our latest collection of premium products</p>
         </div>
 
-        <div>
-          {/* Categories to filter option */}
-          {
-            categoryLoading ? (
-              <p>Loading categories...</p>
-            ) : categoryError ? (
-              <p className="text-red-500">Failed to load Categorise</p>
-            ) : (
-              <select
-                className="mb-6 px-4 py-2 dropdown-content menu rounded-md border border-gray-300"
-                name="categories"
-                id="categories"
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                {
-                  categories.map((category) => (
-                    <option
-                      key={category.id}
-                      value={category.name}
-                    >
-                      {category.name}
-                    </option>
-                  ))
-                }
-              </select>
-            )
-          }
-          {/* Sorting */}
+        {/* Filters */}
+        <div className="flex flex-wrap gap-4 mb-6">
+          {categoryLoading ? (
+            <p>Loading categories...</p>
+          ) : categoryError ? (
+            <p className="text-red-500">Failed to load categories</p>
+          ) : (
+            <select
+              className="px-4 py-2 rounded-md border bg-slate-50 border-gray-300"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              <option value="">All Categories</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.name}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          )}
+
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
-            className="ml-4 mb-6 px-4 py-2 rounded-md border border-gray-300"
+            className="px-4 py-2 rounded-md border bg-slate-50 border-gray-300"
           >
+            <option value="created_at_desc">Newest First</option>
             <option value="price_asc">Price: Low to High</option>
             <option value="price_desc">Price: High to Low</option>
             <option value="name_asc">Name: A to Z</option>
             <option value="name_desc">Name: Z to A</option>
           </select>
         </div>
-        
 
-
-        {/* Handle loading & error states */}
+        {/* Products */}
         {isLoading ? (
           <p>Loading products...</p>
         ) : error ? (
@@ -126,7 +99,7 @@ const Home = () => {
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {currentProducts.map((product) => (
+              {products.map((product) => (
                 <ProductCard
                   key={product.id}
                   product={product}
@@ -177,11 +150,9 @@ const Home = () => {
       </main>
 
       <footer className="bg-gray-800 text-white py-8 mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h3 className="text-2xl font-bold text-blue-400 mb-4">NCDB</h3>
-            <p className="text-gray-400">Your trusted e-commerce partner</p>
-          </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h3 className="text-2xl font-bold text-blue-400 mb-4">NCDB</h3>
+          <p className="text-gray-400">Your trusted e-commerce partner</p>
         </div>
       </footer>
     </div>
