@@ -184,21 +184,147 @@ export const getProductById = asyncHandler(async (req, res) => {
     });
 });
 
-// Update Porduct details
-// export const updateProduct = asyncHandler(async (req, res) => {
-//     const { 
-//         name, 
-//         sku, 
-//         description, 
-//         price, 
-//         discount_price, 
-//         quantity_per_unit, 
-//         quantity, 
-//         unit_symbol, 
-//         image_url, 
-//         category_id, 
-//         supplier_id 
-//     } = req.body;
-    
-// });
+// Update Product details
+export const updateProduct = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { 
+        name, 
+        sku, 
+        description, 
+        price, 
+        discount_price, 
+        quantity_per_unit, 
+        unit_symbol, 
+        image_url, 
+        category_id 
+    } = req.body;
 
+    if (!id) {
+        res.status(400);
+        throw new Error('No ID provided in the params');
+    }
+
+    if (!name && !sku && !description && !price && !discount_price && 
+        !quantity_per_unit && !unit_symbol && !image_url && !category_id) {
+        res.status(400);
+        throw new Error('At least one field to update is required');
+    }
+
+    if (price && isNaN(price)) {
+        res.status(400);
+        throw new Error('Price must be a number');
+    }
+
+    if (discount_price && isNaN(discount_price)) {
+        res.status(400);
+        throw new Error('Discount price must be a number');
+    }
+
+    const transaction = await sequelize.transaction();
+
+    try {
+        const product = await Product.findByPk(id, { transaction });
+
+        if (!product) {
+            await transaction.rollback();
+            res.status(404);
+            throw new Error(`Product with ID ${id} not found`);
+        }
+
+        // Verify category exists if being updated
+        if (category_id) {
+            const category = await Category.findByPk(category_id, { transaction });
+            if (!category) {
+                await transaction.rollback();
+                res.status(400);
+                throw new Error('Category not found');
+            }
+        }
+
+        // Update product fields
+        if (name) product.name = name.trim().toLowerCase();
+        if (sku) product.sku = sku;
+        if (description) product.description = description;
+        if (price) product.price = price;
+        if (discount_price) product.discount_price = discount_price;
+        if (quantity_per_unit) product.quantity_per_unit = quantity_per_unit;
+        if (unit_symbol) product.unit_symbol = unit_symbol;
+        if (image_url) product.image_url = image_url;
+        if (category_id) product.category_id = category_id;
+
+        await product.save({ transaction });
+        await transaction.commit();
+
+        const updatedProduct = {
+            ...product.toJSON(),
+            name: toTitleCase(product.name),
+        };
+
+        res.status(200).json({
+            success: true,
+            message: `Product with ID ${id} updated successfully`,
+            data: updatedProduct,
+        });
+
+    } catch (error) {
+        await transaction.rollback();
+        res.status(500);
+        throw new Error('Failed to update product: ' + error.message);
+    }
+});
+
+
+// Delete Product
+export const deleteProduct = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    if (!id) {
+        res.status(400);
+        throw new Error('No ID provided in the params');
+    }
+
+    const transaction = await sequelize.transaction();
+
+    try {
+        //Check if the product exists
+        const product = await Product.findByPk(id, { transaction });
+
+        if (!product) {
+            await transaction.rollback();
+            res.status(404);
+            throw new Error(`Product with ID ${id} not found`);
+        }
+
+        // Check for supplier items
+        const supplierItems = await SupplierItem.findAll({
+            where: { product_id: id },
+            transaction
+        });
+
+        if (supplierItems.length > 0) {
+            await SupplierItem.destroy({
+                where: { product_id: id },
+                transaction
+            });
+        }
+
+        // Delete the product
+        await product.destroy({ transaction });
+
+        await transaction.commit();
+
+        res.status(200).json({
+            success: true,
+            message: `Product with ID ${id} deleted successfully`,
+            deletedProduct: {
+                ...product.toJSON(),
+                name: toTitleCase(product.name)
+            }
+        });
+
+    } catch (error) {
+        await transaction.rollback();
+        res.status(500);
+        throw new Error('Failed to delete product: ' + error.message);
+    }
+});
