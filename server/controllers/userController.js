@@ -11,9 +11,27 @@ import Role from '../models/roles.js';
 // Protected - Admin Only
 const getUsers = asyncHandler(async (req, res) => {
     const users = await User.findAll({
-        attributes: { exclude: ['password'] }
+        attributes: { exclude: ['password'] },
+        include: [
+            {
+                model: Role,
+                attributes: ['name'],
+            },
+        ],
     });
-    res.status(200).json(users);
+    const usersWithRole = users.map(user => {
+    const userJson = user.toJSON();
+    return {
+      ...userJson,
+      role_name: userJson.Role?.name || null,
+      Role: undefined,
+    };
+  });
+
+    res.status(200).json({
+        success: true,
+        data: usersWithRole,
+    });
 });
 
 // Auth user/set token
@@ -31,7 +49,7 @@ const authUser = asyncHandler(async (req, res) => {
         const role = await Role.findByPk(role_id);
         const user_role = role.name;
         generateToken(res, id);
-        return res.status(200).json({ id, name, email, contact_number, address,role_id, user_role });
+        return res.status(200).json({ id, name, email, contact_number, address, role_id, user_role });
     }
     res.status(401);
     throw new Error('Invalid email or password');
@@ -46,11 +64,11 @@ const registerUser = asyncHandler(async (req, res) => {
         res.status(400);
         throw new Error('All fields are required');
     }
-    const verifiedUser = await User.findOne({ 
-        where: { 
+    const verifiedUser = await User.findOne({
+        where: {
             email,
-            is_verified: true 
-        } 
+            is_verified: true
+        }
     });
 
     if (verifiedUser) {
@@ -71,7 +89,7 @@ const registerUser = asyncHandler(async (req, res) => {
     const hashedPassword = await hashPassword(password);
 
     const role = await Role.findOne({ where: { name: 'Customer' } });
-    
+
     const newUser = await User.create({
         name,
         email,
@@ -113,7 +131,7 @@ const registerUser = asyncHandler(async (req, res) => {
 const verifyEmail = asyncHandler(async (req, res) => {
     const { token } = req.params;
     console.log(token);
-    
+
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
