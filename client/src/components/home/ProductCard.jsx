@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingCart, Heart, Star } from 'lucide-react';
+import { Heart, Star, ShoppingCartIcon } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 
@@ -38,19 +38,19 @@ const ProductCard = ({ product, onAddToCart }) => {
     const hasDiscount = discountPrice < price;
 
     return (
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span className="text-xl font-bold text-blue-600">
+      <div className="flex flex-col items-center text-left justify-between gap-2 mb-2">
+        <div className="flex flex-row w-full items-center gap-2">
+          <span className="w-full text-xl font-bold text-gray-800">
             Rs {hasDiscount ? discountPrice.toFixed(2) : price.toFixed(2)}
           </span>
           {hasDiscount && (
-            <span className="text-sm text-gray-500 line-through">
+            <span className="w-full text-sm text-gray-500 line-through">
               Rs {price.toFixed(2)}
             </span>
           )}
         </div>
         {hasDiscount && (
-          <span className="text-sm text-green-600 font-semibold">
+          <span className="w-full text-sm text-green-600 font-semibold">
             Save Rs {(price - discountPrice).toFixed(2)}
           </span>
         )}
@@ -64,11 +64,11 @@ const ProductCard = ({ product, onAddToCart }) => {
       className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group cursor-pointer transform hover:-translate-y-1"
     >
       {/* Product Image */}
-      <div className="relative overflow-hidden">
+      <div className="relative flex justify-center overflow-hidden">
         <img
-          src={product.image_url || '/placeholder.jpg'}
+          src={product.image_url || '../../images/product.png'}
           alt={product.name}
-          className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
+          className="w-fit h-40 object-cover group-hover:scale-110 transition-transform duration-500"
           loading="lazy"
         />
 
@@ -90,46 +90,49 @@ const ProductCard = ({ product, onAddToCart }) => {
       </div>
 
       {/* Product Info */}
-      <div className="p-4">
-        {/* Name */}
-        <h3 className="text-lg font-semibold text-gray-800 mb-1 line-clamp-2 hover:text-blue-600 transition-colors">
-          {product.name}
-        </h3>
+      <div className="p-4 flex flex-row">
+        <div className='flex w-full flex-col'>
+          {/* Name */}
+          <h3 className="text-lg font-semibold text-gray-800 mb-1 line-clamp-2 hover:text-blue-600 transition-colors">
+            {product.name}
+          </h3>
 
-        {/* Quantity */}
-        <p className="text-sm text-gray-500 mb-1">
+          {/* Quantity */}
+          {/* <p className="text-sm text-gray-500 mb-1">
           Quantity: {product.quantity_per_unit} {product.unit_symbol}
-        </p>
+        </p> */}
 
-        {/* Price */}
-        {renderPrice()}
+          {/* Price */}
+          {renderPrice()}
 
-        {/* Stock */}
-        <div className="mb-4">
-          <span className="text-sm text-green-600 font-medium">✓ In Stock</span>
+          {/* Stock */}
+          <div className="mb-4">
+            <span className="text-sm text-green-600 font-medium">✓ In Stock</span>
+          </div>
         </div>
 
-        {/* Add to Cart Button */}
-        <button
-          onClick={handleAddToCart}
-          disabled={isLoading}
-          className={`w-full font-semibold py-2 px-4 rounded-3xl transition-all duration-200 flex items-center justify-center space-x-2 ${isLoading
-            ? 'bg-gray-400 cursor-not-allowed'
-            : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg transform hover:scale-105'
-            } text-white`}
-        >
-          {isLoading ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              <span>Adding...</span>
-            </>
-          ) : (
-            <>
-              <ShoppingCart className="h-4 w-4" />
-              <span>Add to Cart</span>
-            </>
-          )}
-        </button>
+        <div className='flex w-1/2 justify-end'>
+          {/* Add to Cart Button */}
+          <button
+            onClick={handleAddToCart}
+            disabled={isLoading}
+            className={` font-semibold w-11 h-11 rounded-3xl transition-all duration-200 flex items-center justify-center space-x-2 ${isLoading
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-blue-600 hover:bg-blue-400 hover:shadow-lg transform hover:scale-105'
+              } text-white`}
+          >
+            {isLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              </>
+            ) : (
+              <>
+                <ShoppingCartIcon className='p-1' />
+                {/* Add to cart */}
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );

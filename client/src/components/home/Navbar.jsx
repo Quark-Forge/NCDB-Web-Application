@@ -31,8 +31,8 @@ const Navbar = ({ cartCount = 0, search, setSearch }) => {
 
   return (
     <>
-      <nav className="bg-white w-full px-4 py-3 shadow-md border-blue-100 sticky top-0 z-50">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 max-w-7xl mx-auto">
+      <nav className="bg-white w-full px-8 py-3 shadow-md border-blue-100 sticky top-0 z-50">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mx-auto">
           {/* Left: Logo */}
           <div className="flex items-center flex-shrink-0 w-full md:w-auto justify-between">
             <button
@@ -65,10 +65,10 @@ const Navbar = ({ cartCount = 0, search, setSearch }) => {
                       Login
                     </button>
                     <button
-                      className="border border-blue-500 px-3 py-1 text-blue-500 rounded-3xl hover:bg-blue-500 hover:text-white transition text-sm"
+                      className="border border-blue-500 px-3 py-1 text-blue-500 rounded-3xl hover:bg-blue-600 hover:text-white transition text-sm"
                       onClick={() => navigate('/auth/register')}
                     >
-                      Register
+                      Sign Up
                     </button>
                   </div>
 
@@ -109,7 +109,7 @@ const Navbar = ({ cartCount = 0, search, setSearch }) => {
                 placeholder="Search products..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border-0 bg-slate-200 rounded-3xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="block w-full pl-10 pr-3 py-2 border-0 bg-slate-200 rounded-3xl focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent transition-all"
               />
               <div className="absolute inset-y-0 right-3 pl-3 flex items-center pointer-events-none">
                 <Search className="h-5 w-5 text-gray-500" />
@@ -122,7 +122,7 @@ const Navbar = ({ cartCount = 0, search, setSearch }) => {
             {/* Cart */}
             <button
               onClick={handleCartClick}
-              className="relative cursor-pointer hover:text-blue-600 transition-colors p-2 rounded-full hover:bg-blue-50"
+              className="relative cursor-pointer hover:text-blue-500 transition-colors p-2 rounded-full hover:bg-blue-50"
             >
               <ShoppingCartIcon className="h-6 w-6" />
               {cartCount > 0 && (
@@ -156,7 +156,7 @@ const Navbar = ({ cartCount = 0, search, setSearch }) => {
                   className="border border-blue-500 px-4 py-2 text-blue-500 rounded-3xl hover:bg-blue-500 hover:text-white transition"
                   onClick={() => navigate('/auth/register')}
                 >
-                  Register
+                  Sign Up
                 </button>
               </div>
             )}
