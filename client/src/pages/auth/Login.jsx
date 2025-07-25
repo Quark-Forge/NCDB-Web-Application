@@ -69,7 +69,7 @@ const Login = () => {
             className="w-full border-1 border-blue-500 hover:bg-blue-500 hover:text-white text-blue-500 py-2 rounded-3xl transition duration-200"
             onClick={() => navigate('/auth/register')}
           >
-            Register
+            Sign Up
           </button>
         </form>
       </div>
