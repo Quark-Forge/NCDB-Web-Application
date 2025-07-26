@@ -61,6 +61,9 @@ export const up = async (queryInterface, Sequelize) => {
       type: Sequelize.DATE,
       defaultValue: Sequelize.literal('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
     },
+    deleted_at: {
+      type: Sequelize.DATE,
+    },
   });
 };
 

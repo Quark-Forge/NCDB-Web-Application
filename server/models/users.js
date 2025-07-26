@@ -68,6 +68,7 @@ const User = sequelize.define('User', {
   tableName: 'users',
   timestamps: true,
   underscored: true,
+  paranoid: true,
 });
 
 User.belongsTo(Role, {

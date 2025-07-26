@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, ShoppingCartIcon } from 'lucide-react';
+import { Search, ShoppingCartIcon, LayoutDashboard } from 'lucide-react';
 import UserProfile from '../user/UserProfile';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -10,15 +10,12 @@ const Navbar = ({ cartCount = 0, search, setSearch }) => {
   const navigate = useNavigate();
   const { userInfo } = useSelector((state) => state.auth);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    console.log('Searching for:', search);
-    set
-    
-  };
-
   const handleCartClick = () => {
     navigate('/user/cart');
+  };
+
+  const handleAdminPanelClick = () => {
+    navigate('/admin/dashboard');
   };
 
   const handleProfileClick = () => {
@@ -42,11 +39,11 @@ const Navbar = ({ cartCount = 0, search, setSearch }) => {
               NCDB Mart
             </button>
 
-            {/* Mobile: Auth Buttons + Cart */}
+            {/* Mobile: Auth Buttons + Cart/Admin */}
             <div className="flex items-center space-x-3 md:hidden">
               {!userInfo ? (
                 <>
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-4">
                     <button
                       onClick={handleCartClick}
                       className="relative cursor-pointer hover:text-blue-600 transition-colors p-2 rounded-full hover:bg-blue-50"
@@ -71,21 +68,43 @@ const Navbar = ({ cartCount = 0, search, setSearch }) => {
                       Sign Up
                     </button>
                   </div>
-
                 </>
               ) : (
                 <>
-                  <button
-                    onClick={handleCartClick}
-                    className="relative cursor-pointer hover:text-blue-600 transition-colors p-2 rounded-full hover:bg-blue-50"
-                  >
-                    <ShoppingCartIcon className="h-6 w-6" />
-                    {cartCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold">
-                        {cartCount > 99 ? '99+' : cartCount}
-                      </span>
-                    )}
-                  </button>
+                  {userInfo.user_role === "Admin" ? (
+                    <div className='flex flex-row space-x-3'>
+                      <button
+                        onClick={handleAdminPanelClick}
+                        className="flex items-center gap-1 bg-gray-800 text-white px-3 rounded-3xl hover:bg-gray-600 transition text-sm"
+                      >
+                        <LayoutDashboard className="h-4 w-4" />
+                        Admin
+                      </button>
+                      <button
+                        onClick={handleCartClick}
+                        className="relative cursor-pointer hover:text-blue-600 transition-colors p-2 rounded-full hover:bg-blue-50"
+                      >
+                        <ShoppingCartIcon className="h-6 w-6" />
+                        {cartCount > 0 && (
+                          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold">
+                            {cartCount > 99 ? '99+' : cartCount}
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleCartClick}
+                      className="relative cursor-pointer hover:text-blue-600 transition-colors p-2 rounded-full hover:bg-blue-50"
+                    >
+                      <ShoppingCartIcon className="h-6 w-6" />
+                      {cartCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold">
+                          {cartCount > 99 ? '99+' : cartCount}
+                        </span>
+                      )}
+                    </button>
+                  )}
                   <button
                     onClick={handleProfileClick}
                     className="cursor-pointer hover:opacity-80 transition-opacity"
@@ -102,35 +121,70 @@ const Navbar = ({ cartCount = 0, search, setSearch }) => {
           </div>
 
           {/* Middle: Search Bar */}
-          <div className="w-full md:w-1/2">
-            <form onSubmit={handleSearch} className="relative w-full">
-              <input
-                type="text"
-                placeholder="Search products..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border-0 bg-slate-200 rounded-3xl focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent transition-all"
-              />
-              <div className="absolute inset-y-0 right-3 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-500" />
-              </div>
-            </form>
+          <div className="w-full md:w-1/2 relative">
+            <input
+              type="text"
+              placeholder="Search products..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="block w-full pl-10 pr-3 py-2 border-0 bg-slate-200 rounded-3xl focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent transition-all"
+            />
+            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-gray-500" />
+            </div>
           </div>
 
-          {/* Right: Cart + Profile/Login/Register (hidden on mobile) */}
-          <div className="hidden md:flex items-center space-x-3">
-            {/* Cart */}
-            <button
-              onClick={handleCartClick}
-              className="relative cursor-pointer hover:text-blue-500 transition-colors p-2 rounded-full hover:bg-blue-50"
-            >
-              <ShoppingCartIcon className="h-6 w-6" />
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold">
-                  {cartCount > 99 ? '99+' : cartCount}
-                </span>
-              )}
-            </button>
+          {/* Right: Cart/Admin + Profile/Login/Register (hidden on mobile) */}
+          <div className="hidden md:flex items-center space-x-4">
+            {/* Cart or Admin Panel */}
+            {userInfo ? (
+              userInfo.user_role === "Admin" ? (
+                <div className='flex flex-row space-x-4'>
+                  <button
+                    onClick={handleAdminPanelClick}
+                    className="flex items-center gap-2 bg-gray-800 text-white px-3 rounded-3xl hover:bg-gray-600 transition"
+                  >
+                    <LayoutDashboard className="h-4 w-4" />
+                    Admin
+                  </button>
+                  <button
+                    onClick={handleCartClick}
+                    className="relative cursor-pointer hover:text-blue-500 transition-colors p-2 rounded-full hover:bg-blue-50"
+                  >
+                    <ShoppingCartIcon className="h-6 w-6" />
+                    {cartCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold">
+                        {cartCount > 99 ? '99+' : cartCount}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleCartClick}
+                  className="relative cursor-pointer hover:text-blue-500 transition-colors p-2 rounded-full hover:bg-blue-50"
+                >
+                  <ShoppingCartIcon className="h-6 w-6" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold">
+                      {cartCount > 99 ? '99+' : cartCount}
+                    </span>
+                  )}
+                </button>
+              )
+            ) : (
+              <button
+                onClick={handleCartClick}
+                className="relative cursor-pointer hover:text-blue-500 transition-colors p-2 rounded-full hover:bg-blue-50"
+              >
+                <ShoppingCartIcon className="h-6 w-6" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold">
+                    {cartCount > 99 ? '99+' : cartCount}
+                  </span>
+                )}
+              </button>
+            )}
 
             {/* Profile or Login/Register */}
             {userInfo ? (

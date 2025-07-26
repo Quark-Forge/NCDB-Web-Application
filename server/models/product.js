@@ -61,6 +61,7 @@ const Product = sequelize.define('Product', {
     tableName: 'products',
     timestamps: true,
     underscored: true,
+    paranoid: true,
 });
 
 Product.belongsTo(Category, { foreignKey: 'category_id' });
