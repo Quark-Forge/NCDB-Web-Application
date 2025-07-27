@@ -4,21 +4,22 @@ import Product from '../models/product.js';
 import SupplierItem from '../models/suplierItem.js';
 import sequelize from '../config/db.js';
 import { Op } from 'sequelize';
+import Supplier from '../models/suppliers.js';
 
 // Add new product
 export const addProduct = asyncHandler(async (req, res) => {
-    const { 
-        name, 
-        sku, 
-        description, 
-        price, 
-        discount_price, 
-        quantity_per_unit, 
-        quantity, 
-        unit_symbol, 
-        image_url, 
-        category_id, 
-        supplier_id 
+    const {
+        name,
+        sku,
+        description,
+        price,
+        discount_price,
+        quantity_per_unit,
+        quantity,
+        unit_symbol,
+        image_url,
+        category_id,
+        supplier_id
     } = req.body;
 
     // Input validation
@@ -40,7 +41,7 @@ export const addProduct = asyncHandler(async (req, res) => {
     try {
         // Check if product exists (same name + category)
         const existingProduct = await Product.findOne({
-            where: { name: normalized_name, category_id: category_id},
+            where: { name: normalized_name, category_id: category_id },
             transaction,
         });
 
@@ -63,6 +64,21 @@ export const addProduct = asyncHandler(async (req, res) => {
                     message: 'Stock updated',
                     product: existingProduct,
                     stock_level: supplierItem.stock_level,
+                });
+            } else {
+                // Create new supplier relationship
+                const newSupplierItem = await SupplierItem.create({
+                    stock_level: quantity,
+                    supplier_id,
+                    product_id: existingProduct.id,
+                }, { transaction });
+
+                await transaction.commit();
+                return res.status(200).json({
+                    success: true,
+                    message: 'New supplier added for existing product',
+                    product: existingProduct,
+                    stock_level: newSupplierItem.stock_level,
                 });
             }
         }
@@ -108,14 +124,21 @@ function toTitleCase(str) {
     return str.replace(/\b\w/g, char => char.toUpperCase());
 }
 
+
 // Get all products
 export const getAllProducts = asyncHandler(async (req, res) => {
-    const { search, category, sort, page = 1,  limit = 10,  } = req.query;
+    const { search, category, sort, page = 1, limit = 10, supplier } = req.query;
     const where = {};
+    const supplierWhere = {};
 
     // Search by product name
     if (search) {
         where.name = { [Op.like]: `%${search}%` };
+    }
+
+    // Filter by supplier if provided
+    if (supplier) {
+        supplierWhere.supplier_id = supplier;
     }
 
     // Sorting
@@ -123,17 +146,30 @@ export const getAllProducts = asyncHandler(async (req, res) => {
     if (sort === 'price_asc') order = [['price', 'ASC']];
     else if (sort === 'price_desc') order = [['price', 'DESC']];
     else if (sort === 'name_asc') order = [['name', 'ASC']];
-    else if (sort === 'name_desc') order = [['name', 'DESC']]; 
+    else if (sort === 'name_desc') order = [['name', 'DESC']];
 
     const offset = (page - 1) * limit;
 
-    // Include category and filter by category name if provided
-    const include = [{
-        model: Category,
-        where: category ? { name: category } : undefined,
-        attributes: ['id', 'name'],
-        required: !!category
-    }];
+    // Include category and supplier items
+    const include = [
+        {
+            model: Category,
+            where: category ? { name: category } : undefined,
+            attributes: ['id', 'name'],
+            required: !!category
+        },
+        {
+            model: SupplierItem,
+            attributes: ['id', 'stock_level', 'supplier_id'],
+            where: supplierWhere,
+            required: false,
+            include: [{
+                model: Supplier,
+                attributes: ['id', 'name'],
+                required: false
+            }]
+        }
+    ];
 
     const { count, rows: products } = await Product.findAndCountAll({
         where,
@@ -141,17 +177,29 @@ export const getAllProducts = asyncHandler(async (req, res) => {
         limit: parseInt(limit),
         offset: parseInt(offset),
         include,
+        distinct: true // Important for correct count with joins
     });
 
-    const updatedProducts = products.map(product => ({
-        ...product.toJSON(),
-        name: toTitleCase(product.name),
-    }));
-
+    const updatedProducts = products.map(product => {
+        const productJson = product.toJSON();
+        return {
+            ...productJson,
+            name: toTitleCase(productJson.name),
+            total_stock: productJson.SupplierItems?.reduce((sum, item) => sum + item.stock_level, 0) || 0,
+            current_stock: supplier
+                ? productJson.SupplierItems?.[0]?.stock_level || 0
+                : undefined,
+            suppliers: productJson.SupplierItems?.map(item => ({
+                supplier_id: item.supplier_id,
+                supplier_name: item.Supplier?.name,
+                stock_level: item.stock_level
+            }))
+        };
+    });
 
     res.status(200).json({
         success: true,
-        message: 'Filtered, searched, and sorted products',
+        message: 'Products retrieved successfully',
         data: updatedProducts,
         totalCount: count,
     });
@@ -160,43 +208,78 @@ export const getAllProducts = asyncHandler(async (req, res) => {
 // Get Product by ID
 export const getProductById = asyncHandler(async (req, res) => {
     const { id } = req.params;
+    
+    // Input validation
     if (!id) {
         res.status(400);
-        throw new Error('No ID provided in the params');
+        throw new Error('Invalid product ID');
     }
 
-    const product = await Product.findByPk(id);
+    try {
+        const product = await Product.findByPk(id, {
+            include: [
+                {
+                    model: Category,
+                    attributes: ['id', 'name']
+                },
+                {
+                    model: SupplierItem,
+                    attributes: ['id', 'stock_level', 'supplier_id'],
+                    include: [{
+                        model: Supplier,
+                        attributes: ['id', 'name', 'email', 'contact_number']
+                    }]
+                }
+            ]
+        });
 
-    if (!product) {
-        res.status(404);
-        throw new Error(`Product with ID ${id} not found`);
+        if (!product) {
+            res.status(404);
+            throw new Error(`Product with ID ${id} not found`);
+        }
+
+        // Transform the product data
+        const productData = product.toJSON();
+        const responseData = {
+            ...productData,
+            name: toTitleCase(productData.name),
+            total_stock: productData.SupplierItems?.reduce((sum, item) => sum + item.stock_level, 0) || 0,
+            suppliers: productData.SupplierItems?.map(item => ({
+                supplier_id: item.supplier_id,
+                supplier_name: item.Supplier?.name,
+                contact: {
+                    email: item.Supplier?.email,
+                    phone: item.Supplier?.phone
+                },
+                stock_level: item.stock_level
+            })) || []
+        };
+
+        res.status(200).json({
+            success: true,
+            data: responseData
+        });
+
+    } catch (error) {
+        res.status(500);
+        throw new Error(`Failed to fetch product: ${error.message}`);
     }
-
-    const updatedProduct = {
-        ...product.toJSON(),
-        name: toTitleCase(product.name),
-    };
-
-    res.status(200).json({
-        success: true,
-        message: `Product details for ID ${id}`,
-        data: updatedProduct,
-    });
 });
+
 
 // Update Product details
 export const updateProduct = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { 
-        name, 
-        sku, 
-        description, 
-        price, 
-        discount_price, 
-        quantity_per_unit, 
-        unit_symbol, 
-        image_url, 
-        category_id 
+    const {
+        name,
+        sku,
+        description,
+        price,
+        discount_price,
+        quantity_per_unit,
+        unit_symbol,
+        image_url,
+        category_id
     } = req.body;
 
     if (!id) {
@@ -204,7 +287,7 @@ export const updateProduct = asyncHandler(async (req, res) => {
         throw new Error('No ID provided in the params');
     }
 
-    if (!name && !sku && !description && !price && !discount_price && 
+    if (!name && !sku && !description && !price && !discount_price &&
         !quantity_per_unit && !unit_symbol && !image_url && !category_id) {
         res.status(400);
         throw new Error('At least one field to update is required');
