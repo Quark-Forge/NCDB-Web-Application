@@ -5,7 +5,6 @@ import Supplier from '../models/suppliers.js';
 import SupplierItem from '../models/suplierItem.js';
 import sequelize from '../config/db.js';
 import { Op } from 'sequelize';
-import Supplier from '../models/suppliers.js';
 
 // Add new product
 export const addProduct = asyncHandler(async (req, res) => {
@@ -83,35 +82,18 @@ export const addProduct = asyncHandler(async (req, res) => {
                     stock_level: supplierItem.stock_level,
                 });
             } else {
-<<<<<<< HEAD
-                // Product exists but not with this supplier, create new supplier item
-                const newSupplierItem = await SupplierItem.create({
-                    stock_level: Number(quantity),
-=======
                 // Create new supplier relationship
                 const newSupplierItem = await SupplierItem.create({
                     stock_level: quantity,
->>>>>>> 1895cd2e6c9315426e5f014b0ed1f2379dfd9806
                     supplier_id,
                     product_id: existingProduct.id,
                 }, { transaction });
 
                 await transaction.commit();
-<<<<<<< HEAD
-
-                return res.status(200).json({
-                    success: true,
-                    message: 'Product exists. New supplier relationship created.',
-                    product: {
-                        ...existingProduct.toJSON(),
-                        name: toTitleCase(existingProduct.name)
-                    },
-=======
                 return res.status(200).json({
                     success: true,
                     message: 'New supplier added for existing product',
                     product: existingProduct,
->>>>>>> 1895cd2e6c9315426e5f014b0ed1f2379dfd9806
                     stock_level: newSupplierItem.stock_level,
                 });
             }
