@@ -129,7 +129,7 @@ function toTitleCase(str) {
 export const getAllProducts = asyncHandler(async (req, res) => {
     const { search, category, sort, page = 1, limit = 10, supplier } = req.query;
     const where = {};
-    const supplierWhere = {};
+    const supplierItemWhere = {};
 
     // Search by product name
     if (search) {
@@ -138,7 +138,7 @@ export const getAllProducts = asyncHandler(async (req, res) => {
 
     // Filter by supplier if provided
     if (supplier) {
-        supplierWhere.supplier_id = supplier;
+        supplierItemWhere.supplier_id = supplier;
     }
 
     // Sorting
@@ -161,8 +161,8 @@ export const getAllProducts = asyncHandler(async (req, res) => {
         {
             model: SupplierItem,
             attributes: ['id', 'stock_level', 'supplier_id'],
-            where: supplierWhere,
-            required: false,
+            where: supplierItemWhere,
+            required: !!supplier,
             include: [{
                 model: Supplier,
                 attributes: ['id', 'name'],
@@ -171,45 +171,68 @@ export const getAllProducts = asyncHandler(async (req, res) => {
         }
     ];
 
-    const { count, rows: products } = await Product.findAndCountAll({
-        where,
-        order,
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        include,
-        distinct: true // Important for correct count with joins
-    });
+    try {
+        const products = await Product.findAll({
+            where,
+            order,
+            limit: parseInt(limit),
+            offset: parseInt(offset),
+            include,
+        });
 
-    const updatedProducts = products.map(product => {
-        const productJson = product.toJSON();
-        return {
-            ...productJson,
-            name: toTitleCase(productJson.name),
-            total_stock: productJson.SupplierItems?.reduce((sum, item) => sum + item.stock_level, 0) || 0,
-            current_stock: supplier
-                ? productJson.SupplierItems?.[0]?.stock_level || 0
-                : undefined,
-            suppliers: productJson.SupplierItems?.map(item => ({
-                supplier_id: item.supplier_id,
-                supplier_name: item.Supplier?.name,
-                stock_level: item.stock_level
-            }))
-        };
-    });
+        // Transform products to have one entry per supplier
+        const expandedProducts = products.flatMap(product => {
+            const productJson = product.toJSON();
 
-    res.status(200).json({
-        success: true,
-        message: 'Products retrieved successfully',
-        data: updatedProducts,
-        totalCount: count,
-    });
+            // If no supplier items, return just the product
+            if (!productJson.SupplierItems || productJson.SupplierItems.length === 0) {
+                return [{
+                    ...productJson,
+                    name: toTitleCase(productJson.name),
+                    supplier_id: null,
+                    supplier_name: null,
+                    stock_level: 0,
+                    suppliers: []
+                }];
+            }
+
+            return productJson.SupplierItems.map(supplierItem => ({
+                ...productJson,
+                name: toTitleCase(productJson.name),
+                supplier_id: supplierItem.supplier_id,
+                supplier_name: supplierItem.Supplier?.name,
+                stock_level: supplierItem.stock_level,
+                suppliers: productJson.SupplierItems.map(item => ({
+                    supplier_id: item.supplier_id,
+                    supplier_name: item.Supplier?.name,
+                    stock_level: item.stock_level
+                }))
+            }));
+        });
+
+        // Get the count of transformed products (what will actually be displayed)
+        const displayCount = expandedProducts.length;
+
+        res.status(200).json({
+            success: true,
+            message: 'Products retrieved successfully',
+            data: expandedProducts,
+            totalCount: displayCount,
+        });
+    } catch (error) {
+        console.error('Database error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error retrieving products',
+            error: error.message
+        });
+    }
 });
 
 // Get Product by ID
 export const getProductById = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    
-    // Input validation
+
     if (!id) {
         res.status(400);
         throw new Error('Invalid product ID');
@@ -238,31 +261,36 @@ export const getProductById = asyncHandler(async (req, res) => {
             throw new Error(`Product with ID ${id} not found`);
         }
 
-        // Transform the product data
-        const productData = product.toJSON();
-        const responseData = {
-            ...productData,
-            name: toTitleCase(productData.name),
-            total_stock: productData.SupplierItems?.reduce((sum, item) => sum + item.stock_level, 0) || 0,
-            suppliers: productData.SupplierItems?.map(item => ({
-                supplier_id: item.supplier_id,
-                supplier_name: item.Supplier?.name,
-                contact: {
-                    email: item.Supplier?.email,
-                    phone: item.Supplier?.phone
-                },
-                stock_level: item.stock_level
-            })) || []
-        };
+        const productData = product.get({ plain: true });
+        const suppliers = productData.SupplierItems?.map(({ Supplier, stock_level }) => ({
+            id: Supplier?.id,
+            name: Supplier?.name,
+            email: Supplier?.email,
+            phone: Supplier?.contact_number,
+            stock: stock_level
+        })) || [];
 
         res.status(200).json({
             success: true,
-            data: responseData
+            data: {
+                id: productData.id,
+                name: toTitleCase(productData.name),
+                description: productData.description,
+                price: productData.price,
+                imageUrl: productData.image_url,
+                category: productData.Category,
+                totalStock: suppliers.reduce((sum, { stock }) => sum + stock, 0),
+                suppliers
+            }
         });
 
     } catch (error) {
-        res.status(500);
-        throw new Error(`Failed to fetch product: ${error.message}`);
+        console.error(`Error fetching product ${id}:`, error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch product',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 });
 
