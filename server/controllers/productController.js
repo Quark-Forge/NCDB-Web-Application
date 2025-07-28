@@ -1,10 +1,10 @@
 import asyncHandler from 'express-async-handler';
 import Category from '../models/category.js';
 import Product from '../models/product.js';
+import Supplier from '../models/suppliers.js';
 import SupplierItem from '../models/suplierItem.js';
 import sequelize from '../config/db.js';
 import { Op } from 'sequelize';
-import Supplier from '../models/suppliers.js';
 
 // Add new product
 export const addProduct = asyncHandler(async (req, res) => {
@@ -28,12 +28,25 @@ export const addProduct = asyncHandler(async (req, res) => {
         throw new Error('name, sku, price, quantity_per_unit, quantity, unit_symbol, supplier_id, and category_id are required');
     }
 
+    // Sanitize inputs
     const normalized_name = name.trim().toLowerCase();
+    const sanitized_sku = sku.trim();
+    const sanitized_description = description ? description.trim() : null;
+    const sanitized_unit_symbol = unit_symbol.trim();
+    const sanitized_image_url = image_url ? image_url.trim() : null;
 
+    // Verify category exists
     const category = await Category.findByPk(category_id);
     if (!category) {
         res.status(400);
-        throw new Error('Category not found');
+        throw new Error('Category not found or has been deleted');
+    }
+
+    // Verify supplier exists
+    const supplier = await Supplier.findByPk(supplier_id);
+    if (!supplier) {
+        res.status(400);
+        throw new Error('Supplier not found or has been deleted');
     }
 
     const transaction = await sequelize.transaction();
@@ -61,8 +74,11 @@ export const addProduct = asyncHandler(async (req, res) => {
 
                 return res.status(200).json({
                     success: true,
-                    message: 'Stock updated',
-                    product: existingProduct,
+                    message: 'Product already exists. Stock updated successfully.',
+                    product: {
+                        ...existingProduct.toJSON(),
+                        name: toTitleCase(existingProduct.name)
+                    },
                     stock_level: supplierItem.stock_level,
                 });
             } else {
@@ -83,22 +99,34 @@ export const addProduct = asyncHandler(async (req, res) => {
             }
         }
 
+        // Check for duplicate SKU
+        const existingSKU = await Product.findOne({
+            where: { sku: sanitized_sku },
+            transaction,
+        });
+
+        if (existingSKU) {
+            await transaction.rollback();
+            res.status(400);
+            throw new Error('A product with this SKU already exists');
+        }
+
         // create new product
         const newProduct = await Product.create({
             name: normalized_name,
-            sku,
-            description,
-            price,
-            discount_price,
-            unit_symbol,
-            quantity_per_unit,
-            image_url,
+            sku: sanitized_sku,
+            description: sanitized_description,
+            price: Number(price),
+            discount_price: discount_price ? Number(discount_price) : null,
+            unit_symbol: sanitized_unit_symbol,
+            quantity_per_unit: Number(quantity_per_unit),
+            image_url: sanitized_image_url,
             category_id: category_id,
         }, { transaction });
 
         // Create new SupplierItem
         const newSupplierItem = await SupplierItem.create({
-            stock_level: quantity,
+            stock_level: Number(quantity),
             supplier_id,
             product_id: newProduct.id,
         }, { transaction });
@@ -107,8 +135,11 @@ export const addProduct = asyncHandler(async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: 'New product added',
-            product: newProduct,
+            message: 'New product added successfully',
+            product: {
+                ...newProduct.toJSON(),
+                name: toTitleCase(newProduct.name)
+            },
             stock_level: newSupplierItem.stock_level,
         });
 

@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   Home,
   Users,
@@ -10,6 +10,9 @@ import {
   X,
   UserCircle,
   LogOut,
+  ChevronDown,
+  ChevronRight,
+  Tag,
 } from 'lucide-react';
 import { useLogoutMutation } from '../../slices/usersApiSlice';
 import { useDispatch } from 'react-redux';
@@ -18,11 +21,20 @@ import { clearCredentials } from '../../slices/authSlice';
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [productsExpanded, setProductsExpanded] = useState(false);
   const dropdownRef = useRef();
+  const location = useLocation();
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [logoutApiCall] = useLogoutMutation();
+
+  useEffect(() => {
+    // Auto-expand products menu if we're on a products-related page
+    if (location.pathname.includes('/admin/products') || location.pathname.includes('/admin/categories') || location.pathname.includes('/admin/suppliers')) {
+      setProductsExpanded(true);
+    }
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     try {
@@ -47,9 +59,14 @@ const AdminLayout = () => {
   const navItems = [
     { to: '/admin/dashboard', label: 'Dashboard', icon: <Home size={18} /> },
     { to: '/admin/users', label: 'Users', icon: <Users size={18} /> },
-    { to: '/admin/products', label: 'Products', icon: <ShoppingCart size={18} /> },
     { to: '/admin/orders', label: 'Orders', icon: <ShoppingBag size={18} /> },
     { to: '/admin/settings', label: 'Settings', icon: <Settings size={18} /> },
+  ];
+
+  const productSubItems = [
+    { to: '/admin/products', label: 'Products', icon: <ShoppingCart size={16} /> },
+    { to: '/admin/categories', label: 'Categories', icon: <Tag size={16} /> },
+    { to: '/admin/suppliers', label: 'Suppliers', icon: <Users size={16} /> },
   ];
 
   return (
@@ -134,6 +151,44 @@ const AdminLayout = () => {
                 {icon} {label}
               </NavLink>
             ))}
+
+            {/* Products Menu with Submenu */}
+            <div className="space-y-1">
+              <button
+                onClick={() => setProductsExpanded(!productsExpanded)}
+                className={`w-full flex items-center justify-between gap-2 p-2 rounded-md transition ${
+                  location.pathname.includes('/admin/products') || location.pathname.includes('/admin/categories') || location.pathname.includes('/admin/suppliers')
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <ShoppingCart size={18} />
+                  Products
+                </div>
+                {productsExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              </button>
+
+              {productsExpanded && (
+                <div className="ml-4 space-y-1">
+                  {productSubItems.map(({ to, label, icon }) => (
+                    <NavLink
+                      key={to}
+                      to={to}
+                      onClick={() => setSidebarOpen(false)}
+                      className={({ isActive }) =>
+                        `flex items-center gap-2 p-2 rounded-md transition text-sm ${isActive
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'text-gray-600 hover:bg-gray-200'
+                        }`
+                      }
+                    >
+                      {icon} {label}
+                    </NavLink>
+                  ))}
+                </div>
+              )}
+            </div>
           </nav>
         </aside>
 

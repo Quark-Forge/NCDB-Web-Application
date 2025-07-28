@@ -3,6 +3,7 @@ import User from '../models/users.js';
 import { hashPassword, matchPassword } from '../utils/hash.js';
 import { generateToken, generateVerificationToken } from '../utils/generateToken.js';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import { sendUserCredentials } from '../utils/sendEmail.js';
 import Role from '../models/roles.js';
 
@@ -40,20 +41,26 @@ const authUser = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
     const existingUser = await User.findOne({ where: { email } });
 
+    if (!existingUser) {
+        res.status(401);
+        throw new Error('Invalid email or password');
+    }
+
     if (!existingUser.is_verified) {
         res.status(401);
         throw new Error('Please verify your email before logging in.');
     }
-    if (existingUser && await matchPassword(password, existingUser.password)) {
+    
+    if (await matchPassword(password, existingUser.password)) {
         const { id, name, email, contact_number, address, role_id } = existingUser;
         const role = await Role.findByPk(role_id);
-        const user_role = role.name;
+        const user_role = role ? role.name : 'Unknown';
         generateToken(res, id);
         return res.status(200).json({ id, name, email, contact_number, address, role_id, user_role });
     }
+    
     res.status(401);
     throw new Error('Invalid email or password');
-
 });
 
 // Register a new User
@@ -158,7 +165,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
 
         const [updated] = await User.update(
             { is_verified: true },
-            { where: { id: decoded.userID } }
+            { where: { id: decoded.UserID } }
         );
         if (updated === 0) {
             throw new Error('No rows updated. User might not exist.');
