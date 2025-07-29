@@ -1,6 +1,6 @@
 import { Pencil, Trash2 } from "lucide-react";
 
-const ProductCard = ({ filteredProducts, handleDelete }) => {
+const ProductCard = ({ filteredProducts = [] , handleDelete }) => {
     // Helper function to safely format prices
     const formatPrice = (price) => {
         if (price === null || price === undefined) return '0.00';
@@ -16,6 +16,15 @@ const ProductCard = ({ filteredProducts, handleDelete }) => {
         }
         return 0;
     };
+
+     // Return early if there are no products
+    if (filteredProducts.length === 0) {
+        return (
+            <div className="bg-white p-6 text-center text-gray-500">
+                No products found
+            </div>
+        );
+    }
 
     return (
         <div className="bg-white">

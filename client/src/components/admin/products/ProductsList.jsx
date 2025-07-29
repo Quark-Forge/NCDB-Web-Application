@@ -1,10 +1,10 @@
 // components/admin/CategoriesList.jsx
 import { Frown, Loader2 } from 'lucide-react';
-import CategoryCard from './CategoryCard';
+import ProductCard from './ProductCard';
 
-const CategoriesList = ({
+const ProductsList = ({
   isLoading,
-  filteredCategories,
+  filteredProducts,
   searchTerm,
   handleEdit,
   handleDelete
@@ -17,7 +17,7 @@ const CategoriesList = ({
     );
   }
 
-  if (filteredCategories.length === 0) {
+  if (filteredProducts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-8 md:p-12 text-center">
         <Frown className="h-8 w-8 md:h-12 md:w-12 text-gray-400 mb-3 md:mb-4" />
@@ -30,12 +30,12 @@ const CategoriesList = ({
   }
 
   return (
-    <CategoryCard
-      filteredCategories={filteredCategories}
+    <ProductCard
+      filteredProducts={filteredProducts}
       handleEdit={handleEdit}
       handleDelete={handleDelete}
     />
   );
 };
 
-export default CategoriesList;
+export default ProductsList;
