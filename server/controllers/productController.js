@@ -338,7 +338,7 @@ export const updateProduct = asyncHandler(async (req, res) => {
         quantity_per_unit,
         unit_symbol,
         image_url,
-        category_id
+        category_id,
     } = req.body;
 
     if (!id) {

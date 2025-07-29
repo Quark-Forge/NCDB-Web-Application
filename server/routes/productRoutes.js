@@ -12,6 +12,8 @@ const router = express.Router();
 router.route('/')
       .post(addProduct)
       .get(getAllProducts);
+
+      // router.route('/').get(getAllProducts);
 router.route('/:id')
       .get(getProductById)
       .put(updateProduct)
