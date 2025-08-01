@@ -3,7 +3,23 @@ import { Loader2, X } from "lucide-react";
 import { useCreateCategoryMutation } from "../../../slices/categoryApiSlice";
 import { toast } from "react-toastify";
 
-const AddCategory = ({ closeModals, handleInputChange, formData, refetch }) => {
+const AddCategory = ({ closeModals, handleInputChange, refetch }) => {
+
+    const [formData, setFormData] = useState({
+        name: '',
+        description: '',
+        isActive: true
+    });
+
+    const resetForm = () => {
+        setFormData({
+            name: '',
+            description: '',
+            isActive: true
+        });
+        setEditingCategory(null);
+    };
+
     const [createCategory, { isLoading: isCreating }] = useCreateCategoryMutation();
 
     const handleCreate = async (e) => {
