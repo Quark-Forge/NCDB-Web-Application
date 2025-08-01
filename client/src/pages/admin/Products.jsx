@@ -1,12 +1,13 @@
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useGetProductsQuery, useDeleteProductMutation } from "../../slices/productsApiSlice";
+import { useGetProductsQuery, useDeleteProductMutation, useUpdateProductMutation } from "../../slices/productsApiSlice";
 import { useGetCategoriesQuery } from "../../slices/categoryApiSlice";
 import { useGetAllSuppliersQuery } from "../../slices/suppliersApiSlice";
 import { Search, RefreshCw, Plus } from 'lucide-react';
 import { useState } from 'react';
 import AddProduct from "../../components/admin/products/AddProduct";
 import ProductsList from "../../components/admin/products/ProductsList";
+import EditProduct from "../../components/admin/products/EditProduct";
 
 const Products = () => {
   const { data: productsData, isLoading, error, refetch } = useGetProductsQuery({});
@@ -14,9 +15,18 @@ const Products = () => {
   const { data: suppliersData } = useGetAllSuppliersQuery();
 
   const [deleteProduct] = useDeleteProductMutation();
+  const [updateProduct] = useUpdateProductMutation();
 
+  // For modals and form data
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [formData, setFormData] = useState(null);
+
+  const [isUpdating, setIsUpdating] = useState(false);
+
+
 
 
   const products = productsData?.data || [];
@@ -33,11 +43,27 @@ const Products = () => {
     product.category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleEdit = async (productId) => {
+  const handleEdit = (product) => {
+    setFormData(product);
+    setShowEditModal(true);
+  };
 
+  const handleUpdate = async (updatedData) => {
+  try {
+    setIsUpdating(true);
+    await updateProduct({
+      id: formData.id,
+      ...updatedData
+    }).unwrap();
+    toast.success('Product updated successfully!');
+    closeModals();
+    refetch();
+  } catch (err) {
+    toast.error(err?.data?.message || 'Error updating product');
+  } finally {
+    setIsUpdating(false);
   }
-
-
+};
 
   const handleDelete = async (productId) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
@@ -49,6 +75,13 @@ const Products = () => {
         toast.error(err?.data?.message || 'Error deleting product');
       }
     }
+  };
+
+  // Close modals helper
+  const closeModals = () => {
+    setShowCreateModal(false);
+    setShowEditModal(false);
+    setFormData(null);
   };
 
   return (
@@ -93,7 +126,7 @@ const Products = () => {
               className="flex items-center px-4 py-2 md:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm md:text-base font-medium"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Create Product
+              New Product
             </button>
           </div>
         </div>
@@ -112,17 +145,28 @@ const Products = () => {
         {/* Create Product Modal */}
         {showCreateModal && (
           <AddProduct
-            showCreateModal={showCreateModal}
             setShowCreateModal={setShowCreateModal}
-            suppliers={suppliers}
-            categories={categories}
             refetch={refetch}
+            categories={categories}
+            suppliers={suppliers}
+          />
+        )}
 
+        {/* Edit Product Modal */}
+        {showEditModal && (
+          <EditProduct
+            showEditModal={showEditModal}
+            closeModals={closeModals}
+            formData={formData}
+            setFormData={setFormData}
+            categories={categories}
+            suppliers={suppliers}
+            refetch={refetch}
           />
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
 export default Products;

@@ -8,9 +8,9 @@ import {
 } from "../../slices/categoryApiSlice";
 import { Search, RefreshCw, Plus } from 'lucide-react';
 import { useState } from 'react';
-import CategoriesList from "../../components/admin/products/CategoriesList";
-import AddCategory from "../../components/admin/products/AddCategory";
-import EditCategory from "../../components/admin/products/EditCategory";
+import CategoriesList from "../../components/admin/categories/CategoriesList";
+import AddCategory from "../../components/admin/categories/AddCategory";
+import EditCategory from "../../components/admin/categories/EditCategory";
 
 const Categories = () => {
   const { data: categoriesData, isLoading, error, refetch } = useGetAllCategoriesQuery();
@@ -23,12 +23,6 @@ const Categories = () => {
   const [editingCategory, setEditingCategory] = useState(null);
 
   const categories = categoriesData?.data || [];
-
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    isActive: true
-  });
 
   if (error) {
     toast.error(error?.data?.message || error.error);
@@ -45,15 +39,6 @@ const Categories = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      description: '',
-      isActive: true
-    });
-    setEditingCategory(null);
   };
 
   const handleEdit = (category) => {
@@ -142,7 +127,7 @@ const Categories = () => {
               className="flex items-center px-4 py-2 md:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm md:text-base font-medium"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Create Category
+              New Category
             </button>
           </div>
         </div>
@@ -162,6 +147,7 @@ const Categories = () => {
         {showCreateModal && (
           <AddCategory
             closeModals={closeModals}
+            setShowCreateModal={setShowCreateModal}
             handleInputChange={handleInputChange}
             formData={formData}
             refetch={refetch}

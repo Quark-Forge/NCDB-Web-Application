@@ -1,14 +1,12 @@
 import { Pencil, Trash2 } from "lucide-react";
 
-const ProductCard = ({ filteredProducts = [] , handleDelete }) => {
-    // Helper function to safely format prices
+const ProductCard = ({ filteredProducts = [], handleEdit, handleDelete }) => {
     const formatPrice = (price) => {
         if (price === null || price === undefined) return '0.00';
         const num = typeof price === 'string' ? parseFloat(price) : price;
         return isNaN(num) ? '0.00' : num.toFixed(2);
     };
 
-    // Calculate total stock level from all suppliers
     const getTotalStock = (product) => {
         if (product.stock_level !== undefined) return product.stock_level;
         if (product.SupplierItems?.length) {
@@ -17,7 +15,6 @@ const ProductCard = ({ filteredProducts = [] , handleDelete }) => {
         return 0;
     };
 
-     // Return early if there are no products
     if (filteredProducts.length === 0) {
         return (
             <div className="bg-white p-6 text-center text-gray-500">
@@ -85,6 +82,7 @@ const ProductCard = ({ filteredProducts = [] , handleDelete }) => {
                                 </span>
                                 <div className="flex space-x-2">
                                     <button
+                                        onClick={() => handleEdit(product)}
                                         className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50 transition-colors"
                                         aria-label="Edit product"
                                     >
@@ -190,6 +188,7 @@ const ProductCard = ({ filteredProducts = [] , handleDelete }) => {
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div className="flex justify-end space-x-3">
                                             <button
+                                                onClick={() => handleEdit(product)}
                                                 className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50 transition-colors"
                                                 aria-label="Edit product"
                                             >
