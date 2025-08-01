@@ -15,6 +15,9 @@ export const up = async (queryInterface, Sequelize) => {
       allowNull: false,
       unique: true,
     },
+    deleted_at: {
+      type: Sequelize.DATE,
+    },
   });
 };
 

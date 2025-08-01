@@ -3,7 +3,7 @@ import "react-toastify/dist/ReactToastify.css";
 import {
   useGetAllSuppliersQuery,
   useUpdateSupplierMutation,
-  useDeleteSupplierMutation
+  useDeleteSupplierMutation,
 } from "../../slices/suppliersApiSlice";
 import { Search, RefreshCw, Plus, X } from 'lucide-react';
 import { useState } from 'react';

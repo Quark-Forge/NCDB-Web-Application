@@ -9,6 +9,11 @@ export const suppliersApiSlice = apiSlice.injectEndpoints({
             query: () => SUPPLIERS_URL,
             providesTags: ['supplier'],
         }),
+        // GET /api/suppliers/ active
+        getAllActiveSuppliers: builder.query({
+            query: () => `${SUPPLIERS_URL}/active`,
+            providesTags: ['supplier'],
+        }),
         
         // GET /api/suppliers/:id
         getSupplierById: builder.query({
@@ -49,6 +54,7 @@ export const suppliersApiSlice = apiSlice.injectEndpoints({
 
 export const {
     useGetAllSuppliersQuery,
+    useGetAllActiveSuppliersQuery,
     useGetSupplierByIdQuery,
     useCreateSupplierMutation,
     useUpdateSupplierMutation,

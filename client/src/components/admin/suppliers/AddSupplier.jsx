@@ -82,7 +82,7 @@ const AddSupplier = ({ closeModals,setShowCreateModal, formData, handleInputChan
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Address
+                                Address *
                             </label>
                             <textarea
                                 name="address"

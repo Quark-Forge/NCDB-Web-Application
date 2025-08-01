@@ -8,6 +8,7 @@ import { useState } from 'react';
 import AddProduct from "../../components/admin/products/AddProduct";
 import ProductsList from "../../components/admin/products/ProductsList";
 import EditProduct from "../../components/admin/products/EditProduct";
+import { useEffect } from "react";
 
 const Products = () => {
   const { data: productsData, isLoading, error, refetch } = useGetProductsQuery({});
@@ -33,9 +34,11 @@ const Products = () => {
   const categories = categoriesData?.data || [];
   const suppliers = suppliersData?.data || [];
 
-  if (error) {
-    toast.error(error?.data?.message || error.error);
-  }
+  useEffect(() => {
+    if (error) {
+      toast.error(error?.data?.message || error.error);
+    }
+  }, [error]); 
 
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
