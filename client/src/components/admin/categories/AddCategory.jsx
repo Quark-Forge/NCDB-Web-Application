@@ -3,22 +3,9 @@ import { Loader2, X } from "lucide-react";
 import { useCreateCategoryMutation } from "../../../slices/categoryApiSlice";
 import { toast } from "react-toastify";
 
-const AddCategory = ({ closeModals, handleInputChange, refetch }) => {
+const AddCategory = ({ closeModals, handleInputChange, formData, refetch }) => {
 
-    const [formData, setFormData] = useState({
-        name: '',
-        description: '',
-        isActive: true
-    });
-
-    const resetForm = () => {
-        setFormData({
-            name: '',
-            description: '',
-            isActive: true
-        });
-        setEditingCategory(null);
-    };
+    
 
     const [createCategory, { isLoading: isCreating }] = useCreateCategoryMutation();
 
@@ -76,19 +63,6 @@ const AddCategory = ({ closeModals, handleInputChange, refetch }) => {
                                 className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                                 placeholder="Enter category description"
                             />
-                        </div>
-
-                        <div className="flex items-center">
-                            <input
-                                type="checkbox"
-                                name="isActive"
-                                checked={formData.isActive}
-                                onChange={handleInputChange}
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                            />
-                            <label className="ml-2 block text-sm text-gray-900">
-                                Active Category
-                            </label>
                         </div>
 
                         <div className="flex justify-end space-x-4 pt-6">

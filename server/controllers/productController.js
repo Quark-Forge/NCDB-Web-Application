@@ -204,6 +204,7 @@ export const getAllProducts = asyncHandler(async (req, res) => {
 
     try {
         const products = await Product.findAll({
+            paranoid: false,
             where,
             order,
             limit: parseInt(limit),

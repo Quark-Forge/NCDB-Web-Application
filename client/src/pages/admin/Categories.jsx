@@ -22,6 +22,21 @@ const Categories = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
 
+  const [formData, setFormData] = useState({
+          name: '',
+          description: '',
+          isActive: true
+      });
+  
+      const resetForm = () => {
+          setFormData({
+              name: '',
+              description: '',
+              isActive: true
+          });
+          setEditingCategory(null);
+      };
+
   const categories = categoriesData?.data || [];
 
   if (error) {
@@ -158,9 +173,9 @@ const Categories = () => {
         <EditCategory
           showEditModal={showEditModal}
           closeModals={closeModals}
-          formData={formData}
           handleInputChange={handleInputChange}
           handleUpdate={handleUpdate}
+          formData={formData}
           isUpdating={isUpdating}
         />
       </div>

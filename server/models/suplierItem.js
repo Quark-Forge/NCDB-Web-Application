@@ -36,6 +36,7 @@ const SupplierItem = sequelize.define('SupplierItem', {
     tableName: 'supplier_items',
     timestamps: true,
     underscored: true,
+    paranoid: true,
     indexes: [
         {
             unique: true,
