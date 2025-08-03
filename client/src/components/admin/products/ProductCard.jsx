@@ -89,7 +89,7 @@ const ProductCard = ({ filteredProducts = [], handleEdit, handleDelete }) => {
                                         <Pencil size={16} />
                                     </button>
                                     <button
-                                        onClick={() => handleDelete(product.id)}
+                                        onClick={() => handleDelete({ supplier_id: product.supplier_id, product_id: product.id })}
                                         className="text-red-600 hover:text-red-900 p-1 rounded-md hover:bg-red-50 transition-colors"
                                         aria-label="Delete product"
                                     >
@@ -195,7 +195,7 @@ const ProductCard = ({ filteredProducts = [], handleEdit, handleDelete }) => {
                                                 <Pencil size={18} />
                                             </button>
                                             <button
-                                                onClick={() => handleDelete(product.id)}
+                                                onClick={() => handleDelete({ supplier_id: product.supplier_id, product_id: product.id })}
                                                 className="text-red-600 hover:text-red-900 p-1 rounded-md hover:bg-red-50 transition-colors"
                                                 aria-label="Delete product"
                                             >

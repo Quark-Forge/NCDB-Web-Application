@@ -25,7 +25,6 @@ const EditProduct = ({
     image_url: ''
   });
 
-  // Add the mutation hook here
   const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
 
   // Initialize form data
