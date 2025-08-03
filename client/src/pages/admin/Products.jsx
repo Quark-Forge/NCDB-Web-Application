@@ -9,14 +9,13 @@ import AddProduct from "../../components/admin/products/AddProduct";
 import ProductsList from "../../components/admin/products/ProductsList";
 import EditProduct from "../../components/admin/products/EditProduct";
 import { useEffect } from "react";
+import { useDeleteSupplierItemMutation } from "../../slices/supplierItemsApiSlice";
 
 const Products = () => {
   const { data: productsData, isLoading, error, refetch } = useGetProductsQuery({});
   const { data: categoriesData } = useGetCategoriesQuery();
   const { data: suppliersData } = useGetAllSuppliersQuery();
-
-  const [deleteProduct] = useDeleteProductMutation();
-  const [updateProduct] = useUpdateProductMutation();
+  const [deleteProduct] = useDeleteSupplierItemMutation();
 
   // For modals and form data
   const [searchTerm, setSearchTerm] = useState("");
@@ -24,11 +23,6 @@ const Products = () => {
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [formData, setFormData] = useState(null);
-
-  const [isUpdating, setIsUpdating] = useState(false);
-
-
-
 
   const products = productsData?.data || [];
   const categories = categoriesData?.data || [];
@@ -51,30 +45,15 @@ const Products = () => {
     setShowEditModal(true);
   };
 
-  const handleUpdate = async (updatedData) => {
-  try {
-    setIsUpdating(true);
-    await updateProduct({
-      id: formData.id,
-      ...updatedData
-    }).unwrap();
-    toast.success('Product updated successfully!');
-    closeModals();
-    refetch();
-  } catch (err) {
-    toast.error(err?.data?.message || 'Error updating product');
-  } finally {
-    setIsUpdating(false);
-  }
-};
-
-  const handleDelete = async (productId) => {
+  const handleDelete = async ({supplier_id, product_id}) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
-        await deleteProduct(productId).unwrap();
+        await deleteProduct({ supplier_id, product_id }).unwrap();
         toast.success('Product deleted successfully!');
         refetch();
       } catch (err) {
+        console.log(err);
+        
         toast.error(err?.data?.message || 'Error deleting product');
       }
     }
