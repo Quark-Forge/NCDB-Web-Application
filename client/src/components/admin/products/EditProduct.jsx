@@ -25,6 +25,7 @@ const EditProduct = ({
     image_url: ''
   });
 
+  const [imagePreview, setImagePreview] = useState(null);
   const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
 
   // Initialize form data

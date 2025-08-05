@@ -60,7 +60,6 @@ const AdminLayout = () => {
     { to: '/admin/dashboard', label: 'Dashboard', icon: <Home size={18} /> },
     { to: '/admin/users', label: 'Users', icon: <Users size={18} /> },
     { to: '/admin/orders', label: 'Orders', icon: <ShoppingBag size={18} /> },
-    { to: '/admin/settings', label: 'Settings', icon: <Settings size={18} /> },
   ];
 
   const productSubItems = [
@@ -156,11 +155,10 @@ const AdminLayout = () => {
             <div className="space-y-1">
               <button
                 onClick={() => setProductsExpanded(!productsExpanded)}
-                className={`w-full flex items-center justify-between gap-2 p-2 rounded-md transition ${
-                  location.pathname.includes('/admin/products') || location.pathname.includes('/admin/categories') || location.pathname.includes('/admin/suppliers')
+                className={`w-full flex items-center justify-between gap-2 p-2 rounded-md transition ${location.pathname.includes('/admin/products') || location.pathname.includes('/admin/categories') || location.pathname.includes('/admin/suppliers')
                     ? 'bg-blue-100 text-blue-700'
                     : 'text-gray-700 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-2">
                   <ShoppingCart size={18} />
@@ -189,6 +187,20 @@ const AdminLayout = () => {
                 </div>
               )}
             </div>
+
+            {/* Settings as the last item */}
+            <NavLink
+              to="/admin/settings"
+              onClick={() => setSidebarOpen(false)}
+              className={({ isActive }) =>
+                `flex items-center gap-2 p-2 rounded-md transition ${isActive
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-700 hover:bg-gray-200'
+                }`
+              }
+            >
+              <Settings size={18} /> Settings
+            </NavLink>
           </nav>
         </aside>
 
