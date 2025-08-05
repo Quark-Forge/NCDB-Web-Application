@@ -5,7 +5,7 @@ import { generateToken, generateVerificationToken } from '../utils/generateToken
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { sendUserCredentials } from '../utils/sendEmail.js';
-import Role from '../models/roles.js';
+import { Role } from '../models/index.js';
 
 
 // Get all users

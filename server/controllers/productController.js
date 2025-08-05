@@ -1,8 +1,5 @@
 import asyncHandler from 'express-async-handler';
-import Category from '../models/category.js';
-import Product from '../models/product.js';
-import Supplier from '../models/suppliers.js';
-import SupplierItem from '../models/suplierItem.js';
+import { Category, Product, Supplier, SupplierItem } from '../models/index.js';
 import sequelize from '../config/db.js';
 import { Op } from 'sequelize';
 

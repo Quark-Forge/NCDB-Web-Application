@@ -1,6 +1,5 @@
 import SupplierItem from '../models/suplierItem.js';
-import Supplier from '../models/suppliers.js';
-import Product from '../models/product.js';
+import { Supplier, Product } from '../models/index.js';
 
 
 // Get all supplier-product 

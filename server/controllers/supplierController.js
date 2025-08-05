@@ -1,5 +1,5 @@
 import asyncHandler from "express-async-handler";
-import Supplier from "../models/suppliers.js";
+import { Supplier } from "../models/index.js";
 
 // Helper to format supplier response
 const formatSupplierResponse = (supplier) => ({

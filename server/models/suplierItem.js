@@ -45,10 +45,6 @@ const SupplierItem = sequelize.define('SupplierItem', {
     ]
 });
 
-SupplierItem.belongsTo(Product, { foreignKey: 'product_id' });
-SupplierItem.belongsTo(Supplier, { foreignKey: 'supplier_id' });
 
-Supplier.hasMany(SupplierItem, { foreignKey: 'supplier_id' });
-Product.hasMany(SupplierItem, { foreignKey: 'product_id' });
 
 export default SupplierItem;

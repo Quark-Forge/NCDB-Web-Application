@@ -1,5 +1,5 @@
 import asyncHandler from 'express-async-handler';
-import Category from '../models/category.js';
+import { Category } from '../models/index.js';
 
 // Create new Category
 export const createCategory = asyncHandler(async (req, res) => {

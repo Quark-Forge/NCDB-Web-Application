@@ -1,4 +1,4 @@
-import Role from "../models/roles.js";
+import { Role } from "../models/index.js";
 import asyncHandler from 'express-async-handler';
 
 // Create role

@@ -71,10 +71,4 @@ const User = sequelize.define('User', {
   paranoid: true,
 });
 
-User.belongsTo(Role, {
-  foreignKey: 'role_id',
-  onUpdate: 'CASCADE',
-  onDelete: 'RESTRICT',
-});
-
 export default User;
