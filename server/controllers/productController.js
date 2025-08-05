@@ -51,7 +51,7 @@ export const addProduct = asyncHandler(async (req, res) => {
     try {
         // Check if product exists (same name + category)
         const existingProduct = await Product.findOne({
-            where: { name: normalized_name, category_id: category_id },
+            where: { name: normalized_name, category_id: category_id, sku: sku },
             transaction,
         });
 

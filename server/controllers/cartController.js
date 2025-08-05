@@ -55,7 +55,7 @@ export const addToCart = asyncHandler(async (req, res) => {
     });
 
     if (cartItem) {
-        cartItem.quantity += quantity;
+        cartItem.quantity += Number(quantity);
         await cartItem.save();
     } else {
         cartItem = await CartItem.create({
