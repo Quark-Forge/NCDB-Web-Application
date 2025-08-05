@@ -1,8 +1,5 @@
 import asyncHandler from 'express-async-handler';
-import Category from '../models/category.js';
-import Product from '../models/product.js';
-import Supplier from '../models/suppliers.js';
-import SupplierItem from '../models/suplierItem.js';
+import { Category, Product, Supplier, SupplierItem } from '../models/index.js';
 import sequelize from '../config/db.js';
 import { Op } from 'sequelize';
 
@@ -54,7 +51,7 @@ export const addProduct = asyncHandler(async (req, res) => {
     try {
         // Check if product exists (same name + category)
         const existingProduct = await Product.findOne({
-            where: { name: normalized_name, category_id: category_id },
+            where: { name: normalized_name, category_id: category_id, sku: sku },
             transaction,
         });
 

@@ -1,15 +1,9 @@
-import sequelize from '../config/db.js';
-import Role from '../models/roles.js';
-import User from '../models/users.js';
-import Supplier from '../models/suppliers.js';
-import Category from '../models/category.js';
-import Product from '../models/product.js';
-import SupplierItem from '../models/suplierItem.js';
+import { sequelize } from '../models/index.js';
 
 async function syncDatabase() {
   try {
     // Sync all models with the database
-    await sequelize.sync({ force: false });
+    await sequelize.sync({ alter: true });
     console.log('Tables created successfully');
   } catch (error) {
     console.error('Error syncing database:', error.message);

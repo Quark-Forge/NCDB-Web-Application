@@ -58,10 +58,10 @@ const ProductCard = ({ filteredProducts = [], handleEdit, handleDelete }) => {
                                             {product.name}
                                         </h3>
                                         <p className="text-xs text-gray-500">
-                                            ${formatPrice(product.price)}
+                                            Rs{formatPrice(product.price)}
                                             {product.discount_price && (
                                                 <span className="ml-1 text-gray-400 line-through">
-                                                    ${formatPrice(product.discount_price)}
+                                                    Rs{formatPrice(product.discount_price)}
                                                 </span>
                                             )}
                                         </p>
@@ -161,11 +161,11 @@ const ProductCard = ({ filteredProducts = [], handleEdit, handleDelete }) => {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm text-gray-900">
-                                            ${formatPrice(product.price)}
+                                            Rs{formatPrice(product.price)}
                                         </div>
                                         {product.discount_price && (
                                             <div className="text-xs text-gray-500 line-through">
-                                                ${formatPrice(product.discount_price)}
+                                                Rs{formatPrice(product.discount_price)}
                                             </div>
                                         )}
                                     </td>

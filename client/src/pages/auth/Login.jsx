@@ -21,7 +21,7 @@ const Login = () => {
       const res = await login({ email, password }).unwrap();
       dispatch(setCredentials({ ...res }));
       if (res.user_role == 'Admin') {
-        navigate('/admin');
+        navigate('/admin/dashboard');
       } else {
         navigate('/');
       }

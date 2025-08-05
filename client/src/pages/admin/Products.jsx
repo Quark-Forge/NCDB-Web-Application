@@ -1,8 +1,8 @@
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useGetProductsQuery, useDeleteProductMutation, useUpdateProductMutation } from "../../slices/productsApiSlice";
+import { useGetProductsQuery } from "../../slices/productsApiSlice";
 import { useGetCategoriesQuery } from "../../slices/categoryApiSlice";
-import { useGetAllSuppliersQuery } from "../../slices/suppliersApiSlice";
+import { useGetAllActiveSuppliersQuery } from "../../slices/suppliersApiSlice";
 import { Search, RefreshCw, Plus } from 'lucide-react';
 import { useState } from 'react';
 import AddProduct from "../../components/admin/products/AddProduct";
@@ -14,7 +14,7 @@ import { useDeleteSupplierItemMutation } from "../../slices/supplierItemsApiSlic
 const Products = () => {
   const { data: productsData, isLoading, error, refetch } = useGetProductsQuery({});
   const { data: categoriesData } = useGetCategoriesQuery();
-  const { data: suppliersData } = useGetAllSuppliersQuery();
+  const { data: suppliersData } = useGetAllActiveSuppliersQuery();
   const [deleteProduct] = useDeleteSupplierItemMutation();
 
   // For modals and form data

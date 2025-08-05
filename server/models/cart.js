@@ -1,3 +1,4 @@
+// models/cart.js
 import { DataTypes } from "sequelize";
 import sequelize from "../config/db.js";
 import User from "./users.js";
@@ -14,7 +15,7 @@ const Cart = sequelize.define('Cart', {
         references: {
             model: User,
             key: 'id'
-        }
+        },
     },
 }, {
     tableName: 'carts',
@@ -22,5 +23,7 @@ const Cart = sequelize.define('Cart', {
     underscored: true,
     paranoid: true,
 });
+
+
 
 export default Cart;
