@@ -2,12 +2,18 @@ import React, { useState } from 'react';
 import { Heart, Star, ShoppingCartIcon } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import ProductModal from '../products/ProductModel';
 
 const ProductCard = ({ product, onAddToCart }) => {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
+  const [showModal, setShowModal] = useState(false);
+
+  const handleCardClick = () => {
+    setShowModal(true);
+  };
   const { userInfo } = useSelector((state) => state.auth);
 
   const handleWishlist = (e) => {
@@ -28,9 +34,9 @@ const ProductCard = ({ product, onAddToCart }) => {
     }, 300);
   };
 
-  const handleCardClick = () => {
-    console.log('Navigate to product:', product.id);
-  };
+  // const handleCardClick = () => {
+  //   console.log('Navigate to product:', product.id);
+  // };
 
   const renderPrice = () => {
     const price = parseFloat(product.price);
@@ -59,6 +65,7 @@ const ProductCard = ({ product, onAddToCart }) => {
   };
 
   return (
+    <>
     <div
       onClick={handleCardClick}
       className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group cursor-pointer transform hover:-translate-y-1"
@@ -135,6 +142,14 @@ const ProductCard = ({ product, onAddToCart }) => {
         </div>
       </div>
     </div>
+    {showModal && (
+      <ProductModal
+    product={product}
+    onClose={() => setShowModal(false)}
+    onAddToCart={onAddToCart} // pass the function
+  />
+    )}
+    </>
   );
 };
 
