@@ -3,14 +3,17 @@ import { Search, ShoppingCartIcon, LayoutDashboard } from 'lucide-react';
 import UserProfile from '../user/UserProfile';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import CartPopup from './CardPopup';
 
-const Navbar = ({ cartCount = 0, search, setSearch }) => {
+const Navbar = ({ cartCount = 0, search, setSearch ,cartItems}) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isCardOpen, setIsCardOpen] = useState(false);
 
   const navigate = useNavigate();
   const { userInfo } = useSelector((state) => state.auth);
 
   const handleCartClick = () => {
+    // setIsCardOpen(true);
     navigate('/user/cart');
   };
 
@@ -20,6 +23,10 @@ const Navbar = ({ cartCount = 0, search, setSearch }) => {
 
   const handleProfileClick = () => {
     setIsProfileOpen(true);
+  };
+
+  const handleCardClick = () => {
+    setIsCardOpen(true);
   };
 
   const handleProfileClose = () => {
@@ -222,6 +229,7 @@ const Navbar = ({ cartCount = 0, search, setSearch }) => {
       {isProfileOpen && (
         <UserProfile isOpen={true} onClose={handleProfileClose} />
       )}
+      
     </>
   );
 };
