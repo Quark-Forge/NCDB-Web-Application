@@ -1,5 +1,5 @@
 import asyncHandler from "express-async-handler";
-import Supplier from "../models/suppliers.js";
+import { Supplier } from "../models/index.js";
 
 // Helper to format supplier response
 const formatSupplierResponse = (supplier) => ({
@@ -8,9 +8,9 @@ const formatSupplierResponse = (supplier) => ({
   contact_number: supplier.contact_number,
   email: supplier.email,
   address: supplier.address,
-  is_active: supplier.is_active,
   createdAt: supplier.createdAt,
-  updatedAt: supplier.updatedAt
+  updatedAt: supplier.updatedAt,
+  deletedAt: supplier.deletedAt,
 });
 
 // Add new supplier
@@ -123,9 +123,22 @@ export const removeSupplier = asyncHandler(async (req, res) => {
 });
 
 // Get all active suppliers
-export const getAllSuppliers = asyncHandler(async (req, res) => {
+export const getAllActiveSuppliers = asyncHandler(async (req, res) => {
   const suppliers = await Supplier.findAll({
     order: [['createdAt', 'DESC']]
+  });
+
+  res.status(200).json({
+    success: true,
+    count: suppliers.length,
+    data: suppliers.map(formatSupplierResponse)
+  });
+});
+// Get all suppliers
+export const getAllSuppliers = asyncHandler(async (req, res) => {
+  const suppliers = await Supplier.findAll({
+    order: [['createdAt', 'DESC']],
+    paranoid: false,
   });
 
   res.status(200).json({

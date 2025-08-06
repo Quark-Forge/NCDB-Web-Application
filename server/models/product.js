@@ -64,6 +64,5 @@ const Product = sequelize.define('Product', {
     paranoid: true,
 });
 
-Product.belongsTo(Category, { foreignKey: 'category_id' });
 
 export default Product;

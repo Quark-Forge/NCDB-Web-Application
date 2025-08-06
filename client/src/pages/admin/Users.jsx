@@ -1,7 +1,7 @@
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useGetAllUsersQuery } from "../../slices/usersApiSlice";
-import { Pencil, Trash2, Search, Frown, Loader2, ChevronDown, Filter, RefreshCw } from 'lucide-react';
+import { Pencil, Trash2, Search, Frown, Loader2, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 
 const Users = () => {
@@ -88,9 +88,9 @@ const Users = () => {
                         </div>
                       </div>
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                        user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        !user.deletedAt ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
-                        {user.isActive ? 'Active' : 'Inactive'}
+                        {!user.deletedAt ? 'Active' : 'Inactive'}
                       </span>
                     </div>
                     <div className="mt-3 flex items-center justify-between">
@@ -156,9 +156,9 @@ const Users = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            !user.deletedAt ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                           }`}>
-                            {user.isActive ? 'Active' : 'Inactive'}
+                            {!user.deletedAt ? 'Active' : 'Inactive'}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
