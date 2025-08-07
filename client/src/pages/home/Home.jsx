@@ -26,6 +26,7 @@ const Home = () => {
 
 
   const products = data?.data || [];
+  console.log(data);
   const totalCount = data?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / productsPerPage);
 
@@ -48,7 +49,7 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <Navbar cartCount={cartCount} search={search} setSearch={setSearch} />
+      <Navbar cartCount={cartCount} search={search} setSearch={setSearch} cartItems={cartItems}/>
 
       <main className=" mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section */}
