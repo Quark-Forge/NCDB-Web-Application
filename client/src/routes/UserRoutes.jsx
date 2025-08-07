@@ -5,6 +5,6 @@ import Cart from "../pages/user/Cart";
 export const userChildren = (
     <>
         <Route path='profile/edit' element={<EditProfile />}></Route>
-        <Route path='cart' element={<Cart />}></Route>
+        <Route path='cart' element={<Cart/>}></Route>
     </>
 );
