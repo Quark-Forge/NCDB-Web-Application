@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Navbar from '../../components/home/Navbar';
 import ProductCard from '../../components/home/ProductCard';
 import { useGetProductsQuery } from '../../slices/productsApiSlice';
-import { ChevronDownIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronDownIcon, ChevronLeft, ChevronRight, CircleAlert } from 'lucide-react';
 import FilterBar from '../../components/home/FilterBar';
 
 const Home = () => {
@@ -23,13 +23,13 @@ const Home = () => {
     limit: productsPerPage,
   });
 
-  
+
 
   const products = data?.data || [];
   const totalCount = data?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / productsPerPage);
 
-  
+
 
   const handleAddToCart = (product) => {
     setCartCount(prev => prev + 1);
@@ -59,17 +59,20 @@ const Home = () => {
 
         {/* Filter and Sorting  */}
         <FilterBar
-          category = {category}
-          setCategory = {setCategory}
-          sort = {sort}
-          setSort = {setSort}
+          category={category}
+          setCategory={setCategory}
+          sort={sort}
+          setSort={setSort}
         />
 
         {/* Products */}
         {isLoading ? (
           <p>Loading products...</p>
         ) : error ? (
-          <p className="text-red-500">Failed to load products</p>
+          <p className="text-red-500 flex items-center gap-2">
+            <CircleAlert className="h-5 w-5" />
+            Failed to load products
+          </p>
         ) : (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">

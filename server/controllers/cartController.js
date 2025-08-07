@@ -75,3 +75,59 @@ export const addToCart = asyncHandler(async (req, res) => {
 
     res.status(200).json(updatedCart);
 });
+
+// // DELETE /api/cart/items/:productId
+// export const removeFromCart = asyncHandler(async (req, res) => {
+//     const userId = req.user.id;
+//     const { productId } = req.params; // Use params instead of body for DELETE
+
+//     if (!productId) {
+//         return res.status(400).json({
+//             success: false,
+//             message: "Product ID is required"
+//         });
+//     }
+
+//     // Find the user's cart
+//     const cart = await Cart.findOne({
+//         where: { user_id: userId }
+//     });
+
+//     if (!cart) {
+//         return res.status(404).json({
+//             success: false,
+//             message: "Cart not found"
+//         });
+//     }
+
+//     // Find and delete the cart item
+//     const deletedItem = await CartItem.destroy({
+//         where: {
+//             cart_id: cart.id,
+//             product_id: productId
+//         }
+//     });
+
+//     if (deletedItem === 0) {
+//         return res.status(404).json({
+//             success: false,
+//             message: "Product not found in cart"
+//         });
+//     }
+
+//     // Fetch updated cart
+//     const updatedCart = await Cart.findByPk(cart.id, {
+//         include: [{
+//             model: CartItem,
+//             as: 'items',
+//             include: [{ model: Product, as: 'product' }]
+//         }]
+//     });
+
+//     return res.status(200).json({
+//         success: true,
+//         message: "Item removed from cart",
+//         cart: updatedCart
+//     });
+// });
+
