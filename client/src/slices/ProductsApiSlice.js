@@ -14,7 +14,7 @@ export const productsApiSlice = apiSlice.injectEndpoints({
         if (sort) params.append('sort', sort);
         if (page) params.append('page', page);
         if (limit) params.append('limit', limit);
-
+        
         return {
           url: `${PRODUCTS_URL}?${params.toString()}`,
           method: 'GET',

@@ -27,7 +27,7 @@ app.use('/api/suppliers', supplierRoute);
 app.use('/api/categories', categoryRoute);
 app.use('/api/products', productRoute);
 app.use('/api/supplier-items', supplierItemRoutes);
-app.use('/api/cart', cartRoutes);
+app.use('/api/carts', cartRoutes);
 
 
 app.get('/', (req, res) => res.send('server is ready'));

@@ -1,4 +1,4 @@
-import { ChevronDownIcon } from "lucide-react";
+import { ChevronDownIcon, CircleAlert } from "lucide-react";
 import { useGetCategoriesQuery } from "../../slices/categoryApiSlice";
 
 const FilterBar = ({ category, sort, setCategory, setSort }) => {
@@ -19,7 +19,7 @@ const FilterBar = ({ category, sort, setCategory, setSort }) => {
                     </div>
                 ) : categoryError ? (
                     <p className="text-red-500 flex items-center gap-2">
-                        <ExclamationCircleIcon className="h-5 w-5" />
+                        <CircleAlert className="h-5 w-5" />
                         Failed to load categories
                     </p>
                 ) : (
