@@ -7,9 +7,12 @@ import CartItem from "./cartItems.js";
 import Product from "./product.js";
 import Category from "./category.js";
 import Supplier from "./suppliers.js";
-import SupplierItem from  "./suplierItem.js"
+import SupplierItem from "./suplierItem.js"
+import Order from "./orders.js";
+import OrderItem from "./orderItems.js";
+import Payment from "./payment.js";
 
-// === User ↔ Role ===
+// User <-> Role
 User.belongsTo(Role, {
   foreignKey: 'role_id',
   onUpdate: 'CASCADE',
@@ -21,7 +24,7 @@ Role.hasMany(User, {
   onDelete: 'RESTRICT',
 });
 
-// === Product ↔ Category ===
+// Product<-> Category
 Product.belongsTo(Category, {
   foreignKey: 'category_id'
 });
@@ -29,7 +32,7 @@ Category.hasMany(Product, {
   foreignKey: 'category_id'
 });
 
-// === Cart ↔ User ===
+// Cart <-> User
 Cart.belongsTo(User, {
   foreignKey: 'user_id',
 });
@@ -37,7 +40,7 @@ User.hasOne(Cart, {
   foreignKey: 'user_id',
 });
 
-// === Cart ↔ CartItem ↔ Product ===
+// Cart <-> CartItem <-> Product
 Cart.hasMany(CartItem, {
   foreignKey: 'cart_id',
   onDelete: 'CASCADE'
@@ -53,7 +56,7 @@ Product.hasMany(CartItem, {
   foreignKey: 'product_id',
 });
 
-// === SupplierItem ↔ Supplier & Product ===
+// SupplierItem <-> Supplier & Product
 SupplierItem.belongsTo(Supplier, {
   foreignKey: 'supplier_id'
 });
@@ -68,7 +71,32 @@ Product.hasMany(SupplierItem, {
   foreignKey: 'product_id'
 });
 
-// Export all models
+// OrderItem <-> Order & User
+Order.belongsTo(User, {
+  foreignKey: 'user_id'
+});
+Order.hasMany(OrderItem, {
+  foreignKey: 'order_id'
+});
+
+
+OrderItem.belongsTo(Order, {
+  foreignKey: 'order_id'
+});
+OrderItem.belongsTo(Product, {
+  foreignKey: 'product_id'
+});
+
+// Payment <-> Order
+Order.hasOne(Payment, {
+  foreignKey: 'order_id'
+});
+
+Payment.belongsTo(Order, { 
+  foreignKey: 'order_id' 
+});
+
+
 export {
   sequelize,
   Role,
@@ -78,5 +106,7 @@ export {
   Product,
   Category,
   Supplier,
-  SupplierItem
+  SupplierItem,
+  Order,
+  OrderItem,
 };
