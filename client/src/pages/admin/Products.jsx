@@ -52,8 +52,6 @@ const Products = () => {
         toast.success('Product deleted successfully!');
         refetch();
       } catch (err) {
-        console.log(err);
-        
         toast.error(err?.data?.message || 'Error deleting product');
       }
     }
