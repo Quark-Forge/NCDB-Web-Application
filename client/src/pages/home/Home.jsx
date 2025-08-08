@@ -4,6 +4,7 @@ import ProductCard from '../../components/home/ProductCard';
 import { useGetProductsQuery } from '../../slices/productsApiSlice';
 import { ChevronDownIcon, ChevronLeft, ChevronRight, CircleAlert } from 'lucide-react';
 import FilterBar from '../../components/home/FilterBar';
+import { useAddToCartMutation } from '../../slices/cartApiSlice';
 
 const Home = () => {
   const [cartCount, setCartCount] = useState(0);
@@ -23,6 +24,7 @@ const Home = () => {
     limit: productsPerPage,
   });
 
+  const [addToCart, { isLoading: isAdding }] = useAddToCartMutation();
 
 
   const products = data?.data || [];
@@ -30,13 +32,6 @@ const Home = () => {
   const totalCount = data?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / productsPerPage);
 
-
-
-  const handleAddToCart = (product) => {
-    setCartCount(prev => prev + 1);
-    setCartItems(prev => [...prev, product]);
-    console.log('Added to cart:', product);
-  };
 
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
@@ -49,7 +44,7 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <Navbar cartCount={cartCount} search={search} setSearch={setSearch} cartItems={cartItems}/>
+      <Navbar cartCount={cartCount} search={search} setSearch={setSearch} cartItems={cartItems} />
 
       <main className=" mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section */}
@@ -81,7 +76,6 @@ const Home = () => {
                 <ProductCard
                   key={`${product.id}-${product.supplier_id}`}
                   product={product}
-                  onAddToCart={handleAddToCart}
                 />
               ))}
             </div>
