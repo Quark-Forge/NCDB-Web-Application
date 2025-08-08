@@ -1,4 +1,4 @@
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
@@ -7,6 +7,7 @@ const Vrification = () => {
   const email = state?.email || 'your email';
   console.log(email);
   
+  const navigate = useNavigate();
 
   const handleResendEmail = async () => {
     try {
@@ -18,7 +19,7 @@ const Vrification = () => {
   };
 
   return (
-    <div>
+    <div className='space-x-10'>
       <h1>🎉 Registration successful!</h1>
       <p>Please check your email inbox at {email}. Click the verification link to activate your account.</p>
       <button
@@ -26,6 +27,12 @@ const Vrification = () => {
         className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
       >
         Resend Verification Email
+      </button>
+      <button
+        onClick={() => navigate('/')}
+        className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
+      >
+        Back Home
       </button>
     </div>
   );

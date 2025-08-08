@@ -131,7 +131,7 @@ const AdminLayout = () => {
       <div className="flex mt-16 h-full">
         {/* Sidebar */}
         <aside
-          className={`fixed md:static top-16 md:top-0 left-0 h-full w-64 bg-slate-100 shadow-md z-30 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          className={`fixed md:relative top-16 md:top-0 left-0 h-[calc(100vh-4rem)] md:h-full w-64 bg-slate-100 shadow-md z-30 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
             } md:translate-x-0`}
         >
           <nav className="p-4 space-y-2">
@@ -156,8 +156,8 @@ const AdminLayout = () => {
               <button
                 onClick={() => setProductsExpanded(!productsExpanded)}
                 className={`w-full flex items-center justify-between gap-2 p-2 rounded-md transition ${location.pathname.includes('/admin/products') || location.pathname.includes('/admin/categories') || location.pathname.includes('/admin/suppliers')
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-700 hover:bg-gray-200'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-700 hover:bg-gray-200'
                   }`}
               >
                 <div className="flex items-center gap-2">
@@ -205,7 +205,7 @@ const AdminLayout = () => {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 bg-gray-100 w-full overflow-y-auto">
+        <main className="flex-1 p-4 bg-gray-100 overflow-y-auto md:h-[calc(100vh-4rem)]">
           <Outlet />
         </main>
       </div>

@@ -12,6 +12,7 @@ import { Role } from '../models/index.js';
 // Protected - Admin Only
 const getUsers = asyncHandler(async (req, res) => {
     const users = await User.findAll({
+        paranoid: false,
         attributes: { exclude: ['password'] },
         include: [
             {
@@ -95,7 +96,7 @@ const registerUser = asyncHandler(async (req, res) => {
     }
     const hashedPassword = await hashPassword(password);
 
-    const role = await Role.findOne({ where: { name: 'customer' } });
+    const role = await Role.findOne({ where: { name: 'Customer' } });
 
     const newUser = await User.create({
         name,
@@ -253,6 +254,129 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     });
 });
 
+// Update user role (Admin only)
+// PUT /api/users/:id/role
+const updateUserRole = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { role_id } = req.body;
+
+    if (!role_id) {
+        res.status(400);
+        throw new Error('Role ID is required');
+    }
+
+    const requestingUser = await User.findByPk(req.user.id, {
+        include: [{ model: Role }]
+    });
+    
+    if (!requestingUser?.Role || requestingUser.Role.name !== 'Admin') {
+        res.status(403);
+        throw new Error('Not authorized as admin');
+    }
+
+    const userToUpdate = await User.findByPk(id);
+    if (!userToUpdate) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+
+    const newRole = await Role.findByPk(role_id);
+    if (!newRole) {
+        res.status(400);
+        throw new Error('Invalid role ID');
+    }
+
+    if (userToUpdate.id === requestingUser.id) {
+        res.status(403);
+        throw new Error('Admins cannot modify their own role');
+    }
+
+    await userToUpdate.update({ role_id });
+    
+    const updatedUser = await User.findByPk(id, {
+        attributes: { exclude: ['password'] },
+        include: [{ model: Role, attributes: ['name'] }]
+    });
+
+    res.status(200).json({
+        success: true,
+        message: 'User role updated successfully',
+        user: {
+            ...updatedUser.toJSON(),
+            role_name: updatedUser.Role?.name
+        }
+    });
+});
+
+// Delete user (Admin only - Soft delete with paranoid)
+// DELETE /api/users/:id
+const deleteUser = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const requestingUser = await User.findByPk(req.user.id, {
+        include: [{ model: Role }]
+    });
+    
+    if (!requestingUser?.Role || requestingUser.Role.name !== 'Admin') {
+        res.status(403);
+        throw new Error('Not authorized as admin');
+    }
+
+    if (requestingUser.id === parseInt(id)) {
+        res.status(403);
+        throw new Error('Admins cannot delete themselves');
+    }
+
+    const userToDelete = await User.findByPk(id);
+    if (!userToDelete) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+
+    await userToDelete.destroy();
+
+    res.status(200).json({
+        success: true,
+        message: 'User deleted successfully (soft delete)',
+        deletedUserId: id
+    });
+});
+
+// Restore user (Admin only)
+// PATCH /api/users/:id/restore
+const restoreUser = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const requestingUser = await User.findByPk(req.user.id, {
+        include: [{ model: Role }]
+    });
+    
+    if (!requestingUser?.Role || requestingUser.Role.name !== 'Admin') {
+        res.status(403);
+        throw new Error('Not authorized as admin');
+    }
+
+    const userToRestore = await User.findByPk(id, { paranoid: false });
+    
+    if (!userToRestore) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+
+    if (!userToRestore.deletedAt) {
+        res.status(400);
+        throw new Error('User is not deactivated');
+    }
+
+    await userToRestore.restore();
+
+    res.status(200).json({
+        success: true,
+        message: 'User restored successfully',
+        restoredUserId: id
+    });
+});
+
 export {
     authUser,
     registerUser,
@@ -262,4 +386,7 @@ export {
     getUsers,
     verifyEmail,
     resendVerificationEmail,
+    updateUserRole,
+    deleteUser,
+    restoreUser,
 };

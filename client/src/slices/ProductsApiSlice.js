@@ -15,10 +15,6 @@ export const productsApiSlice = apiSlice.injectEndpoints({
         if (page) params.append('page', page);
         if (limit) params.append('limit', limit);
         
-        console.log({
-          url: `${PRODUCTS_URL}?${params.toString()}`,
-          method: 'GET',
-        });
         return {
           url: `${PRODUCTS_URL}?${params.toString()}`,
           method: 'GET',

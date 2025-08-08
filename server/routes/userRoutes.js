@@ -9,6 +9,9 @@ import {
     getUsers,
     verifyEmail,
     resendVerificationEmail,
+    updateUserRole,
+    deleteUser,
+    restoreUser,
 } from '../controllers/userController.js';
 import { authorize, protect } from '../middleware/authMiddleware.js';
 
@@ -22,5 +25,9 @@ router
     .route('/profile')
     .get(protect, getUserProfile)
     .put(protect, updateUserProfile);
+router.route('/:id')
+      .delete(protect,authorize('Admin'), deleteUser)
+      .patch(protect,authorize('Admin'), restoreUser);
+router.put('/:id/role', protect,authorize('Admin'), updateUserRole);
 
 export default router;

@@ -28,7 +28,6 @@ const Home = () => {
 
 
   const products = data?.data || [];
-  console.log(data);
   const totalCount = data?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / productsPerPage);
 
