@@ -4,25 +4,13 @@ import { X, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
-const ProductModal = ({ product, onClose, onAddToCart }) => {
+const ProductModal = ({ product, onClose, handleAddToCart }) => {
   const [isLoading, setIsLoading] = useState(false);
   const { userInfo } = useSelector((state) => state.auth);
   const navigate = useNavigate();
 
   if (!product) return null;
 
-  const handleAddToCart = () => {
-    if (!userInfo) {
-      navigate('/auth/login');
-      return;
-    }
-
-    setIsLoading(true);
-    setTimeout(() => {
-      onAddToCart(product);
-      setIsLoading(false);
-    }, 300);
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -45,12 +33,12 @@ const ProductModal = ({ product, onClose, onAddToCart }) => {
         <div className="flex flex-col md:flex-row gap-6">
           {/* Product Image */}
           <div className="w-full md:w-1/2 flex items-center justify-center bg-gray-100 rounded-lg">
-  <img
-    src={product.image_url || '../../images/product.png'}
-    alt={product.name}
-    className="w-full h-full max-h-[400px] object-contain rounded-lg"
-  />
-</div>
+            <img
+              src={product.image_url || '../../images/product.png'}
+              alt={product.name}
+              className="w-full h-full max-h-[400px] object-contain rounded-lg"
+            />
+          </div>
 
 
           {/* Product Info */}
@@ -93,11 +81,10 @@ const ProductModal = ({ product, onClose, onAddToCart }) => {
               <button
                 onClick={handleAddToCart}
                 disabled={isLoading}
-                className={`flex items-center gap-2 px-5 py-2 rounded-full font-semibold transition duration-200 text-white ${
-                  isLoading
+                className={`flex items-center gap-2 px-5 py-2 rounded-full font-semibold transition duration-200 text-white ${isLoading
                     ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-blue-600 hover:bg-blue-500 hover:scale-105'
-                }`}
+                  }`}
               >
                 {isLoading ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />

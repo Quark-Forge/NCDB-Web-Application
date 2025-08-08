@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import Navbar from '../../components/home/Navbar';
 import ProductCard from '../../components/home/ProductCard';
 import { useGetProductsQuery } from '../../slices/productsApiSlice';
-import { ChevronDownIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronDownIcon, ChevronLeft, ChevronRight, CircleAlert } from 'lucide-react';
 import FilterBar from '../../components/home/FilterBar';
+import { useAddToCartMutation } from '../../slices/cartApiSlice';
 
 const Home = () => {
   const [cartCount, setCartCount] = useState(0);
@@ -23,20 +24,14 @@ const Home = () => {
     limit: productsPerPage,
   });
 
-  
+  const [addToCart, { isLoading: isAdding }] = useAddToCartMutation();
+
 
   const products = data?.data || [];
   console.log(data);
   const totalCount = data?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / productsPerPage);
 
-  
-
-  const handleAddToCart = (product) => {
-    setCartCount(prev => prev + 1);
-    setCartItems(prev => [...prev, product]);
-    console.log('Added to cart:', product);
-  };
 
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
@@ -49,7 +44,7 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <Navbar cartCount={cartCount} search={search} setSearch={setSearch} cartItems={cartItems}/>
+      <Navbar cartCount={cartCount} search={search} setSearch={setSearch} cartItems={cartItems} />
 
       <main className=" mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section */}
@@ -60,17 +55,20 @@ const Home = () => {
 
         {/* Filter and Sorting  */}
         <FilterBar
-          category = {category}
-          setCategory = {setCategory}
-          sort = {sort}
-          setSort = {setSort}
+          category={category}
+          setCategory={setCategory}
+          sort={sort}
+          setSort={setSort}
         />
 
         {/* Products */}
         {isLoading ? (
           <p>Loading products...</p>
         ) : error ? (
-          <p className="text-red-500">Failed to load products</p>
+          <p className="text-red-500 flex items-center gap-2">
+            <CircleAlert className="h-5 w-5" />
+            Failed to load products
+          </p>
         ) : (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
@@ -78,7 +76,6 @@ const Home = () => {
                 <ProductCard
                   key={`${product.id}-${product.supplier_id}`}
                   product={product}
-                  onAddToCart={handleAddToCart}
                 />
               ))}
             </div>
