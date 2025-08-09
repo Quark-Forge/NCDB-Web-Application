@@ -16,7 +16,7 @@ router.use(authorize('Admin'));
 // Routes
 router.get('/', getAllSupplierItems);
 router.get('/:supplier_id/items', getSupplierItemsBySupplier);
-router.delete('/:supplier_id/items/:product_id', deleteSupplierItem);
-router.put('/:supplier_id/items/:product_id', updateSupplierItem);
+router.delete('/:supplier_id/items/:product_id', protect, authorize('Admin', 'Inventory Manager'), deleteSupplierItem);
+router.put('/:supplier_id/items/:product_id', protect, authorize('Admin', 'Inventory Manager'), updateSupplierItem);
 
 export default router;

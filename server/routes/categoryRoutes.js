@@ -14,18 +14,15 @@ import { authorize, protect } from '../middleware/authMiddleware.js';
 const router = express.Router();
 
 router.route('/')
-      .post(protect, authorize('Admin'),createCategory)
-      .get(getAllCategories);
-
+      .post(protect, authorize('Admin', 'Inventory Manager'),createCategory)
+      .get(protect, authorize('Admin', 'Order Manager', 'Inventory Manager'), getAllCategories);
 router.get('/active', getActiveCategories);
-
 router.route('/:id')
       .get(getSingleCategory)
-      .delete(protect, authorize('Admin'), disabledCategory)
-      .post(protect, authorize('Admin'), restoreCategory)
-      .put(protect, authorize('Admin'), updateCategory);
-      
-router.delete('/delete/:id', deleteCategory);
+      .delete(protect, authorize('Admin', 'Inventory Manager'), disabledCategory)
+      .post(protect, authorize('Admin', 'Inventory Manager'), restoreCategory)
+      .put(protect, authorize('Admin', 'Inventory Manager'), updateCategory);
+router.delete('/delete/:id',protect, authorize('Admin', 'Inventory Manager'), deleteCategory);
 
 
 export default router;

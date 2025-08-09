@@ -22,13 +22,13 @@ const getUsers = asyncHandler(async (req, res) => {
         ],
     });
     const usersWithRole = users.map(user => {
-    const userJson = user.toJSON();
-    return {
-      ...userJson,
-      role_name: userJson.Role?.name || null,
-      Role: undefined,
-    };
-  });
+        const userJson = user.toJSON();
+        return {
+            ...userJson,
+            role_name: userJson.Role?.name || null,
+            Role: undefined,
+        };
+    });
 
     res.status(200).json({
         success: true,
@@ -51,7 +51,7 @@ const authUser = asyncHandler(async (req, res) => {
         res.status(401);
         throw new Error('Please verify your email before logging in.');
     }
-    
+
     if (await matchPassword(password, existingUser.password)) {
         const { id, name, email, contact_number, address, role_id } = existingUser;
         const role = await Role.findByPk(role_id);
@@ -59,7 +59,7 @@ const authUser = asyncHandler(async (req, res) => {
         generateToken(res, id);
         return res.status(200).json({ id, name, email, contact_number, address, role_id, user_role });
     }
-    
+
     res.status(401);
     throw new Error('Invalid email or password');
 });
@@ -235,6 +235,9 @@ const updateUserProfile = asyncHandler(async (req, res) => {
         throw new Error('User not found');
     }
 
+    const role = await Role.findByPk(user.role_id);
+    const user_role = role ? role.name : 'Unknown';
+
     if (password) {
         user.password = await hashPassword(password);
     }
@@ -251,6 +254,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
         email: user.email,
         contact_number: user.contact_number,
         address: user.address,
+        user_role,
     });
 });
 
@@ -268,7 +272,7 @@ const updateUserRole = asyncHandler(async (req, res) => {
     const requestingUser = await User.findByPk(req.user.id, {
         include: [{ model: Role }]
     });
-    
+
     if (!requestingUser?.Role || requestingUser.Role.name !== 'Admin') {
         res.status(403);
         throw new Error('Not authorized as admin');
@@ -292,7 +296,7 @@ const updateUserRole = asyncHandler(async (req, res) => {
     }
 
     await userToUpdate.update({ role_id });
-    
+
     const updatedUser = await User.findByPk(id, {
         attributes: { exclude: ['password'] },
         include: [{ model: Role, attributes: ['name'] }]
@@ -316,7 +320,7 @@ const deleteUser = asyncHandler(async (req, res) => {
     const requestingUser = await User.findByPk(req.user.id, {
         include: [{ model: Role }]
     });
-    
+
     if (!requestingUser?.Role || requestingUser.Role.name !== 'Admin') {
         res.status(403);
         throw new Error('Not authorized as admin');
@@ -350,14 +354,14 @@ const restoreUser = asyncHandler(async (req, res) => {
     const requestingUser = await User.findByPk(req.user.id, {
         include: [{ model: Role }]
     });
-    
+
     if (!requestingUser?.Role || requestingUser.Role.name !== 'Admin') {
         res.status(403);
         throw new Error('Not authorized as admin');
     }
 
     const userToRestore = await User.findByPk(id, { paranoid: false });
-    
+
     if (!userToRestore) {
         res.status(404);
         throw new Error('User not found');

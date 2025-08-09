@@ -6,11 +6,11 @@ const router = express.Router();
 
 router.route('/')
       .post(protect, authorize('Admin') , addSupplier)
-      .get(protect, authorize('Admin') , getAllSuppliers);
+      .get(protect, authorize('Admin', 'Order Manager', 'Inventory Manager') , getAllSuppliers);
 router.route('/active')
-      .get(protect, authorize('Admin') , getAllActiveSuppliers);
+      .get(protect, authorize('Admin', 'Order Manager', 'Inventory Manager') , getAllActiveSuppliers);
 router.route('/:id')
-      .get(protect, authorize('Admin') , getSupplier)
+      .get(protect, authorize('Admin', 'Order Manager', 'Inventory Manager') , getSupplier)
       .put(protect, authorize('Admin') ,updateSupplier)
       .delete(protect, authorize('Admin') ,removeSupplier);
 
