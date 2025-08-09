@@ -6,15 +6,16 @@ import {
     getProductById,
     updateProduct,
 } from '../controllers/productController.js';
+import { authorize, protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 router.route('/')
-      .post(addProduct)
+      .post(protect , authorize('Admin', 'Inventory Manager'), addProduct)
       .get(getAllProducts);
 router.route('/:id')
       .get(getProductById)
-      .put(updateProduct)
-      .delete(deleteProduct);
+      .put(protect, authorize('Admin','Inventory Manager'),updateProduct)
+      .delete(protect, authorize('Admin', 'Inventory Manager'), deleteProduct);
 
 export default router;

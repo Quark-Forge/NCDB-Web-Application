@@ -1,5 +1,5 @@
 import express from 'express';
-import { protect } from '../middleware/authMiddleware.js';
+import { authorize, protect } from '../middleware/authMiddleware.js';
 import {
       getCart,
       addToCart,
@@ -8,8 +8,8 @@ import {
 const router = express.Router();
 
 router.route('/')
-      .get(protect, getCart)
-      .post(protect, addToCart);
+      .get(protect,authorize('Customer'), getCart)
+      .post(protect,authorize('Customer'), addToCart);
 
 // router.delete('/items/:product_id', protect, removeFromCart);
 
