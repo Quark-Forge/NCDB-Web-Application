@@ -4,6 +4,7 @@ import UserProfile from '../user/UserProfile';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import CartPopup from './CardPopup';
+import AdminProfile from '../../pages/admin/AdminProfile';
 
 const allowedRoles = ['Admin', 'Order Manager', 'Inventory Manager'];
 
@@ -68,13 +69,13 @@ const Navbar = ({ cartCount = 0, search, setSearch ,cartItems}) => {
                       className="bg-blue-500 px-3 py-1 text-white rounded-3xl hover:bg-blue-600 transition text-sm"
                       onClick={() => navigate('/auth/login')}
                     >
-                      Login
+                      Sign in
                     </button>
                     <button
                       className="border border-blue-500 px-3 py-1 text-blue-500 rounded-3xl hover:bg-blue-600 hover:text-white transition text-sm"
                       onClick={() => navigate('/auth/register')}
                     >
-                      Sign Up
+                      Sign up
                     </button>
                   </div>
                 </>
@@ -213,13 +214,13 @@ const Navbar = ({ cartCount = 0, search, setSearch ,cartItems}) => {
                   className="bg-blue-500 px-4 py-2 text-white rounded-3xl hover:bg-blue-600 transition"
                   onClick={() => navigate('/auth/login')}
                 >
-                  Login
+                  Sign in
                 </button>
                 <button
                   className="border border-blue-500 px-4 py-2 text-blue-500 rounded-3xl hover:bg-blue-500 hover:text-white transition"
                   onClick={() => navigate('/auth/register')}
                 >
-                  Sign Up
+                  Sign up
                 </button>
               </div>
             )}
@@ -229,6 +230,8 @@ const Navbar = ({ cartCount = 0, search, setSearch ,cartItems}) => {
 
       {/* User Profile Popup */}
       {isProfileOpen && (
+
+        allowedRoles.includes(userInfo.user_role) ? <AdminProfile /> :
         <UserProfile isOpen={true} onClose={handleProfileClose} />
       )}
       

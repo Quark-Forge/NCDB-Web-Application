@@ -13,6 +13,12 @@ import {
   ChevronDown,
   ChevronRight,
   Tag,
+  ChevronLeft,
+  Package,
+  Layers,
+  CreditCard,
+  BarChart2,
+  HelpCircle
 } from 'lucide-react';
 import { useLogoutMutation } from '../../slices/usersApiSlice';
 import { useDispatch, useSelector } from 'react-redux';
@@ -35,10 +41,28 @@ const adminNavConfig = {
       icon: <Users size={18} />
     },
     {
+      to: '/admin/suppliers',
+      label: 'Suppliers',
+      allowedRoles: ['Admin', 'Order Manager', 'Inventory Manager'],
+      icon: <Users size={16} />
+    },
+    {
       to: '/admin/orders',
       label: 'Orders',
       allowedRoles: ['Admin', 'Order Manager'],
       icon: <ShoppingBag size={18} />
+    },
+    {
+      to: '/admin/inventory',
+      label: 'Inventory',
+      allowedRoles: ['Admin', 'Inventory Manager'],
+      icon: <Package size={18} />
+    },
+    {
+      to: '/admin/reports',
+      label: 'Reports',
+      allowedRoles: ['Admin'],
+      icon: <BarChart2 size={18} />
     },
   ],
   productItems: [
@@ -53,10 +77,10 @@ const adminNavConfig = {
       icon: <Tag size={16} />
     },
     {
-      to: '/admin/suppliers',
-      label: 'Suppliers',
-      icon: <Users size={16} />
-    },
+      to: '/admin/inventory',
+      label: 'Inventory',
+      icon: <Layers size={16} />
+    }
   ]
 };
 
@@ -84,9 +108,9 @@ const AdminLayout = () => {
   const [logoutApiCall, { isLoading }] = useLogoutMutation();
   const { userInfo, hasAccess } = useAdminAuth();
 
+  // Auto-expand products menu if on a products-related page
   useEffect(() => {
-    // Auto-expand products menu if on a products-related page
-    const productPaths = ['/admin/products', '/admin/categories', '/admin/suppliers'];
+    const productPaths = ['/admin/products', '/admin/categories', '/admin/suppliers', '/admin/inventory'];
     if (productPaths.some(path => location.pathname.includes(path))) {
       setProductsExpanded(true);
     }
@@ -103,6 +127,7 @@ const AdminLayout = () => {
     }
   };
 
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -123,10 +148,25 @@ const AdminLayout = () => {
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
+  // Breadcrumb navigation
+  const getBreadcrumbs = () => {
+    const paths = location.pathname.split('/').filter(Boolean);
+    return paths.map((path, index) => {
+      const route = `/${paths.slice(0, index + 1).join('/')}`;
+      const label = path.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+      return {
+        label,
+        route,
+        isLast: index === paths.length - 1
+      };
+    });
+  };
+
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
+    <div className="flex flex-col h-screen bg-gray-50">
       {/* Top Navbar */}
-      <header className="h-16 w-full bg-white shadow z-20 px-5 flex items-center justify-between fixed top-0 left-0 right-0">
+      <header className="h-16 w-full bg-white shadow-sm z-20 px-5 flex items-center justify-between fixed top-0 left-0 right-0">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -136,31 +176,48 @@ const AdminLayout = () => {
           >
             {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
+
+          {/* Home Navigation */}
+          <button
+            onClick={() => navigate('/')}
+            className="text-blue-600 hover:text-blue-800 transition-colors"
+            aria-label="Go to home page"
+          >
+            <Home size={20} />
+          </button>
+
           <span className="text-xl font-bold text-blue-600">{userInfo.user_role} Panel</span>
         </div>
 
-        {/* Profile Dropdown */}
-        <div className="relative" ref={dropdownRef}>
-          <button
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-2 focus:outline-none"
-            aria-label="User menu"
-            aria-expanded={dropdownOpen}
-          >
-            <img
-              src="../../images/user.png"
-              alt="User"
-              className="w-9 h-9 rounded-full"
-            />
-            <span className="sr-only">User profile</span>
-          </button>
+        {/* Help Navigation */}
+        <div className="hidden md:flex items-center gap-4">
 
-          {dropdownOpen && (
-            <div
-              className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200"
-              role="menu"
+
+          {/* Profile Dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="flex items-center gap-2 focus:outline-none"
+              aria-label="User menu"
+              aria-expanded={dropdownOpen}
             >
-              <div className="py-1">
+              <img
+                src={userInfo?.image_url || "../../images/user.png"}
+                alt="User"
+                className="w-9 h-9 rounded-full object-cover border-2 border-gray-200"
+                onError={(e) => {
+                  e.target.src = "../../images/user.png";
+                  e.target.onerror = null;
+                }}
+              />
+              <span className="sr-only">User profile</span>
+            </button>
+
+            {dropdownOpen && (
+              <div
+                className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200 py-1"
+                role="menu"
+              >
                 <NavLink
                   to="/admin/profile"
                   onClick={() => setDropdownOpen(false)}
@@ -182,15 +239,15 @@ const AdminLayout = () => {
                 <button
                   onClick={handleLogout}
                   disabled={isLoading}
-                  className="w-full text-left flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
+                  className="w-full text-left flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 disabled:opacity-50"
                   role="menuitem"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
                   {isLoading ? 'Logging out...' : 'Logout'}
                 </button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </header>
 
@@ -198,7 +255,7 @@ const AdminLayout = () => {
       <div className="flex mt-16 h-full">
         {/* Sidebar */}
         <aside
-          className={`fixed md:relative top-16 md:top-0 left-0 h-[calc(100vh-4rem)] md:h-full w-64 bg-white shadow-md z-30 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          className={`fixed md:relative top-16 md:top-0 left-0 h-[calc(100vh-4rem)] md:h-full w-64 bg-white shadow-sm z-30 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
             } md:translate-x-0`}
           aria-label="Sidebar"
         >
@@ -210,8 +267,8 @@ const AdminLayout = () => {
                 onClick={() => setSidebarOpen(false)}
                 className={({ isActive }) =>
                   `flex items-center gap-2 p-2 rounded-md transition ${isActive
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-700 hover:bg-gray-200'
+                    ? 'bg-blue-100 text-blue-700 font-medium'
+                    : 'text-gray-700 hover:bg-gray-100'
                   }`
                 }
                 end
@@ -225,10 +282,11 @@ const AdminLayout = () => {
               <button
                 onClick={() => setProductsExpanded(!productsExpanded)}
                 className={`w-full flex items-center justify-between gap-2 p-2 rounded-md transition ${location.pathname.includes('/admin/products') ||
-                    location.pathname.includes('/admin/categories') ||
-                    location.pathname.includes('/admin/suppliers')
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-700 hover:bg-gray-200'
+                  location.pathname.includes('/admin/categories') ||
+                  location.pathname.includes('/admin/suppliers') ||
+                  location.pathname.includes('/admin/inventory')
+                  ? 'bg-blue-100 text-blue-700 font-medium'
+                  : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 aria-expanded={productsExpanded}
               >
@@ -248,8 +306,8 @@ const AdminLayout = () => {
                       onClick={() => setSidebarOpen(false)}
                       className={({ isActive }) =>
                         `flex items-center gap-2 p-2 rounded-md transition text-sm ${isActive
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'text-gray-600 hover:bg-gray-200'
+                          ? 'bg-blue-100 text-blue-700 font-medium'
+                          : 'text-gray-600 hover:bg-gray-100'
                         }`
                       }
                       role="menuitem"
@@ -260,26 +318,38 @@ const AdminLayout = () => {
                 </div>
               )}
             </div>
-
-            {/* Settings */}
-            <NavLink
-              to="/admin/settings"
-              onClick={() => setSidebarOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-2 p-2 rounded-md transition ${isActive
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'text-gray-700 hover:bg-gray-200'
-                }`
-              }
-              end
-            >
-              <Settings size={18} /> Settings
-            </NavLink>
           </nav>
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-2 bg-gray-100 overflow-y-auto md:h-[calc(100vh-4rem)]">
+        <main className="flex-1 p-4 bg-gray-50 overflow-y-auto md:h-[calc(100vh-4rem)]">
+          {/* Breadcrumb Navigation */}
+          <div className="flex items-center gap-2 mb-4 text-sm text-gray-600">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-1 rounded-full hover:bg-gray-200 transition-colors"
+              aria-label="Go back"
+            >
+              <ChevronLeft size={18} />
+            </button>
+
+            {getBreadcrumbs().map((crumb, index) => (
+              <div key={index} className="flex items-center">
+                {index > 0 && <span className="mx-2">/</span>}
+                {crumb.isLast ? (
+                  <span className="text-gray-800 font-medium">{crumb.label}</span>
+                ) : (
+                  <button
+                    onClick={() => navigate(crumb.route)}
+                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    {crumb.label}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
           <div className="bg-white rounded-lg shadow-sm p-6 min-h-full">
             <Outlet />
           </div>

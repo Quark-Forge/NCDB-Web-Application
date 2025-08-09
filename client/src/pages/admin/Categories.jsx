@@ -11,11 +11,16 @@ import { useState } from 'react';
 import CategoriesList from "../../components/admin/categories/CategoriesList";
 import AddCategory from "../../components/admin/categories/AddCategory";
 import EditCategory from "../../components/admin/categories/EditCategory";
+import { useSelector } from "react-redux";
+
+const allowedRoles = ['Admin', 'Inventory Manager'];
 
 const Categories = () => {
   const { data: categoriesData, isLoading, error, refetch } = useGetAllCategoriesQuery();
   const [updateCategory, { isLoading: isUpdating }] = useUpdateCategoryMutation();
   const [deleteCategory] = useDeleteCategoryMutation();
+
+  const { userInfo } = useSelector((state) => state.auth);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -23,19 +28,19 @@ const Categories = () => {
   const [editingCategory, setEditingCategory] = useState(null);
 
   const [formData, setFormData] = useState({
-          name: '',
-          description: '',
-          isActive: true
-      });
-  
-      const resetForm = () => {
-          setFormData({
-              name: '',
-              description: '',
-              isActive: true
-          });
-          setEditingCategory(null);
-      };
+    name: '',
+    description: '',
+    isActive: true
+  });
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      isActive: true
+    });
+    setEditingCategory(null);
+  };
 
   const categories = categoriesData?.data || [];
 
@@ -137,13 +142,16 @@ const Categories = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center px-4 py-2 md:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm md:text-base font-medium"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              New Category
-            </button>
+            {
+              allowedRoles.includes(userInfo.user_role) &&
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center px-4 py-2 md:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm md:text-base font-medium"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Category
+              </button>
+            }
           </div>
         </div>
 
@@ -159,25 +167,33 @@ const Categories = () => {
         </div>
 
         {/* Create Category Modal */}
-        {showCreateModal && (
-          <AddCategory
-            closeModals={closeModals}
-            setShowCreateModal={setShowCreateModal}
-            handleInputChange={handleInputChange}
-            formData={formData}
-            refetch={refetch}
-          />
-        )}
+        {
+          allowedRoles.includes(userInfo.user_role) &&
+          (showCreateModal && (
+            <AddCategory
+              closeModals={closeModals}
+              setShowCreateModal={setShowCreateModal}
+              handleInputChange={handleInputChange}
+              formData={formData}
+              refetch={refetch}
+            />
+          ))
+        }
+
 
         {/* Edit Category Modal */}
-        <EditCategory
-          showEditModal={showEditModal}
-          closeModals={closeModals}
-          handleInputChange={handleInputChange}
-          handleUpdate={handleUpdate}
-          formData={formData}
-          isUpdating={isUpdating}
-        />
+        {
+          allowedRoles.includes(userInfo.user_role) &&
+          <EditCategory
+            showEditModal={showEditModal}
+            closeModals={closeModals}
+            handleInputChange={handleInputChange}
+            handleUpdate={handleUpdate}
+            formData={formData}
+            isUpdating={isUpdating}
+          />
+        }
+
       </div>
     </div>
   );
