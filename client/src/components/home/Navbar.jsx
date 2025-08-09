@@ -5,6 +5,8 @@ import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import CartPopup from './CardPopup';
 
+const allowedRoles = ['Admin', 'Order Manager', 'Inventory Manager'];
+
 const Navbar = ({ cartCount = 0, search, setSearch ,cartItems}) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isCardOpen, setIsCardOpen] = useState(false);
@@ -78,7 +80,7 @@ const Navbar = ({ cartCount = 0, search, setSearch ,cartItems}) => {
                 </>
               ) : (
                 <>
-                  {userInfo.user_role === "Admin" ? (
+                  {allowedRoles.includes(userInfo.user_role) ? (
                     <div className='flex flex-row space-x-3'>
                       <button
                         onClick={handleAdminPanelClick}
@@ -145,7 +147,7 @@ const Navbar = ({ cartCount = 0, search, setSearch ,cartItems}) => {
           <div className="hidden md:flex items-center space-x-4">
             {/* Cart or Admin Panel */}
             {userInfo ? (
-              userInfo.user_role === "Admin" ? (
+              allowedRoles.includes(userInfo.user_role) ? (
                 <div className='flex flex-row space-x-4'>
                   <button
                     onClick={handleAdminPanelClick}

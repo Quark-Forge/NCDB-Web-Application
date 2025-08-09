@@ -25,7 +25,7 @@ const AppRoutes = () => {
         </Route>
 
         {/* Protected route only for admin */}
-        <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
+        <Route element={<ProtectedRoute allowedRoles={['Admin', 'Order Manager', 'Inventory Manager']} />}>
           <Route path='/admin/*' element={<AdminLayout />}>
             {adminChildren}
           </Route>
