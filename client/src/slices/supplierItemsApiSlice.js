@@ -8,7 +8,7 @@ export const supplierItemsApiSlice = apiSlice.injectEndpoints({
         // GET /api/supplier-items
         getSupplierItems: builder.query({
             query: () => `${SUPPLIER_ITEMS_URL}`,
-            providesTags: ['supplier-items'],
+            providesTags: ['supplier-item'],
         }),
 
         // DELETE /api/supplier-items/:supplier_id/items/:product_id
@@ -20,7 +20,7 @@ export const supplierItemsApiSlice = apiSlice.injectEndpoints({
                     method: 'DELETE',
                 };
             },
-            providesTags: ['supplier-items'],
+            providesTags: ['supplier-item'],
         }),
 
     }),

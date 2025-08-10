@@ -1,14 +1,32 @@
 [
     {
-        "name": "test Suplier 2",
-        "contact_number": "0771234568",
-        "email": "testsuplier2@test.com",
-        "address": "Jaffna, Srilanka"
+        "name": "Test Supplier 1",
+        "contact_number": "0771234567",
+        "email": "testsupplier1@test.com",
+        "address": "Colombo, Sri Lanka"
     },
     {
-        "name": "test Suplier",
-        "contact_number": "0771234567",
-        "email": "testsupplier@test.com",
-        "address": "Jaffna, Srilanka"
+        "name": "Test Supplier 2",
+        "contact_number": "0771234568",
+        "email": "testsupplier2@test.com",
+        "address": "Jaffna, Sri Lanka"
+    },
+    {
+        "name": "Jaffna Coop Society",
+        "contact_number": "0212223344",
+        "email": "jaffnacoop@lka.com",
+        "address": "Jaffna Central, Sri Lanka"
+    },
+    {
+        "name": "Kilinochchi Producers",
+        "contact_number": "0215556677",
+        "email": "kili.producers@lka.com",
+        "address": "Kilinochchi, Sri Lanka"
+    },
+    {
+        "name": "Northern Oils",
+        "contact_number": "0217778899",
+        "email": "northern.oils@lka.com",
+        "address": "Point Pedro, Sri Lanka"
     }
 ]
