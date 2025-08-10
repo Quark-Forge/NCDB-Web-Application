@@ -42,21 +42,21 @@ export const usersApiSlice = apiSlice.injectEndpoints({
                 method: 'PUT',
                 body: { role_id: roleId },
             }),
-            invalidatesTags: ['Users']
+            invalidatesTags: ['User']
         }),
         deleteUser: builder.mutation({
             query: ( userId ) => ({
                 url: `${USERS_URL}/${userId}`,
                 method: 'DELETE',
             }),
-            invalidatesTags: ['Users']
+            invalidatesTags: ['User']
         }),
         restoreUser: builder.mutation({
             query: ( userId ) => ({
                 url: `${USERS_URL}/${userId}`,
                 method: 'PATCH',
             }),
-            invalidatesTags: ['Users']
+            invalidatesTags: ['User']
         }),
 
     })

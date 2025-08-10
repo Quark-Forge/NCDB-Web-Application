@@ -121,7 +121,7 @@ const Register = () => {
               type="text"
               id="name"
               name="name"
-              placeholder="John Doe"
+              placeholder="Name"
               value={formData.name}
               onChange={handleChange}
               className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 ${errors.name ? "border-red-500 focus:ring-red-200" : "border-gray-300 focus:ring-blue-200"
@@ -209,7 +209,7 @@ const Register = () => {
               type="tel"
               id="contact_number"
               name="contact_number"
-              placeholder="1234567890"
+              placeholder="0123456789"
               value={formData.contact_number}
               onChange={handleChange}
               className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 ${errors.contact_number ? "border-red-500 focus:ring-red-200" : "border-gray-300 focus:ring-blue-200"
