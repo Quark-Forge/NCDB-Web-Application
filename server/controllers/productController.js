@@ -337,6 +337,8 @@ export const updateProduct = asyncHandler(async (req, res) => {
         unit_symbol,
         image_url,
         category_id,
+        quantity,
+        supplier_id,
     } = req.body;
 
     if (!id) {
@@ -345,7 +347,7 @@ export const updateProduct = asyncHandler(async (req, res) => {
     }
 
     if (!name && !sku && !description && !price && !discount_price &&
-        !quantity_per_unit && !unit_symbol && !image_url && !category_id) {
+        !quantity_per_unit && !unit_symbol && !image_url && !category_id && !quantity) {
         res.status(400);
         throw new Error('At least one field to update is required');
     }
@@ -358,6 +360,11 @@ export const updateProduct = asyncHandler(async (req, res) => {
     if (discount_price && isNaN(discount_price)) {
         res.status(400);
         throw new Error('Discount price must be a number');
+    }
+
+    if (quantity && isNaN(quantity)) {
+        res.status(400);
+        throw new Error('Quantity must be a number');
     }
 
     const transaction = await sequelize.transaction();
@@ -393,6 +400,27 @@ export const updateProduct = asyncHandler(async (req, res) => {
         if (category_id) product.category_id = category_id;
 
         await product.save({ transaction });
+
+        // Update stock level if quantity and supplier_id are provided
+        if (quantity !== undefined && supplier_id) {
+            const supplierItem = await SupplierItem.findOne({
+                where: { product_id: id, supplier_id },
+                transaction
+            });
+
+            if (supplierItem) {
+                supplierItem.stock_level = parseInt(quantity);
+                await supplierItem.save({ transaction });
+            } else {
+                // Create new supplier item if it doesn't exist
+                await SupplierItem.create({
+                    product_id: id,
+                    supplier_id,
+                    stock_level: parseInt(quantity)
+                }, { transaction });
+            }
+        }
+
         await transaction.commit();
 
         const updatedProduct = {

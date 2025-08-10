@@ -1,5 +1,6 @@
 // components/admin/EditCategoryModal.jsx
 import { Loader2, X } from "lucide-react";
+import { useState } from "react";
 
 const EditCategory = ({
     showEditModal,
@@ -9,6 +10,70 @@ const EditCategory = ({
     handleUpdate,
     isUpdating
 }) => {
+    const [errors, setErrors] = useState({});
+
+    // Validation functions
+    const validateField = (name, value) => {
+        let errorMessage = '';
+
+        switch (name) {
+            case 'name':
+                if (!value.trim()) {
+                    errorMessage = 'Category name is required';
+                } else if (value.trim().length < 2) {
+                    errorMessage = 'Category name must be at least 2 characters';
+                } else if (value.trim().length > 100) {
+                    errorMessage = 'Category name must be less than 100 characters';
+                } else if (!/^[a-zA-Z\s&.-]+$/.test(value.trim())) {
+                    errorMessage = 'Category name can only contain letters, spaces, &, ., and -';
+                }
+                break;
+
+            case 'description':
+                if (value && value.trim().length > 500) {
+                    errorMessage = 'Description must be less than 500 characters';
+                }
+                break;
+
+            default:
+                break;
+        }
+
+        return errorMessage;
+    };
+
+    // Enhanced input change handler with validation
+    const handleInputChangeWithValidation = (e) => {
+        const { name, value } = e.target;
+        
+        // Call the original handleInputChange from parent
+        handleInputChange(e);
+        
+        // Validate the field
+        const errorMessage = validateField(name, value);
+        
+        // Update errors state
+        setErrors(prev => ({
+            ...prev,
+            [name]: errorMessage
+        }));
+    };
+
+    // Check if form is valid
+    const isFormValid = () => {
+        const requiredFields = ['name'];
+        
+        // Check if all required fields have values
+        const hasAllValues = requiredFields.every(field => 
+            formData[field] && formData[field].toString().trim() !== ''
+        );
+        
+        // Check if there are no error messages
+        const hasNoErrors = Object.values(errors).every(error => error === '');
+        
+        return hasAllValues && hasNoErrors;
+    };
+
     if (!showEditModal) return null;
 
     return (
@@ -34,11 +99,16 @@ const EditCategory = ({
                                 type="text"
                                 name="name"
                                 value={formData.name}
-                                onChange={handleInputChange}
+                                onChange={handleInputChangeWithValidation}
                                 required
-                                className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                className={`block w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
+                                    errors.name ? 'border-red-500' : 'border-gray-300'
+                                }`}
                                 placeholder="Enter category name"
                             />
+                            {errors.name && (
+                                <p className="text-red-500 text-xs mt-1">{errors.name}</p>
+                            )}
                         </div>
 
                         <div>
@@ -48,11 +118,16 @@ const EditCategory = ({
                             <textarea
                                 name="description"
                                 value={formData.description}
-                                onChange={handleInputChange}
+                                onChange={handleInputChangeWithValidation}
                                 rows={3}
-                                className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                className={`block w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
+                                    errors.description ? 'border-red-500' : 'border-gray-300'
+                                }`}
                                 placeholder="Enter category description"
                             />
+                            {errors.description && (
+                                <p className="text-red-500 text-xs mt-1">{errors.description}</p>
+                            )}
                         </div>
 
                         <div className="flex justify-end space-x-4 pt-6">
@@ -65,7 +140,7 @@ const EditCategory = ({
                             </button>
                             <button
                                 type="submit"
-                                disabled={isUpdating}
+                                disabled={isUpdating || !isFormValid()}
                                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                             >
                                 {isUpdating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}

@@ -38,7 +38,7 @@ const EditProduct = ({
         price: initialFormData.price?.toString() || '',
         discount_price: initialFormData.discount_price?.toString() || '',
         quantity_per_unit: initialFormData.quantity_per_unit?.toString() || '',
-        quantity: initialFormData.quantity?.toString() || '',
+        quantity: initialFormData.stock_level?.toString() || initialFormData.quantity?.toString() || '',
         unit_symbol: initialFormData.unit_symbol || '',
         category_id: initialFormData.category_id?.toString() || '',
         supplier_id: initialFormData.supplier_id?.toString() || '',

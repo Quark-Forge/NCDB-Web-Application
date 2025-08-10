@@ -170,6 +170,7 @@ const Suppliers = () => {
             handleInputChange={handleInputChange}
             formData={formData}
             refetch={refetch}
+            resetForm={resetForm}
           />
         )}
 
