@@ -9,8 +9,8 @@
     "unit_symbol": "g",
     "sku": "BOF-001",
     "image_url": null,
-    "category_id": "",
-    "supplier_id": ""
+    "category_id": "9e06b3f5-ad2c-4b19-a4da-9edc05048308",
+    "supplier_id": "44adcf43-1ae2-4ac3-9154-868cb4ead25d"
   },
   {
     "name": "Boiled Odiyal Stick",
@@ -22,8 +22,8 @@
     "unit_symbol": "g",
     "sku": "BOS-002",
     "image_url": null,
-    "category_id": "",
-    "supplier_id": ""
+    "category_id": "9e06b3f5-ad2c-4b19-a4da-9edc05048308",
+    "supplier_id": "44adcf43-1ae2-4ac3-9154-868cb4ead25d"
   },
   {
     "name": "Coconut Oil",
@@ -35,8 +35,8 @@
     "unit_symbol": "ml",
     "sku": "CO-003",
     "image_url": null,
-    "category_id": "",
-    "supplier_id": ""
+    "category_id": "2cb92ccb-1e1b-4a16-89cb-5ba616caff78",
+    "supplier_id": "c58580db-7c02-436f-8fce-e802ee8cbacb"
   },
   {
     "name": "Coconut Oil",
@@ -48,8 +48,8 @@
     "unit_symbol": "ml",
     "sku": "CO-004",
     "image_url": null,
-    "category_id": "",
-    "supplier_id": ""
+    "category_id": "2cb92ccb-1e1b-4a16-89cb-5ba616caff78",
+    "supplier_id": "c58580db-7c02-436f-8fce-e802ee8cbacb"
   },
   {
     "name": "Coconut Oil",
@@ -61,8 +61,8 @@
     "unit_symbol": "ml",
     "sku": "CO-005",
     "image_url": null,
-    "category_id": "",
-    "supplier_id": ""
+    "category_id": "2cb92ccb-1e1b-4a16-89cb-5ba616caff78",
+    "supplier_id": "4352e5b5-222c-482d-b3e8-ecefaa2319bb"
   },
   {
     "name": "Coconut Oil",
@@ -74,8 +74,8 @@
     "unit_symbol": "ml",
     "sku": "CO-006",
     "image_url": null,
-    "category_id": "",
-    "supplier_id": ""
+    "category_id": "2cb92ccb-1e1b-4a16-89cb-5ba616caff78",
+    "supplier_id": "d25b86ca-909c-40d3-81d7-fd8c95e96b45" 
   },
   {
     "name": "Cordial Nelli",
@@ -87,8 +87,8 @@
     "unit_symbol": "ml",
     "sku": "CN-007",
     "image_url": null,
-    "category_id": "",
-    "supplier_id": ""
+    "category_id": "9e6a9e99-6cbc-4c1c-8e04-591d27b8f942",
+    "supplier_id": "44adcf43-1ae2-4ac3-9154-868cb4ead25d" 
   },
   {
     "name": "Cordial Nelli",
@@ -100,8 +100,8 @@
     "unit_symbol": "ml",
     "sku": "CN-008",
     "image_url": null,
-    "category_id": "",
-    "supplier_id": ""
+    "category_id": "9e6a9e99-6cbc-4c1c-8e04-591d27b8f942", 
+    "supplier_id": "44adcf43-1ae2-4ac3-9154-868cb4ead25d" 
   },
   {
     "name": "Cordial Mix",
@@ -113,8 +113,8 @@
     "unit_symbol": "ml",
     "sku": "CM-009",
     "image_url": null,
-    "category_id": "",
-    "supplier_id": ""
+    "category_id": "9e6a9e99-6cbc-4c1c-8e04-591d27b8f942", 
+    "supplier_id": "d25b86ca-909c-40d3-81d7-fd8c95e96b45"
   },
   {
     "name": "Cordial Mix",
@@ -126,8 +126,8 @@
     "unit_symbol": "ml",
     "sku": "CM-010",
     "image_url": null,
-    "category_id": "",
-    "supplier_id": ""
+    "category_id": "9e6a9e99-6cbc-4c1c-8e04-591d27b8f942",
+    "supplier_id": "d25b86ca-909c-40d3-81d7-fd8c95e96b45"
   },
   {
     "name": "Curry Powder",
@@ -139,8 +139,8 @@
     "unit_symbol": "g",
     "sku": "CP-011",
     "image_url": null,
-    "category_id": "",
-    "supplier_id": ""
+    "category_id": "dc5e5177-cee1-4f0e-9119-d158d05aec17",
+    "supplier_id": "4352e5b5-222c-482d-b3e8-ecefaa2319bb" 
   },
   {
     "name": "Gingelly Oil",
@@ -152,8 +152,8 @@
     "unit_symbol": "ml",
     "sku": "GO-014",
     "image_url": null,
-    "category_id": "",
-    "supplier_id": ""
+    "category_id": "2cb92ccb-1e1b-4a16-89cb-5ba616caff78",
+    "supplier_id": "c58580db-7c02-436f-8fce-e802ee8cbacb"
   },
   {
     "name": "Honey",
@@ -165,8 +165,8 @@
     "unit_symbol": "g",
     "sku": "HN-017",
     "image_url": null,
-    "category_id": "",
-    "supplier_id": ""
+    "category_id": "a4a730b7-135b-41b0-8550-4bb718f06fb6", 
+    "supplier_id": "44adcf43-1ae2-4ac3-9154-868cb4ead25d" 
   },
   {
     "name": "Jam",
@@ -178,8 +178,8 @@
     "unit_symbol": "g",
     "sku": "JM-018",
     "image_url": null,
-    "category_id": "",
-    "supplier_id": ""
+    "category_id": "a4a730b7-135b-41b0-8550-4bb718f06fb6",
+    "supplier_id": "d1011b25-6f66-4ea5-85d0-85c52fbb33ac"
   },
   {
     "name": "Jam",
@@ -191,8 +191,8 @@
     "unit_symbol": "g",
     "sku": "JM-019",
     "image_url": null,
-    "category_id": "",
-    "supplier_id": ""
+    "category_id": "a4a730b7-135b-41b0-8550-4bb718f06fb6",
+    "supplier_id": "d1011b25-6f66-4ea5-85d0-85c52fbb33ac"
   },
   {
     "name": "Kurakkan Flour",
@@ -204,8 +204,8 @@
     "unit_symbol": "g",
     "sku": "KF-024",
     "image_url": null,
-    "category_id": "",
-    "supplier_id": ""
+    "category_id": "9e06b3f5-ad2c-4b19-a4da-9edc05048308",
+    "supplier_id": "44adcf43-1ae2-4ac3-9154-868cb4ead25d" 
   },
   {
     "name": "Palmyrah Pulp",
@@ -217,8 +217,8 @@
     "unit_symbol": "ml",
     "sku": "PP-027",
     "image_url": null,
-    "category_id": "",
-    "supplier_id": ""
+    "category_id": "9e6a9e99-6cbc-4c1c-8e04-591d27b8f942",
+    "supplier_id": "d25b86ca-909c-40d3-81d7-fd8c95e96b45"
   },
   {
     "name": "Peanut Biscuit",
@@ -230,8 +230,8 @@
     "unit_symbol": "pcs",
     "sku": "PB-030",
     "image_url": null,
-    "category_id": "",
-    "supplier_id": ""
+    "category_id": "a4a730b7-135b-41b0-8550-4bb718f06fb6",
+    "supplier_id": "4352e5b5-222c-482d-b3e8-ecefaa2319bb"
   },
   {
     "name": "Rice Flour",
@@ -243,8 +243,8 @@
     "unit_symbol": "g",
     "sku": "RF-031",
     "image_url": null,
-    "category_id": "",
-    "supplier_id": ""
+    "category_id": "527a997d-b4a2-4302-a87f-f952675945ea",
+    "supplier_id": "44adcf43-1ae2-4ac3-9154-868cb4ead25d"
   },
   {
     "name": "Rice Flour",
@@ -256,7 +256,9 @@
     "unit_symbol": "g",
     "sku": "RF-033",
     "image_url": null,
-    "category_id": "",
-    "supplier_id": ""
+    "category_id": "527a997d-b4a2-4302-a87f-f952675945ea",
+    "supplier_id": "44adcf43-1ae2-4ac3-9154-868cb4ead25d" 
   }
 ]
+
+
