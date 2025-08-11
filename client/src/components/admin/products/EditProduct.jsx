@@ -72,7 +72,7 @@ const EditProduct = ({
         supplier_id: formData.supplier_id,
         image_url: formData.image_url || null
       };
-
+      console.log(updatedProduct);
       await updateProduct(updatedProduct).unwrap();
       toast.success('Product updated successfully!');
       closeModals();

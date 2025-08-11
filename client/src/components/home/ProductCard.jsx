@@ -47,17 +47,19 @@ const ProductCard = ({ product, onAddToCart }) => {
       <div className="flex flex-col items-center text-left justify-between gap-2 mb-2">
         <div className="flex flex-row w-full items-center gap-2">
           <span className="w-full text-xl font-bold text-gray-800">
-            Rs {hasDiscount ? discountPrice.toFixed(2) : price.toFixed(2)}
+            Rs {hasDiscount ? (price-discountPrice).toFixed(2) : price.toFixed(2)}
+            
           </span>
           {hasDiscount && (
             <span className="w-full text-sm text-gray-500 line-through">
-              Rs {price.toFixed(2)}
+              Rs {(price).toFixed(2)}
+              
             </span>
           )}
         </div>
         {hasDiscount && (
           <span className="w-full text-sm text-green-600 font-semibold">
-            Save Rs {(price - discountPrice).toFixed(2)}
+            Save Rs {(discountPrice).toFixed(2)}
           </span>
         )}
       </div>
