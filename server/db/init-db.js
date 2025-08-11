@@ -23,14 +23,14 @@ async function initializeData() {
     }
 
     // Create admin user if doesn't exist
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@ncdbmart.com';
+    const adminEmail = process.env.INITIAL_ADMIN_EMAIL || 'admin@ncdbmart.com';
     const adminExists = await sequelize.models.User.findOne({
       where: { email: adminEmail },
       transaction
     });
 
     if (!adminExists) {
-      const tempPassword = process.env.ADMIN_PASSWORD || crypto.randomBytes(12).toString('hex');
+      const tempPassword = process.env.INITIAL_ADMIN_PASSWORD || crypto.randomBytes(12).toString('hex');
       const hashedPassword = await bcrypt.hash(tempPassword, 12);
       const adminRole = await sequelize.models.Role.findOne({
         where: { name: 'Admin' },
@@ -47,7 +47,7 @@ async function initializeData() {
         address: 'Temp Address'
       }, { transaction });
 
-      if (!process.env.ADMIN_PASSWORD) {
+      if (!process.env.INITIAL_ADMIN_PASSWORD) {
         console.warn(`\n⚠️ Temporary admin password: ${tempPassword}\n` +
                     `⚠️ Please change this immediately after login!`);
       }
@@ -63,17 +63,17 @@ async function initializeData() {
 
 async function setupDatabase() {
   try {
-    // 1. First create tables
+    // First create tables
     await sequelize.sync({ alter: true });
     console.log('Tables synchronized successfully');
     
-    // 2. Then initialize data
+    // Then initialize data
     await initializeData();
     
-    // 3. Verify the data
+    // Verify the data
     const roles = await sequelize.models.Role.findAll();
     const admin = await sequelize.models.User.findOne({
-      where: { email: process.env.ADMIN_EMAIL || 'admin@ncdbmart.com' },
+      where: { email: process.env.INITIAL_ADMIN_EMAIL || 'admin@ncdbmart.com' },
       include: [{ model: sequelize.models.Role }]
     });
 
