@@ -13,6 +13,35 @@ const Order = sequelize.define('Order', {
         unique: true,
         allowNull: false
     },
+    shipping_name: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    shipping_phone: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    shipping_address_line1: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    shipping_address_line2: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    shipping_city: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    billing_address_same: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: true
+    },
+    billing_address: {
+        type: DataTypes.JSON,
+        allowNull: true
+    },
     total_amount: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
