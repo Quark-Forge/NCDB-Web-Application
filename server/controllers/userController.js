@@ -11,7 +11,12 @@ import { Role } from '../models/index.js';
 // Get all users
 // Protected - Admin Only
 const getUsers = asyncHandler(async (req, res) => {
-    const users = await User.findAll({
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    const { count, rows: users } = await User.findAndCountAll({
         paranoid: false,
         attributes: { exclude: ['password'] },
         include: [
@@ -20,7 +25,11 @@ const getUsers = asyncHandler(async (req, res) => {
                 attributes: ['name'],
             },
         ],
+        limit,
+        offset,
+        order: [['createdAt', 'DESC']]
     });
+
     const usersWithRole = users.map(user => {
         const userJson = user.toJSON();
         return {
@@ -30,9 +39,14 @@ const getUsers = asyncHandler(async (req, res) => {
         };
     });
 
+    const totalPages = Math.ceil(count / limit);
+
     res.status(200).json({
         success: true,
         data: usersWithRole,
+        totalCount: count,
+        totalPages,
+        currentPage: page
     });
 });
 
