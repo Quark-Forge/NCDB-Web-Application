@@ -70,18 +70,15 @@ Supplier.hasMany(CartItem, {
 Product.belongsToMany(Supplier, {
   through: SupplierItem,
   foreignKey: 'product_id',
-  as: 'ProductSuppliers'  // Unique alias for the many-to-many
 });
 Supplier.belongsToMany(Product, {
   through: SupplierItem,
   foreignKey: 'supplier_id',
-  as: 'SupplierProducts'  // Unique alias for the many-to-many
 });
 
 // Explicit one-to-many relationships for eager loading
 Product.hasMany(SupplierItem, {
   foreignKey: 'product_id',
-  as: 'SupplierItems'  // Consistent alias for one-to-many
 });
 SupplierItem.belongsTo(Product, {
   foreignKey: 'product_id'
@@ -89,7 +86,6 @@ SupplierItem.belongsTo(Product, {
 
 Supplier.hasMany(SupplierItem, {
   foreignKey: 'supplier_id',
-  as: 'SupplierProductsItems'  // Unique alias
 });
 SupplierItem.belongsTo(Supplier, {
   foreignKey: 'supplier_id'

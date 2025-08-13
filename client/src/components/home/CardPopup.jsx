@@ -1,17 +1,19 @@
-import React from 'react';
 import { X, ShoppingCart, Minus, Plus, Trash2 } from 'lucide-react';
 
 const CartPopup = ({ isOpen, onClose, cartItems = [], onUpdateQuantity, onRemoveItem }) => {
   if (!isOpen) return null;
 
-  // Calculate total items and total price
+  // Calculate totals
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = cartItems.reduce((sum, item) => sum + item.quantity * item.price, 0);
+  const totalPrice = cartItems.reduce((sum, item) => {
+    const price = parseFloat(item.product_data?.price || item.price || 0);
+    return sum + item.quantity * price;
+  }, 0);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col">
-        
+
         {/* Header */}
         <div className="p-6 border-b">
           <div className="flex justify-between items-center">
@@ -38,55 +40,44 @@ const CartPopup = ({ isOpen, onClose, cartItems = [], onUpdateQuantity, onRemove
             </div>
           ) : (
             <div className="space-y-4">
-              {cartItems.map((item, index) => (
-                <div
-                  key={index}
-                  className="flex items-center space-x-4 border-b pb-4 last:border-b-0"
-                >
-                  {/* Product Image */}
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="w-16 h-16 object-cover rounded-lg border"
-                  />
+              {cartItems.map((item, index) => {
+                const price = parseFloat(item.product_data?.price || item.price || 0);
+                const imageUrl = item.product_data?.image_url || item.image_url || '../../images/product.png';
+                const supplierName = item.product_data?.supplier_name;
 
-                  {/* Product Details */}
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-800 line-clamp-2">{item.name}</h3>
-                    <p className="text-blue-600 font-bold text-lg">Rs {item.price.toFixed(2)}</p>
-                  </div>
+                return (
+                  <div key={`${item.product_id}-${index}`} className="flex items-center space-x-4 border-b pb-4">
+                    <img
+                      src={imageUrl}
+                      alt={item.product_data?.name}
+                      className="w-16 h-16 object-cover rounded-lg border"
+                    />
 
-                  {/* Quantity Controls */}
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() =>
-                        onUpdateQuantity &&
-                        onUpdateQuantity(index, Math.max(item.quantity - 1, 1))
-                      }
-                      className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-                    >
-                      <Minus className="h-4 w-4 text-gray-600" />
-                    </button>
-                    <span className="w-8 text-center font-semibold">{item.quantity}</span>
-                    <button
-                      onClick={() =>
-                        onUpdateQuantity && onUpdateQuantity(index, item.quantity + 1)
-                      }
-                      className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-                    >
-                      <Plus className="h-4 w-4 text-gray-600" />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-800">{item.product_data?.name}</h3>
+                      {supplierName && (
+                        <p className="text-xs text-gray-500">Sold by: {supplierName}</p>
+                      )}
+                      <p className="text-blue-600 font-bold">Rs {price.toFixed(2)}</p>
+                    </div>
+
+                    {/* Quantity controls */}
+                    <div className="flex items-center space-x-2">
+                      <button onClick={() => onUpdateQuantity(index, Math.max(item.quantity - 1, 1))}>
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <span className="w-8 text-center">{item.quantity}</span>
+                      <button onClick={() => onUpdateQuantity(index, item.quantity + 1)}>
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <button onClick={() => onRemoveItem(index)} className="text-red-500">
+                      <Trash2 className="h-5 w-5" />
                     </button>
                   </div>
-
-                  {/* Remove Button */}
-                  <button
-                    onClick={() => onRemoveItem && onRemoveItem(index)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -94,22 +85,15 @@ const CartPopup = ({ isOpen, onClose, cartItems = [], onUpdateQuantity, onRemove
         {/* Footer */}
         {cartItems.length > 0 && (
           <div className="p-6 border-t bg-gray-50">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-lg font-semibold text-gray-800">
-                Total Items: {totalItems}
-              </span>
-              <span className="text-xl font-bold text-blue-600">
-                Rs {totalPrice.toFixed(2)}
-              </span>
+            <div className="flex justify-between mb-4">
+              <span className="font-semibold">Total Items: {totalItems}</span>
+              <span className="font-bold text-blue-600">Rs {totalPrice.toFixed(2)}</span>
             </div>
             <div className="flex space-x-3">
-              <button
-                onClick={onClose}
-                className="flex-1 py-2 px-4 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
-              >
+              <button onClick={onClose} className="flex-1 py-2 border rounded-lg">
                 Continue Shopping
               </button>
-              <button className="flex-1 py-2 px-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+              <button className="flex-1 py-2 bg-blue-600 text-white rounded-lg">
                 Checkout
               </button>
             </div>
