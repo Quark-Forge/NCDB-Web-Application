@@ -4,6 +4,7 @@ import ProductWithSuppliers from '../../components/home/ProductWithSuppliers';
 import { useGetProductsQuery } from '../../slices/productsApiSlice';
 import { ChevronLeft, ChevronRight, CircleAlert } from 'lucide-react';
 import FilterBar from '../../components/home/FilterBar';
+import Pagination from '../../components/common/Pagination';
 
 const Home = () => {
   const [cartCount, setCartCount] = useState(0);
@@ -76,40 +77,16 @@ const Home = () => {
 
             {/* Pagination */}
             <div className="flex justify-center items-center space-x-2 mt-12">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className={`px-1 py-1 rounded-3xl font-semibold transition-colors duration-200 ${currentPage === 1
-                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                    : 'text-gray-700 hover:bg-gray-600'
-                  }`}
-              >
-                <ChevronLeft />
-              </button>
-
-              {pageNumbers.map((number) => (
-                <button
-                  key={number}
-                  onClick={() => handlePageChange(number)}
-                  className={`px-3 py-1 rounded-3xl font-semibold transition-colors duration-200 ${currentPage === number
-                      ? 'text-gray-700'
-                      : 'bg-gray-200 text-gray-700 hover:bg-blue-100'
-                    }`}
-                >
-                  {number}
-                </button>
-              ))}
-
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className={`px-1 py-1 rounded-3xl font-semibold transition-colors duration-200 ${currentPage === totalPages
-                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                    : 'text-gray-700 hover:bg-gray-600'
-                  }`}
-              >
-                <ChevronRight />
-              </button>
+              <Pagination 
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                onLimitChange={(limit) => {
+                  setCurrentPage(1);
+                  // Update productsPerPage if needed
+                }}
+                className="mt-4"
+              />
             </div>
           </>
         )}
