@@ -2,6 +2,7 @@ import { DataTypes } from "sequelize";
 import sequelize from "../config/db.js";
 import Order from "./orders.js";
 import Product from "./product.js";
+import Supplier from "./suppliers.js";
 
 const OrderItem = sequelize.define('OrderItem', {
   id: {
@@ -22,6 +23,14 @@ const OrderItem = sequelize.define('OrderItem', {
     allowNull: false,
     references: {
       model: Product,
+      key: 'id',
+    },
+  },
+  supplier_id: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: Supplier,
       key: 'id',
     },
   },

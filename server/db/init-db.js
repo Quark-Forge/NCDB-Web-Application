@@ -1,13 +1,12 @@
-// server/scripts/initDatabase.js
 import { sequelize } from '../models/index.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
 const DEFAULT_ROLES = [
-  { name: 'Admin'},
-  { name: 'Customer'},
-  { name: 'Inventory Manager'},
-  { name: 'Order Manager'}
+  { name: 'Admin' },
+  { name: 'Customer' },
+  { name: 'Inventory Manager' },
+  { name: 'Order Manager' }
 ];
 
 async function initializeData() {
@@ -49,7 +48,7 @@ async function initializeData() {
 
       if (!process.env.INITIAL_ADMIN_PASSWORD) {
         console.warn(`\n⚠️ Temporary admin password: ${tempPassword}\n` +
-                    `⚠️ Please change this immediately after login!`);
+          `⚠️ Please change this immediately after login!`);
       }
     }
 
@@ -61,15 +60,34 @@ async function initializeData() {
   }
 }
 
+async function syncModels() {
+  // Sync models in correct order
+  await sequelize.models.Role.sync({ force: false });
+  await sequelize.models.User.sync({ force: false });
+
+  // Now sync models that depend on User
+  await sequelize.models.Cart.sync({ force: false });
+  await sequelize.models.Order.sync({ force: false });
+
+  // Then sync remaining models
+  await sequelize.models.Category.sync({ force: false });
+  await sequelize.models.Product.sync({ force: false });
+  await sequelize.models.Supplier.sync({ force: false });
+  await sequelize.models.CartItem.sync({ force: false });
+  await sequelize.models.OrderItem.sync({ force: false });
+  await sequelize.models.Payment.sync({ force: false });
+  await sequelize.models.SupplierItem.sync({ force: false });
+}
+
 async function setupDatabase() {
   try {
-    // First create tables
-    await sequelize.sync({ alter: true });
-    console.log('Tables synchronized successfully');
-    
+    // First sync all models in correct order
+    await syncModels();
+    console.log('Tables synchronized successfully in correct order');
+
     // Then initialize data
     await initializeData();
-    
+
     // Verify the data
     const roles = await sequelize.models.Role.findAll();
     const admin = await sequelize.models.User.findOne({
@@ -79,7 +97,7 @@ async function setupDatabase() {
 
     console.log('\nCurrent roles:');
     console.table(roles.map(r => r.toJSON()));
-    
+
     console.log('\nAdmin user:');
     if (admin) {
       console.table([{

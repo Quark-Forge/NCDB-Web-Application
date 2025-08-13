@@ -48,7 +48,7 @@ const Order = sequelize.define('Order', {
         validate: { min: 0 }
     },
     status: {
-        type: DataTypes.ENUM('pending', 'confirmed', 'shipped', 'delivered', 'canceled'),
+        type: DataTypes.ENUM('pending', 'confirmed', 'shipped', 'delivered', 'cancelled'),
         allowNull: false,
         defaultValue: 'pending'
     },
@@ -59,6 +59,11 @@ const Order = sequelize.define('Order', {
     delivery_date: {
         type: DataTypes.DATE,
         allowNull: true
+    },
+    payment_method: {
+        type: DataTypes.ENUM('cash', 'card', 'bank_transfer'),
+        allowNull: false,
+        defaultValue: 'cash'
     },
     user_id: {
         type: DataTypes.UUID,

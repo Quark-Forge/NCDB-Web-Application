@@ -30,6 +30,16 @@ export const up = async (queryInterface, Sequelize) => {
       onUpdate: 'CASCADE',
       onDelete: 'CASCADE',
     },
+    supplier_id: {
+      type: Sequelize.UUID,
+      allowNull: false,
+      references: {
+        model: 'suppliers',
+        key: 'id',
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE',
+    },
     quantity: {
       type: Sequelize.INTEGER,
       allowNull: false,

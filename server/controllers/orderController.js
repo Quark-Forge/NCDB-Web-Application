@@ -1,114 +1,159 @@
 import asyncHandler from 'express-async-handler';
 import { Op } from 'sequelize';
-import Order from '../models/orders.js';
-import OrderItem from '../models/orderItems.js';
-import Product from '../models/product.js';
 import { generateOrderNumber } from '../utils/orderUtils.js';
-import Cart from '../models/cart.js';
-import CartItem from '../models/cartItems.js';
-import SupplierItem from '../models/suplierItem.js';
 import sequelize from '../config/db.js';
+import {
+    SupplierItem,
+    Supplier,
+    Product,
+    OrderItem,
+    Order,
+    CartItem,
+    Cart,
+    Role
+} from '../models/index.js';
 
+// Valid order status transitions
+const STATUS_TRANSITIONS = {
+    pending: ['confirmed', 'cancelled'],
+    confirmed: ['shipped', 'cancelled'],
+    shipped: ['delivered'],
+    delivered: [],
+    cancelled: []
+};
 
 // checkout (create order)
-// POST api/orders/checkout
 export const checkoutCart = asyncHandler(async (req, res) => {
+    const user_id = req.user.id;
     const {
         shipping_name,
-        shipping_phone,
         shipping_address_line1,
         shipping_address_line2,
-        shipping_city,
         billing_address_same,
-        billing_address
+        billing_address,
+        shipping_city,
+        shipping_phone,
+        payment_method
     } = req.body;
 
-    const user_id = req.user.id;
-
-    // Validate required shipping fields
-    const requiredFields = [
-        'shipping_name',
-        'shipping_phone',
-        'shipping_address_line1',
-        'shipping_city'
-    ];
-
-    for (const field of requiredFields) {
-        if (!req.body[field]) {
-            res.status(400);
-            throw new Error(`Missing required field: ${field}`);
-        }
+    // Validate shipping details
+    if (!shipping_name || !shipping_address_line1 ||
+        !shipping_city || !shipping_phone) {
+        res.status(400);
+        throw new Error('Missing required shipping details (name, address_line1, city, phone)');
     }
 
-    // Get user's cart with items
-    const cart = await Cart.findOne({
+    // Validate payment method if provided
+    if (payment_method && !['cash', 'card', 'bank_transfer'].includes(payment_method)) {
+        res.status(400);
+        throw new Error('Invalid payment method');
+    }
 
+    // Get cart with items including supplier info
+    const cart = await Cart.findOne({
         where: { user_id },
         include: [{
             model: CartItem,
-            include: [Product],
+            include: [Product, Supplier],
             where: { quantity: { [Op.gt]: 0 } }
         }]
     });
 
-    if (!cart || !cart.CartItems || cart.CartItems.length === 0) {
-        res.status(400);
-        throw new Error('Your cart is empty');
-    }
-
-    // Validate stock and calculate total
-    let totalAmount = 0;
-    const orderItems = [];
-    const stockUpdates = [];
-
-    for (const cartItem of cart.CartItems) {
-        const product = cartItem.Product;
-
-        // Check available stock across all suppliers
-        const supplierItems = await SupplierItem.findAll({
-            where: { product_id: product.id },
-            attributes: ['id', 'stock_level'],
-            order: [['stock_level', 'DESC']]
+    if (!cart?.CartItems?.length) {
+        res.status(400).json({
+            success: false,
+            message: 'Cart is empty',
+            code: 'EMPTY_CART'
         });
-
-        const totalAvailableStock = supplierItems.reduce((sum, item) => sum + item.stock_level, 0);
-
-        if (totalAvailableStock < cartItem.quantity) {
-            res.status(400);
-            throw new Error(`Only ${totalAvailableStock} available for ${product.name}`);
-        }
-
-        totalAmount += product.price * cartItem.quantity;
-        orderItems.push({
-            product_id: product.id,
-            quantity: cartItem.quantity,
-            price: product.price
-        });
-
-        // Prepare stock allocation (FIFO or LIFO logic could be implemented here)
-        stockUpdates.push({
-            productId: product.id,
-            quantity: cartItem.quantity,
-            supplierItems: supplierItems
-        });
+        return;
     }
 
     const transaction = await sequelize.transaction();
 
     try {
-        // Create the order
+        // Verify stock and prepare order items
+        const orderItems = [];
+        let totalAmount = 0;
+        const stockIssues = [];
+
+        for (const cartItem of cart.CartItems) {
+            const supplierItem = await SupplierItem.findOne({
+                where: {
+                    product_id: cartItem.product_id,
+                    supplier_id: cartItem.supplier_id
+                },
+                transaction
+            });
+
+            if (!supplierItem) {
+                stockIssues.push({
+                    product_id: cartItem.product_id,
+                    product_name: cartItem.Product.name,
+                    message: 'Product no longer available from this supplier',
+                    available: 0
+                });
+                continue;
+            }
+
+            if (supplierItem.stock_level < cartItem.quantity) {
+                stockIssues.push({
+                    product_id: cartItem.product_id,
+                    product_name: cartItem.Product.name,
+                    message: 'Insufficient stock',
+                    available: supplierItem.stock_level,
+                    requested: cartItem.quantity
+                });
+                continue;
+            }
+
+            totalAmount += cartItem.price * cartItem.quantity;
+
+            orderItems.push({
+                product_id: cartItem.product_id,
+                supplier_id: cartItem.supplier_id,
+                quantity: cartItem.quantity,
+                price: cartItem.price,
+                purchase_price: cartItem.purchase_price,
+                product_data: { // Store snapshot of product details
+                    name: cartItem.Product.name,
+                    sku: cartItem.Product.sku,
+                    image_url: cartItem.Product.base_image_url
+                },
+                supplier_data: { // Store snapshot of supplier details
+                    name: cartItem.Supplier.name,
+                    contact: cartItem.Supplier.contact_number
+                }
+            });
+        }
+
+        // If any stock issues, abort the order
+        if (stockIssues.length > 0) {
+            await transaction.rollback();
+            res.status(400).json({
+                success: false,
+                message: 'Some items are no longer available',
+                issues: stockIssues,
+                code: 'STOCK_ISSUES'
+            });
+            return;
+        }
+
+        // Create order
         const order = await Order.create({
             order_number: generateOrderNumber(),
             shipping_name,
-            shipping_phone,
             shipping_address_line1,
             shipping_address_line2,
-            shipping_city,
             billing_address_same,
-            billing_address: billing_address_same ? null : billing_address,
+            billing_address,
+            shipping_city,
+            shipping_phone,
+            payment_method,
             total_amount: totalAmount,
             user_id,
-            status: 'pending'
+            status: 'pending',
+            payment_method,
+            notes: 'Order created from cart checkout'
         }, { transaction });
 
         // Create order items
@@ -120,26 +165,19 @@ export const checkoutCart = asyncHandler(async (req, res) => {
             { transaction }
         );
 
-        // Update supplier stock levels (allocating from highest stock first)
-        for (const update of stockUpdates) {
-            let remainingQuantity = update.quantity;
-
-            for (const supplierItem of update.supplierItems) {
-                if (remainingQuantity <= 0) break;
-
-                const deduction = Math.min(remainingQuantity, supplierItem.stock_level);
-                if (deduction > 0) {
-                    await SupplierItem.decrement('stock_level', {
-                        by: deduction,
-                        where: { id: supplierItem.id },
-                        transaction
-                    });
-                    remainingQuantity -= deduction;
-                }
-            }
+        // Update inventory
+        for (const cartItem of cart.CartItems) {
+            await SupplierItem.decrement('stock_level', {
+                by: cartItem.quantity,
+                where: {
+                    product_id: cartItem.product_id,
+                    supplier_id: cartItem.supplier_id
+                },
+                transaction
+            });
         }
 
-        // Clear the cart
+        // Clear cart
         await CartItem.destroy({
             where: { cart_id: cart.id },
             transaction
@@ -147,23 +185,287 @@ export const checkoutCart = asyncHandler(async (req, res) => {
 
         await transaction.commit();
 
-        // Fetch complete order details
-        const createdOrder = await Order.findByPk(order.id, {
+        // Return complete order details
+        const completeOrder = await Order.findByPk(order.id, {
             include: [{
                 model: OrderItem,
-                include: [Product]
+                include: [Product, Supplier]
             }]
         });
 
         res.status(201).json({
             success: true,
-            message: 'Order placed successfully',
-            order: createdOrder
+            message: 'Order created successfully',
+            data: completeOrder
         });
 
     } catch (error) {
         await transaction.rollback();
-        res.status(500);
-        throw new Error(`Order processing failed: ${error.message}`);
+        console.error('Checkout error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Checkout failed',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            code: 'CHECKOUT_ERROR'
+        });
+    }
+});
+
+// GET all orders (Admin)
+export const getAllOrders = asyncHandler(async (req, res) => {
+    const { status, startDate, endDate, product_id, supplier_id, page = 1, limit = 20 } = req.query;
+
+    const where = {};
+    const include = [{
+        model: OrderItem,
+        include: []
+    }];
+
+    // Status filter
+    if (status) where.status = status;
+
+    // Date range filter
+    if (startDate && endDate) {
+        where.createdAt = {
+            [Op.between]: [new Date(startDate), new Date(endDate)]
+        };
+    }
+
+    // Product filter
+    if (product_id) {
+        include[0].where = include[0].where || {};
+        include[0].where.product_id = product_id;
+    }
+
+    // Supplier filter
+    if (supplier_id) {
+        include[0].include.push({
+            model: Supplier,
+            where: { id: supplier_id }
+        });
+    }
+
+    const orders = await Order.findAndCountAll({
+        where,
+        include,
+        order: [['createdAt', 'DESC']],
+        limit: parseInt(limit),
+        offset: (page - 1) * limit,
+        distinct: true
+    });
+
+    res.json({
+        success: true,
+        data: orders.rows,
+        meta: {
+            total: orders.count,
+            page: parseInt(page),
+            totalPages: Math.ceil(orders.count / limit)
+        }
+    });
+});
+
+// GET user's orders
+export const getUserOrders = asyncHandler(async (req, res) => {
+    const user_id = req.user.id;
+    const { status } = req.query;
+
+    const where = { user_id };
+    if (status) where.status = status;
+
+    const orders = await Order.findAll({
+        where,
+        include: [{
+            model: OrderItem,
+            include: [Product]
+        }],
+        order: [['createdAt', 'DESC']]
+    });
+
+    res.json({
+        success: true,
+        data: orders
+    });
+});
+
+// GET order details
+export const getOrderDetails = asyncHandler(async (req, res) => {
+    const order = await Order.findByPk(req.params.id, {
+        include: [{
+            model: OrderItem,
+            include: [Product, Supplier]
+        }]
+    });
+
+    if (!order) {
+        res.status(404).json({
+            success: false,
+            message: 'Order not found',
+            code: 'ORDER_NOT_FOUND'
+        });
+        return;
+    }
+
+    const role = await Role.findByPk(req.user.role_id);
+    // Verify ownership (unless admin)
+    if (order.user_id !== req.user.id && role.name !== 'Admin') {
+        res.status(403).json({
+            success: false,
+            message: 'Not authorized to view this order',
+            code: 'UNAUTHORIZED'
+        });
+        return;
+    }
+
+    res.json({
+        success: true,
+        data: order
+    });
+});
+
+// UPDATE order status
+export const updateOrderStatus = asyncHandler(async (req, res) => {
+    const { status } = req.body;
+    const orderId = req.params.id;
+
+    if (!STATUS_TRANSITIONS[status]) {
+        res.status(400).json({
+            success: false,
+            message: 'Invalid status value',
+            code: 'INVALID_STATUS'
+        });
+        return;
+    }
+
+    const transaction = await sequelize.transaction();
+    try {
+        const order = await Order.findByPk(orderId, { transaction });
+        if (!order) {
+            await transaction.rollback();
+            res.status(404).json({
+                success: false,
+                message: 'Order not found',
+                code: 'ORDER_NOT_FOUND'
+            });
+            return;
+        }
+
+        // Validate status transition
+        if (!STATUS_TRANSITIONS[order.status].includes(status)) {
+            await transaction.rollback();
+            res.status(400).json({
+                success: false,
+                message: `Cannot change status from ${order.status} to ${status}`,
+                code: 'INVALID_STATUS_TRANSITION'
+            });
+            return;
+        }
+
+        // Handle canceled orders (restock items)
+        if (status === 'cancelled' && order.status !== 'cancelled') {
+            const orderItems = await OrderItem.findAll({
+                where: { order_id: order.id },
+                transaction
+            });
+
+            for (const item of orderItems) {
+                await SupplierItem.increment('stock_level', {
+                    by: item.quantity,
+                    where: {
+                        product_id: item.product_id,
+                        supplier_id: item.supplier_id
+                    },
+                    transaction
+                });
+            }
+        }
+
+        // Update order
+        order.status = status;
+        await order.save({ transaction });
+
+        await transaction.commit();
+
+        res.json({
+            success: true,
+            message: 'Order status updated',
+            data: order
+        });
+    } catch (error) {
+        await transaction.rollback();
+        console.error('Status update error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update order status',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            code: 'STATUS_UPDATE_ERROR'
+        });
+    }
+});
+
+// GET order statistics
+export const getOrderStats = asyncHandler(async (req, res) => {
+    try {
+        // Last 30 days sales data
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        thirtyDaysAgo.setHours(0, 0, 0, 0); // Start of day
+
+        const salesData = await Order.findAll({
+            attributes: [
+                [sequelize.fn('DATE', sequelize.col('created_at')), 'date'],
+                [sequelize.fn('SUM', sequelize.col('total_amount')), 'total_sales'],
+                [sequelize.fn('COUNT', sequelize.col('id')), 'order_count']
+            ],
+            where: {
+                createdAt: { [Op.gte]: thirtyDaysAgo },
+                status: { [Op.notIn]: ['cancelled'] }
+            },
+            group: [sequelize.fn('DATE', sequelize.col('created_at'))],
+            order: [[sequelize.fn('DATE', sequelize.col('created_at')), 'ASC']],
+            raw: true
+        });
+
+        // Status distribution
+        const statusCounts = await Order.findAll({
+            attributes: [
+                'status',
+                [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+            ],
+            group: ['status'],
+            raw: true
+        });
+
+        // Revenue metrics
+        const [totalRevenue, avgOrderValue] = await Promise.all([
+            Order.sum('total_amount', {
+                where: { status: 'delivered' }
+            }),
+            Order.findOne({
+                attributes: [
+                    [sequelize.fn('AVG', sequelize.col('total_amount')), 'avg']
+                ],
+                where: { status: 'delivered' },
+                raw: true
+            })
+        ]);
+
+        res.json({
+            success: true,
+            data: {
+                sales_trend: salesData,
+                status_distribution: statusCounts,
+                total_revenue: totalRevenue || 0,
+                average_order_value: avgOrderValue?.avg || 0
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching order stats:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching statistics',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            code: 'STATS_ERROR'
+        });
     }
 });

@@ -5,6 +5,7 @@ import {
     getAllProducts,
     getProductById,
     updateProduct,
+    updateProductStock,
 } from '../controllers/productController.js';
 import { authorize, protect } from '../middleware/authMiddleware.js';
 
@@ -17,5 +18,6 @@ router.route('/:id')
       .get(getProductById)
       .put(protect, authorize('Admin','Inventory Manager'),updateProduct)
       .delete(protect, authorize('Admin', 'Inventory Manager'), deleteProduct);
+router.route('/:id/stock').put(protect, authorize('Admin', 'Inventory Manager'), updateProductStock);
 
 export default router;
