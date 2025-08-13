@@ -11,42 +11,41 @@ const Product = sequelize.define('Product', {
     name: {
         type: DataTypes.STRING(100),
         allowNull: false,
-        unique: false,
-    },
-    description: {
-        type: DataTypes.TEXT,
-        unique: false,
-    },
-    price: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
-        unique: false,
-    },
-    discount_price: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: true,
-        unique: false,
-    },
-    quantity_per_unit: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
-        unique: false,
-    },
-    unit_symbol: {
-        type: DataTypes.STRING(20),
-        allowNull: false,
-        unique: false,
+        validate: {
+            notEmpty: {
+                msg: "Product name cannot be empty"
+            },
+            len: {
+                args: [2, 100],
+                msg: "Product name must be 2-100 characters"
+            }
+        }
     },
     sku: {
         type: DataTypes.STRING(50),
         allowNull: false,
-        unique: false,
+        unique: true,
+        validate: {
+            notEmpty: {
+                msg: "SKU cannot be empty"
+            }
+        }
     },
-    image_url: {
+    description: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    base_image_url: {
         type: DataTypes.TEXT,
         allowNull: true,
-        unique: false,
-    }, 
+        validate: {
+            isUrl: {
+                msg: "Invalid image URL format",
+                protocols: ['http', 'https'],
+                require_protocol: true
+            }
+        }
+    },
     category_id: {
         type: DataTypes.UUID,
         allowNull: false,
@@ -54,14 +53,31 @@ const Product = sequelize.define('Product', {
             model: Category,
             key: 'id'
         }
-    },
-
+    }
 }, {
     tableName: 'products',
     timestamps: true,
     underscored: true,
     paranoid: true,
+    hooks: {
+        afterUpdate: async (product) => {
+            if (product.changed('base_image_url')) {
+                await sequelize.models.SupplierItem.update(
+                    { image_url: product.base_image_url },
+                    { where: { product_id: product.id, image_url: null } }
+                );
+            }
+        }
+    },
+    indexes: [
+        {
+            fields: ['category_id']
+        },
+        {
+            fields: ['sku'],
+            unique: true
+        }
+    ]
 });
-
 
 export default Product;

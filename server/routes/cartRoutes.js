@@ -15,7 +15,7 @@ router.route('/')
       .post(protect,authorize('Customer'), addToCart)
       .delete(protect,authorize('Customer'), clearCart);
 
-router.route('/items/:product_id')
+router.route('/items/:product_id/:supplier_id')
       .put(protect,authorize('Customer'), updateCartItem)
       .delete(protect,authorize('Customer'), removeFromCart);
 
