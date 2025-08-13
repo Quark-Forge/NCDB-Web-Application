@@ -9,12 +9,7 @@ import Supplier from "./suppliers.js";
 import Order from "./orders.js";
 import OrderItem from "./orderItems.js";
 import Payment from "./payment.js";
-<<<<<<< HEAD
-import InventoryStock from "./inventoryStock.js";
-import InventoryTransaction from "./inventoryTransaction.js";
-=======
 import SupplierItem from "./suplierItem.js";
->>>>>>> f73f2d601dde19f06e9652df2d060b2015d9abb9
 
 // User <-> Role
 User.belongsTo(Role, {
@@ -137,20 +132,6 @@ Payment.belongsTo(Order, {
   foreignKey: 'order_id'
 });
 
-<<<<<<< HEAD
-Payment.belongsTo(Order, { 
-  foreignKey: 'order_id' 
-});
-// InventoryStock <-> Product
-Product.hasOne(InventoryStock, { foreignKey: 'product_id' });
-InventoryStock.belongsTo(Product, { foreignKey: 'product_id' });
-
-// InventoryTransaction <-> Product
-Product.hasMany(InventoryTransaction, { foreignKey: 'product_id' });
-InventoryTransaction.belongsTo(Product, { foreignKey: 'product_id' });
-
-=======
->>>>>>> f73f2d601dde19f06e9652df2d060b2015d9abb9
 export {
   sequelize,
   Role,
@@ -163,11 +144,5 @@ export {
   SupplierItem,
   Order,
   OrderItem,
-<<<<<<< HEAD
-  InventoryStock,
-  InventoryTransaction
-};
-=======
   Payment,
 };
->>>>>>> f73f2d601dde19f06e9652df2d060b2015d9abb9
