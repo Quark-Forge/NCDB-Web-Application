@@ -1,5 +1,4 @@
 import sequelize from "../config/db.js";
-
 import Role from "./roles.js";
 import User from "./users.js";
 import Cart from "./cart.js";
@@ -7,12 +6,15 @@ import CartItem from "./cartItems.js";
 import Product from "./product.js";
 import Category from "./category.js";
 import Supplier from "./suppliers.js";
-import SupplierItem from "./suplierItem.js"
 import Order from "./orders.js";
 import OrderItem from "./orderItems.js";
 import Payment from "./payment.js";
+<<<<<<< HEAD
 import InventoryStock from "./inventoryStock.js";
 import InventoryTransaction from "./inventoryTransaction.js";
+=======
+import SupplierItem from "./suplierItem.js";
+>>>>>>> f73f2d601dde19f06e9652df2d060b2015d9abb9
 
 // User <-> Role
 User.belongsTo(Role, {
@@ -26,9 +28,10 @@ Role.hasMany(User, {
   onDelete: 'RESTRICT',
 });
 
-// Product<-> Category
+// Product <-> Category
 Product.belongsTo(Category, {
-  foreignKey: 'category_id'
+  foreignKey: 'category_id',
+  onDelete: 'RESTRICT'
 });
 Category.hasMany(Product, {
   foreignKey: 'category_id'
@@ -37,9 +40,10 @@ Category.hasMany(Product, {
 // Cart <-> User
 Cart.belongsTo(User, {
   foreignKey: 'user_id',
+  onDelete: 'CASCADE'
 });
 User.hasOne(Cart, {
-  foreignKey: 'user_id',
+  foreignKey: 'user_id'
 });
 
 // Cart <-> CartItem <-> Product
@@ -48,52 +52,92 @@ Cart.hasMany(CartItem, {
   onDelete: 'CASCADE'
 });
 CartItem.belongsTo(Cart, {
-  foreignKey: 'cart_id',
+  foreignKey: 'cart_id'
 });
-
 CartItem.belongsTo(Product, {
   foreignKey: 'product_id',
+  onDelete: 'RESTRICT'
 });
 Product.hasMany(CartItem, {
+  foreignKey: 'product_id'
+});
+
+// CartItem <-> Supplier
+CartItem.belongsTo(Supplier, {
+  foreignKey: 'supplier_id',
+  onDelete: 'RESTRICT'
+});
+Supplier.hasMany(CartItem, {
+  foreignKey: 'supplier_id'
+});
+
+// Product <-> Supplier (Many-to-Many through SupplierItem)
+Product.belongsToMany(Supplier, {
+  through: SupplierItem,
   foreignKey: 'product_id',
+  as: 'ProductSuppliers'  // Unique alias for the many-to-many
+});
+Supplier.belongsToMany(Product, {
+  through: SupplierItem,
+  foreignKey: 'supplier_id',
+  as: 'SupplierProducts'  // Unique alias for the many-to-many
 });
 
-// SupplierItem <-> Supplier & Product
-SupplierItem.belongsTo(Supplier, {
-  foreignKey: 'supplier_id'
+// Explicit one-to-many relationships for eager loading
+Product.hasMany(SupplierItem, {
+  foreignKey: 'product_id',
+  as: 'SupplierItems'  // Consistent alias for one-to-many
 });
-Supplier.hasMany(SupplierItem, {
-  foreignKey: 'supplier_id'
-});
-
 SupplierItem.belongsTo(Product, {
   foreignKey: 'product_id'
 });
-Product.hasMany(SupplierItem, {
-  foreignKey: 'product_id'
+
+Supplier.hasMany(SupplierItem, {
+  foreignKey: 'supplier_id',
+  as: 'SupplierProductsItems'  // Unique alias
+});
+SupplierItem.belongsTo(Supplier, {
+  foreignKey: 'supplier_id'
 });
 
-// OrderItem <-> Order & User
+// Order Relationships
 Order.belongsTo(User, {
+  foreignKey: 'user_id',
+  onDelete: 'RESTRICT'
+});
+User.hasMany(Order, {
   foreignKey: 'user_id'
 });
+
 Order.hasMany(OrderItem, {
-  foreignKey: 'order_id'
+  foreignKey: 'order_id',
+  onDelete: 'CASCADE'
 });
-
-
 OrderItem.belongsTo(Order, {
   foreignKey: 'order_id'
 });
 OrderItem.belongsTo(Product, {
-  foreignKey: 'product_id'
+  foreignKey: 'product_id',
+  onDelete: 'RESTRICT'
 });
 
-// Payment <-> Order
+OrderItem.belongsTo(Supplier, {
+    foreignKey: 'supplier_id',
+});
+Supplier.hasMany(OrderItem, {
+    foreignKey: 'supplier_id'
+});
+
+// Payment
 Order.hasOne(Payment, {
+  foreignKey: 'order_id',
+  onDelete: 'CASCADE'
+});
+Payment.belongsTo(Order, {
   foreignKey: 'order_id'
 });
 
+<<<<<<< HEAD
 Payment.belongsTo(Order, { 
   foreignKey: 'order_id' 
 });
@@ -105,6 +149,8 @@ InventoryStock.belongsTo(Product, { foreignKey: 'product_id' });
 Product.hasMany(InventoryTransaction, { foreignKey: 'product_id' });
 InventoryTransaction.belongsTo(Product, { foreignKey: 'product_id' });
 
+=======
+>>>>>>> f73f2d601dde19f06e9652df2d060b2015d9abb9
 export {
   sequelize,
   Role,
@@ -117,6 +163,11 @@ export {
   SupplierItem,
   Order,
   OrderItem,
+<<<<<<< HEAD
   InventoryStock,
   InventoryTransaction
 };
+=======
+  Payment,
+};
+>>>>>>> f73f2d601dde19f06e9652df2d060b2015d9abb9

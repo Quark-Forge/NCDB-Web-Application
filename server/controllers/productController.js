@@ -1,274 +1,167 @@
 import asyncHandler from 'express-async-handler';
-import { Category, Product, Supplier, SupplierItem } from '../models/index.js';
+import { Category, OrderItem, Product, Supplier, SupplierItem } from '../models/index.js';
 import sequelize from '../config/db.js';
 import { Op } from 'sequelize';
 
+// Helper function
+const toTitleCase = (str) => str.replace(/\b\w/g, char => char.toUpperCase());
+
 // Add new product
 export const addProduct = asyncHandler(async (req, res) => {
-    const {
-        name,
-        sku,
-        description,
-        price,
-        discount_price,
-        quantity_per_unit,
-        quantity,
-        unit_symbol,
-        image_url,
-        category_id,
-        supplier_id
-    } = req.body;
+    const requiredFields = [
+        'name', 'sku', 'description', 'category_id',
+        'supplier_id', 'supplier_sku', 'purchase_price',
+        'price', 'quantity_per_unit', 'unit_symbol'
+    ];
 
-    // Input validation
-    if (!name || !price || !unit_symbol || !category_id || !quantity || !supplier_id || !quantity_per_unit || !sku) {
-        res.status(400);
-        throw new Error('name, sku, price, quantity_per_unit, quantity, unit_symbol, supplier_id, and category_id are required');
-    }
-
-    // Sanitize inputs
-    const normalized_name = name.trim().toLowerCase();
-    const sanitized_sku = sku.trim();
-    const sanitized_description = description ? description.trim() : null;
-    const sanitized_unit_symbol = unit_symbol.trim();
-    const sanitized_image_url = image_url ? image_url.trim() : null;
-
-    // Verify category exists
-    const category = await Category.findByPk(category_id);
-    if (!category) {
-        res.status(400);
-        throw new Error('Category not found or has been deleted');
-    }
-
-    // Verify supplier exists
-    const supplier = await Supplier.findByPk(supplier_id);
-    if (!supplier) {
-        res.status(400);
-        throw new Error('Supplier not found or has been deleted');
+    const missingFields = requiredFields.filter(field => !req.body[field]);
+    if (missingFields.length > 0) {
+        return res.status(400).json({
+            success: false,
+            message: `Missing required fields: ${missingFields.join(', ')}`
+        });
     }
 
     const transaction = await sequelize.transaction();
-
     try {
-        // Check if product exists (same name + category)
-        const existingProduct = await Product.findOne({
-            where: { name: normalized_name, category_id: category_id, sku: sku },
-            transaction,
-        });
+        const { sku, name, supplier_id } = req.body;
+
+        // Check for existing product
+        const existingProduct = await Product.findOne({ where: { sku }, transaction });
 
         if (existingProduct) {
-            // Check if SupplierItem exists (same product + supplier)
-            const supplierItem = await SupplierItem.findOne({
+            // Validate if supplier already provides this product
+            const existingSupplierItem = await SupplierItem.findOne({
                 where: { product_id: existingProduct.id, supplier_id },
-                transaction,
+                transaction
             });
 
-            if (supplierItem) {
-                // If both exist then Update stock
-                supplierItem.stock_level += Number(quantity);
-                await supplierItem.save({ transaction });
-
-                await transaction.commit();
-
-                return res.status(200).json({
-                    success: true,
-                    message: 'Product already exists. Stock updated successfully.',
-                    product: {
-                        ...existingProduct.toJSON(),
-                        name: toTitleCase(existingProduct.name)
-                    },
-                    stock_level: supplierItem.stock_level,
-                });
-            } else {
-                // Create new supplier relationship
-                const newSupplierItem = await SupplierItem.create({
-                    stock_level: quantity,
-                    supplier_id,
-                    product_id: existingProduct.id,
-                }, { transaction });
-
-                await transaction.commit();
-                return res.status(200).json({
-                    success: true,
-                    message: 'New supplier added for existing product',
-                    product: existingProduct,
-                    stock_level: newSupplierItem.stock_level,
+            if (existingSupplierItem) {
+                await transaction.rollback();
+                return res.status(400).json({
+                    success: false,
+                    message: 'This supplier already provides this product'
                 });
             }
+
+            // Create new supplier relationship
+            const newSupplierItem = await SupplierItem.create({
+                ...req.body,
+                product_id: existingProduct.id
+            }, { transaction });
+
+            await transaction.commit();
+            return res.status(200).json({
+                success: true,
+                message: 'New supplier added for existing product',
+                data: {
+                    product: existingProduct,
+                    supplier_item: newSupplierItem
+                }
+            });
         }
 
-        // Check for duplicate SKU
-        const existingSKU = await Product.findOne({
-            where: { sku: sanitized_sku },
-            transaction,
-        });
-
-        if (existingSKU) {
-            await transaction.rollback();
-            res.status(400);
-            throw new Error('A product with this SKU already exists');
-        }
-
-        // create new product
+        // Create new product and supplier item
         const newProduct = await Product.create({
-            name: normalized_name,
-            sku: sanitized_sku,
-            description: sanitized_description,
-            price: Number(price),
-            discount_price: discount_price ? Number(discount_price) : null,
-            unit_symbol: sanitized_unit_symbol,
-            quantity_per_unit: Number(quantity_per_unit),
-            image_url: sanitized_image_url,
-            category_id: category_id,
+            name: req.body.name.trim().toLowerCase(),
+            sku: req.body.sku,
+            description: req.body.description,
+            base_image_url: req.body.base_image_url,
+            category_id: req.body.category_id,
+            created_by: req.user.id
         }, { transaction });
 
-        // Create new SupplierItem
         const newSupplierItem = await SupplierItem.create({
-            stock_level: Number(quantity),
-            supplier_id,
-            product_id: newProduct.id,
+            ...req.body,
+            product_id: newProduct.id
         }, { transaction });
 
         await transaction.commit();
 
         res.status(201).json({
             success: true,
-            message: 'New product added successfully',
-            product: {
-                ...newProduct.toJSON(),
-                name: toTitleCase(newProduct.name)
-            },
-            stock_level: newSupplierItem.stock_level,
+            message: 'Product created successfully',
+            data: {
+                product: {
+                    ...newProduct.toJSON(),
+                    name: toTitleCase(newProduct.name)
+                },
+                supplier_item: newSupplierItem
+            }
         });
 
     } catch (error) {
         await transaction.rollback();
-        res.status(500);
-        throw new Error('Failed to add product: ' + error.message);
+        res.status(500).json({
+            success: false,
+            message: `Failed to add product: ${error.message}`
+        });
     }
 });
 
-// Helper function to chnage text to titlecase
-function toTitleCase(str) {
-    return str.replace(/\b\w/g, char => char.toUpperCase());
-}
-
-
-// Get all products
+// Get all products with filters
 export const getAllProducts = asyncHandler(async (req, res) => {
-    const { search, category, sort, page = 1, limit = 10, supplier } = req.query;
-    const where = {};
-    const supplierItemWhere = {};
-
-    // Search by product name
-    if (search) {
-        where.name = { [Op.like]: `%${search}%` };
-    }
-
-    // Filter by supplier if provided
-    if (supplier) {
-        supplierItemWhere.supplier_id = supplier;
-    }
-
-    // Sorting
-    let order = [['created_at', 'DESC']]; // default
-    if (sort === 'price_asc') order = [['price', 'ASC']];
-    else if (sort === 'price_desc') order = [['price', 'DESC']];
-    else if (sort === 'name_asc') order = [['name', 'ASC']];
-    else if (sort === 'name_desc') order = [['name', 'DESC']];
-
-    const offset = (page - 1) * limit;
-
-    // Include category and supplier items
-    const include = [
-        {
-            model: Category,
-            where: category ? { name: category } : undefined,
-            attributes: ['id', 'name'],
-            required: !!category
-        },
-        {
-            model: SupplierItem,
-            attributes: ['id', 'stock_level', 'supplier_id'],
-            where: supplierItemWhere,
-            required: !!supplier,
-            include: [{
-                model: Supplier,
-                attributes: ['id', 'name'],
-                required: false
-            }]
-        }
-    ];
-
     try {
-        const products = await Product.findAll({
-            paranoid: false,
-            where,
-            order,
-            limit: parseInt(limit),
-            offset: parseInt(offset),
-            include,
-        });
+        const { search, category, supplier, minStock, page = 1, limit = 10 } = req.query;
 
-        // Transform products to have one entry per supplier
-        const expandedProducts = products.flatMap(product => {
-            const productJson = product.toJSON();
+        const where = {};
+        const supplierItemWhere = {};
 
-            // If no supplier items, return just the product
-            if (!productJson.SupplierItems || productJson.SupplierItems.length === 0) {
-                return [{
-                    ...productJson,
-                    name: toTitleCase(productJson.name),
-                    supplier_id: null,
-                    supplier_name: null,
-                    stock_level: 0,
-                    suppliers: []
-                }];
+        if (search) where.name = { [Op.like]: `%${search}%` };
+        if (supplier) supplierItemWhere.supplier_id = supplier;
+        if (minStock) supplierItemWhere.stock_level = { [Op.gte]: minStock };
+
+        const include = [
+            {
+                model: Category,
+                where: category ? { name: category } : undefined,
+                attributes: ['id', 'name'],
+                required: !!category
+            },
+            {
+                model: SupplierItem,
+                as: 'SupplierItems',
+                where: supplierItemWhere,
+                required: !!supplier || !!minStock,
+                include: [{
+                    model: Supplier,
+                    as: 'Supplier',
+                    attributes: ['id', 'name']
+                }]
             }
+        ];
 
-            return productJson.SupplierItems.map(supplierItem => ({
-                ...productJson,
-                name: toTitleCase(productJson.name),
-                supplier_id: supplierItem.supplier_id,
-                supplier_name: supplierItem.Supplier?.name,
-                stock_level: supplierItem.stock_level,
-                suppliers: productJson.SupplierItems.map(item => ({
-                    supplier_id: item.supplier_id,
-                    supplier_name: item.Supplier?.name,
-                    stock_level: item.stock_level
-                }))
-            }));
+        const { count, rows } = await Product.findAndCountAll({
+            where,
+            include,
+            limit: parseInt(limit),
+            offset: (page - 1) * limit,
+            distinct: true
         });
-
-        // Get the count of transformed products (what will actually be displayed)
-        const displayCount = expandedProducts.length;
 
         res.status(200).json({
             success: true,
-            message: 'Products retrieved successfully',
-            data: expandedProducts,
-            totalCount: displayCount,
+            data: rows,
+            pagination: {
+                total: count,
+                page: parseInt(page),
+                totalPages: Math.ceil(count / limit),
+                limit: parseInt(limit)
+            }
         });
+
     } catch (error) {
-        console.error('Database error:', error);
         res.status(500).json({
             success: false,
-            message: 'Error retrieving products',
-            error: error.message
+            message: `Failed to fetch products: ${error.message}`
         });
     }
 });
 
-// Get Product by ID
+// Get single product by ID
 export const getProductById = asyncHandler(async (req, res) => {
-    const { id } = req.params;
-
-    if (!id) {
-        res.status(400);
-        throw new Error('Invalid product ID');
-    }
-
     try {
-        const product = await Product.findByPk(id, {
+        const product = await Product.findByPk(req.params.id, {
             include: [
                 {
                     model: Category,
@@ -276,56 +169,53 @@ export const getProductById = asyncHandler(async (req, res) => {
                 },
                 {
                     model: SupplierItem,
-                    attributes: ['id', 'stock_level', 'supplier_id'],
+                    as: 'SupplierItems',
                     include: [{
                         model: Supplier,
-                        attributes: ['id', 'name', 'email', 'contact_number']
+                        as: 'Supplier',
+                        attributes: ['id', 'name', 'contact_number', 'email']
                     }]
                 }
             ]
         });
 
         if (!product) {
-            res.status(404);
-            throw new Error(`Product with ID ${id} not found`);
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found'
+            });
         }
 
-        const productData = product.get({ plain: true });
-        const suppliers = productData.SupplierItems?.map(({ Supplier, stock_level }) => ({
-            id: Supplier?.id,
-            name: Supplier?.name,
-            email: Supplier?.email,
-            phone: Supplier?.contact_number,
-            stock: stock_level
-        })) || [];
+        const totalStock = product.SupplierItems.reduce(
+            (sum, item) => sum + item.stock_level, 0
+        );
 
         res.status(200).json({
             success: true,
             data: {
-                id: productData.id,
-                name: toTitleCase(productData.name),
-                description: productData.description,
-                price: productData.price,
-                imageUrl: productData.image_url,
-                category: productData.Category,
-                totalStock: suppliers.reduce((sum, { stock }) => sum + stock, 0),
-                suppliers
+                ...product.toJSON(),
+                name: toTitleCase(product.name),
+                total_stock: totalStock,
+                suppliers: product.SupplierItems.map(item => ({
+                    ...item.toJSON(),
+                    supplier_name: item.Supplier?.name,
+                    contact: item.Supplier?.contact_number,
+                    email: item.Supplier?.email
+                }))
             }
         });
 
     } catch (error) {
-        console.error(`Error fetching product ${id}:`, error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch product',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            message: `Failed to fetch product: ${error.message}`
         });
     }
 });
 
-
-// Update Product details
+// Update product details
 export const updateProduct = asyncHandler(async (req, res) => {
+<<<<<<< HEAD
     const { id } = req.params;
     const {
         name,
@@ -367,13 +257,15 @@ export const updateProduct = asyncHandler(async (req, res) => {
         throw new Error('Quantity must be a number');
     }
 
+=======
+>>>>>>> f73f2d601dde19f06e9652df2d060b2015d9abb9
     const transaction = await sequelize.transaction();
-
     try {
-        const product = await Product.findByPk(id, { transaction });
+        const product = await Product.findByPk(req.params.id, { transaction });
 
         if (!product) {
             await transaction.rollback();
+<<<<<<< HEAD
             res.status(404);
             throw new Error(`Product with ID ${id} not found`);
         }
@@ -473,18 +365,66 @@ export const deleteProduct = asyncHandler(async (req, res) => {
             await SupplierItem.destroy({
                 where: { product_id: id },
                 transaction
+=======
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found'
+>>>>>>> f73f2d601dde19f06e9652df2d060b2015d9abb9
             });
         }
 
-        // Delete the product
-        await product.destroy({ transaction });
+        // Remove restricted fields
+        const { sku, supplier_sku, ...updates } = req.body;
 
+        if (sku !== undefined || supplier_sku !== undefined) {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'SKU and supplier SKU cannot be modified through this endpoint'
+            });
+        }
+
+        const updatableFields = [
+            'name', 'description', 'price',
+            'discount_price', 'quantity_per_unit',
+            'unit_symbol', 'image_url', 'category_id'
+        ];
+
+        const changes = {};
+        for (const field of updatableFields) {
+            if (updates[field] !== undefined && updates[field] !== product[field]) {
+                changes[field] = field === 'name'
+                    ? updates[field].trim().toLowerCase()
+                    : updates[field];
+            }
+        }
+
+        if (Object.keys(changes).length === 0) {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'No valid changes provided'
+            });
+        }
+
+        if (changes.category_id) {
+            const categoryExists = await Category.findByPk(changes.category_id, { transaction });
+            if (!categoryExists) {
+                await transaction.rollback();
+                return res.status(400).json({
+                    success: false,
+                    message: 'Category not found'
+                });
+            }
+        }
+
+        await product.update(changes, { transaction });
         await transaction.commit();
 
         res.status(200).json({
             success: true,
-            message: `Product with ID ${id} deleted successfully`,
-            deletedProduct: {
+            message: 'Product updated successfully',
+            data: {
                 ...product.toJSON(),
                 name: toTitleCase(product.name)
             }
@@ -492,7 +432,259 @@ export const deleteProduct = asyncHandler(async (req, res) => {
 
     } catch (error) {
         await transaction.rollback();
-        res.status(500);
-        throw new Error('Failed to delete product: ' + error.message);
+        res.status(500).json({
+            success: false,
+            message: `Failed to update product: ${error.message}`
+        });
+    }
+});
+
+// Admin-only endpoint for SKU updates
+export const updateProductSku = asyncHandler(async (req, res) => {
+    if (!req.user.isAdmin) {
+        return res.status(403).json({
+            success: false,
+            message: 'Unauthorized: Only admins can update SKUs'
+        });
+    }
+
+    const transaction = await sequelize.transaction();
+    try {
+        const product = await Product.findByPk(req.params.id, { transaction });
+
+        if (!product) {
+            await transaction.rollback();
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found'
+            });
+        }
+
+        const { new_sku, new_supplier_sku } = req.body;
+
+        if (!new_sku && !new_supplier_sku) {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'Must provide either new_sku or new_supplier_sku'
+            });
+        }
+
+        const changes = {};
+
+        // Handle main SKU change
+        if (new_sku && new_sku !== product.sku) {
+            const skuExists = await Product.findOne({
+                where: { sku: new_sku },
+                transaction
+            });
+
+            if (skuExists) {
+                await transaction.rollback();
+                return res.status(400).json({
+                    success: false,
+                    message: 'New SKU already exists'
+                });
+            }
+
+            changes.sku = new_sku;
+        }
+
+        // Handle supplier SKU changes
+        if (new_supplier_sku) {
+            const supplierItems = await SupplierItem.findAll({
+                where: { product_id: product.id },
+                transaction
+            });
+
+            for (const item of supplierItems) {
+                if (item.supplier_sku !== new_supplier_sku) {
+                    await item.update({ supplier_sku: new_supplier_sku }, { transaction });
+                }
+            }
+        }
+
+        if (Object.keys(changes).length > 0) {
+            await product.update(changes, { transaction });
+        }
+
+        await transaction.commit();
+
+        res.status(200).json({
+            success: true,
+            message: 'SKU updated successfully',
+            data: {
+                product_id: product.id,
+                new_sku: new_sku || product.sku,
+                new_supplier_sku: new_supplier_sku || 'unchanged'
+            }
+        });
+
+    } catch (error) {
+        await transaction.rollback();
+        res.status(500).json({
+            success: false,
+            message: `Failed to update SKU: ${error.message}`
+        });
+    }
+});
+
+// Delete product
+export const deleteProduct = asyncHandler(async (req, res) => {
+    const transaction = await sequelize.transaction();
+    try {
+        const product = await Product.findByPk(req.params.id, { transaction });
+
+        if (!product) {
+            await transaction.rollback();
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found'
+            });
+        }
+
+        const hasOrders = await OrderItem.findOne({
+            where: { product_id: req.params.id },
+            transaction
+        });
+
+        if (hasOrders) {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot delete product with existing orders'
+            });
+        }
+
+        await SupplierItem.destroy({
+            where: { product_id: req.params.id },
+            transaction
+        });
+
+        await product.destroy({ transaction });
+        await transaction.commit();
+
+        res.status(200).json({
+            success: true,
+            message: 'Product deleted successfully',
+            data: {
+                id: req.params.id,
+                name: toTitleCase(product.name)
+            }
+        });
+
+    } catch (error) {
+        await transaction.rollback();
+        res.status(500).json({
+            success: false,
+            message: `Failed to delete product: ${error.message}`
+        });
+    }
+});
+
+// Update product stock
+export const updateProductStock = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { supplier_id, quantity, action } = req.body;
+
+    if (!['add', 'subtract', 'set'].includes(action)) {
+        return res.status(400).json({
+            success: false,
+            message: 'Action must be one of: add, subtract, set'
+        });
+    }
+
+    if (isNaN(quantity)) {
+        return res.status(400).json({
+            success: false,
+            message: 'Quantity must be a number'
+        });
+    }
+
+    const transaction = await sequelize.transaction();
+    try {
+        const product = await Product.findByPk(id, { transaction });
+        if (!product) {
+            await transaction.rollback();
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found'
+            });
+        }
+
+        const supplier = await Supplier.findByPk(supplier_id, { transaction });
+        if (!supplier) {
+            await transaction.rollback();
+            return res.status(404).json({
+                success: false,
+                message: 'Supplier not found'
+            });
+        }
+
+        let supplierItem = await SupplierItem.findOne({
+            where: { product_id: id, supplier_id },
+            transaction
+        });
+
+        if (!supplierItem) {
+            if (action !== 'set') {
+                await transaction.rollback();
+                return res.status(400).json({
+                    success: false,
+                    message: 'Supplier item not found - can only set initial stock'
+                });
+            }
+            supplierItem = await SupplierItem.create({
+                product_id: id,
+                supplier_id,
+                stock_level: quantity
+            }, { transaction });
+        } else {
+            const oldStock = supplierItem.stock_level;
+            let newStock = oldStock;
+
+            switch (action) {
+                case 'add':
+                    newStock = oldStock + Number(quantity);
+                    break;
+                case 'subtract':
+                    if (oldStock < quantity) {
+                        await transaction.rollback();
+                        return res.status(400).json({
+                            success: false,
+                            message: 'Insufficient stock available'
+                        });
+                    }
+                    newStock = oldStock - Number(quantity);
+                    break;
+                case 'set':
+                    newStock = Number(quantity);
+                    break;
+            }
+
+            supplierItem.stock_level = newStock;
+            await supplierItem.save({ transaction });
+        }
+
+        await transaction.commit();
+        res.status(200).json({
+            success: true,
+            message: 'Stock updated successfully',
+            data: {
+                product_id: id,
+                product_name: toTitleCase(product.name),
+                supplier_id,
+                supplier_name: supplier.name,
+                stock_level: supplierItem.stock_level,
+                action_performed: action
+            }
+        });
+
+    } catch (error) {
+        await transaction.rollback();
+        res.status(500).json({
+            success: false,
+            message: `Failed to update stock: ${error.message}`
+        });
     }
 });
