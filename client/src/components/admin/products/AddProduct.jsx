@@ -1,22 +1,25 @@
-import { X } from "lucide-react";
-import { useCreateProductMutation } from "../../../slices/productsApiSlice";
+import { X, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "react-toastify";
-import { Loader2 } from "lucide-react";
+import { useCreateProductMutation } from "../../../slices/productsApiSlice";
 
 const AddProduct = ({ setShowCreateModal, refetch, categories, suppliers }) => {
     const [formData, setFormData] = useState({
         name: '',
         sku: '',
         description: '',
+        category_id: '',
+        base_image_url: '',
+        supplier_id: '',
+        supplier_sku: '',
+        purchase_price: '',
         price: '',
         discount_price: '',
         quantity_per_unit: '',
-        quantity: '',
         unit_symbol: '',
-        category_id: '',
-        supplier_id: '',
-        image_url: ''
+        stock_level: '',
+        expiry_days: '',
+        lead_time_days: ''
     });
 
     const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
@@ -32,35 +35,20 @@ const AddProduct = ({ setShowCreateModal, refetch, categories, suppliers }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const result = await createProduct({
-                name: formData.name,
-                sku: formData.sku,
-                description: formData.description,
+            await createProduct({
+                ...formData,
+                base_image_url: formData.base_image_url.trim() || null,
                 price: parseFloat(formData.price),
                 discount_price: formData.discount_price ? parseFloat(formData.discount_price) : null,
+                purchase_price: parseFloat(formData.purchase_price),
                 quantity_per_unit: parseFloat(formData.quantity_per_unit),
-                quantity: parseInt(formData.quantity),
-                unit_symbol: formData.unit_symbol,
-                category_id: formData.category_id,
-                supplier_id: formData.supplier_id,
-                image_url: formData.image_url || null
+                stock_level: parseInt(formData.stock_level),
+                expiry_days: parseInt(formData.expiry_days),
+                lead_time_days: parseInt(formData.lead_time_days) || 5
             }).unwrap();
 
             toast.success('Product created successfully!');
             setShowCreateModal(false);
-            setFormData({
-                name: '',
-                sku: '',
-                description: '',
-                price: '',
-                discount_price: '',
-                quantity_per_unit: '',
-                quantity: '',
-                unit_symbol: '',
-                category_id: '',
-                supplier_id: '',
-                image_url: ''
-            });
             refetch();
         } catch (err) {
             toast.error(err?.data?.message || 'Error creating product');
@@ -68,7 +56,7 @@ const AddProduct = ({ setShowCreateModal, refetch, categories, suppliers }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 backdrop-brightness-50 bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg md:rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 <div className="p-6">
                     <div className="flex items-center justify-between mb-6">
@@ -83,6 +71,7 @@ const AddProduct = ({ setShowCreateModal, refetch, categories, suppliers }) => {
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Product Fields */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Product Name *
@@ -94,7 +83,6 @@ const AddProduct = ({ setShowCreateModal, refetch, categories, suppliers }) => {
                                     onChange={handleInputChange}
                                     required
                                     className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                                    placeholder="Enter product name"
                                 />
                             </div>
 
@@ -109,7 +97,6 @@ const AddProduct = ({ setShowCreateModal, refetch, categories, suppliers }) => {
                                     onChange={handleInputChange}
                                     required
                                     className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                                    placeholder="Enter product SKU"
                                 />
                             </div>
 
@@ -135,6 +122,20 @@ const AddProduct = ({ setShowCreateModal, refetch, categories, suppliers }) => {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Base Image URL
+                                </label>
+                                <input
+                                    type="url"
+                                    name="base_image_url"
+                                    value={formData.base_image_url}
+                                    onChange={handleInputChange}
+                                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                />
+                            </div>
+
+                            {/* Supplier Item Fields */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Supplier *
                                 </label>
                                 <select
@@ -155,7 +156,37 @@ const AddProduct = ({ setShowCreateModal, refetch, categories, suppliers }) => {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Price *
+                                    Supplier SKU *
+                                </label>
+                                <input
+                                    type="text"
+                                    name="supplier_sku"
+                                    value={formData.supplier_sku}
+                                    onChange={handleInputChange}
+                                    required
+                                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Purchase Price *
+                                </label>
+                                <input
+                                    type="number"
+                                    name="purchase_price"
+                                    value={formData.purchase_price}
+                                    onChange={handleInputChange}
+                                    required
+                                    step="0.01"
+                                    min="0"
+                                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Selling Price *
                                 </label>
                                 <input
                                     type="number"
@@ -166,7 +197,6 @@ const AddProduct = ({ setShowCreateModal, refetch, categories, suppliers }) => {
                                     step="0.01"
                                     min="0"
                                     className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                                    placeholder="0.00"
                                 />
                             </div>
 
@@ -182,7 +212,6 @@ const AddProduct = ({ setShowCreateModal, refetch, categories, suppliers }) => {
                                     step="0.01"
                                     min="0"
                                     className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                                    placeholder="0.00"
                                 />
                             </div>
 
@@ -199,7 +228,6 @@ const AddProduct = ({ setShowCreateModal, refetch, categories, suppliers }) => {
                                     step="0.01"
                                     min="0"
                                     className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                                    placeholder="1.00"
                                 />
                             </div>
 
@@ -214,23 +242,49 @@ const AddProduct = ({ setShowCreateModal, refetch, categories, suppliers }) => {
                                     onChange={handleInputChange}
                                     required
                                     className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                                    placeholder="kg, ltr, pcs, etc."
                                 />
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Stock Quantity *
+                                    Stock Level *
                                 </label>
                                 <input
                                     type="number"
-                                    name="quantity"
-                                    value={formData.quantity}
+                                    name="stock_level"
+                                    value={formData.stock_level}
                                     onChange={handleInputChange}
                                     required
                                     min="0"
                                     className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                                    placeholder="0"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Expiry Days
+                                </label>
+                                <input
+                                    type="number"
+                                    name="expiry_days"
+                                    value={formData.expiry_days}
+                                    onChange={handleInputChange}
+                                    min="0"
+                                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Lead Time Days
+                                </label>
+                                <input
+                                    type="number"
+                                    name="lead_time_days"
+                                    value={formData.lead_time_days}
+                                    onChange={handleInputChange}
+                                    min="0"
+                                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                                 />
                             </div>
                         </div>
@@ -245,21 +299,6 @@ const AddProduct = ({ setShowCreateModal, refetch, categories, suppliers }) => {
                                 onChange={handleInputChange}
                                 rows={3}
                                 className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                                placeholder="Enter product description"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Image URL
-                            </label>
-                            <input
-                                type="url"
-                                name="image_url"
-                                value={formData.image_url}
-                                onChange={handleInputChange}
-                                className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                                placeholder="https://example.com/image.jpg"
                             />
                         </div>
 

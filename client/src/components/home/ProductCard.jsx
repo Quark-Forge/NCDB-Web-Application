@@ -1,24 +1,22 @@
-import React, { useState } from 'react';
-import { Heart, Star, ShoppingCartIcon } from 'lucide-react';
+import { useState } from 'react';
+import { Heart, ShoppingCartIcon } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import ProductModal from '../products/ProductModel';
 import { useAddToCartMutation } from '../../slices/cartApiSlice';
 import { toast } from 'react-toastify';
 
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, supplierItem }) => {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-
   const [showModal, setShowModal] = useState(false);
-
-    const [addToCart, { isLoading: isAdding }] = useAddToCartMutation();
+  const [addToCart, { isLoading: isAdding }] = useAddToCartMutation();
+  const { userInfo } = useSelector((state) => state.auth);
 
   const handleCardClick = () => {
     setShowModal(true);
   };
-  const { userInfo } = useSelector((state) => state.auth);
 
   const handleWishlist = (e) => {
     e.stopPropagation();
@@ -27,33 +25,40 @@ const ProductCard = ({ product }) => {
   };
 
   const handleAddToCart = async (e) => {
-    e.preventDefault();
+    e.stopPropagation();
     if (!userInfo) {
       navigate('/auth/login');
       return;
     }
 
     try {
-      const result = addToCart({
+      await addToCart({
         product_id: product.id,
+        supplier_id: supplierItem?.supplier_id,
         quantity: '1',
+        product_data: {
+          ...product,
+          supplierItem,
+          price: supplierItem?.price || product.price,
+          image_url: supplierItem?.image_url || product.image_url || product.base_image_url,
+          supplier_name: supplierItem?.Supplier?.name
+        }
       }).unwrap();
       toast.success('Product added to cart!');
-
     } catch (err) {
-      toast.error(err?.data?.message || 'Error creating product');
+      toast.error(err?.data?.message || 'Error adding to cart');
     }
   };
 
-
-  // const handleCardClick = () => {
-  //   console.log('Navigate to product:', product.id);
-  // };
-
   const renderPrice = () => {
-    const price = parseFloat(product.price);
-    const discountPrice = parseFloat(product.discount_price);
-    const hasDiscount = discountPrice < price;
+    if (!supplierItem) return null;
+
+    const price = parseFloat(supplierItem.price || 0);
+    const discountPrice = supplierItem.discount_price
+      ? parseFloat(supplierItem.discount_price)
+      : null;
+
+    const hasDiscount = discountPrice && discountPrice < price;
 
     return (
       <div className="flex flex-col items-center text-left justify-between gap-2 mb-2">
@@ -72,6 +77,9 @@ const ProductCard = ({ product }) => {
             Save Rs {(price - discountPrice).toFixed(2)}
           </span>
         )}
+        <span className="w-full text-xs text-gray-500">
+          Sold by: {supplierItem.Supplier?.name || 'Unknown supplier'}
+        </span>
       </div>
     );
   };
@@ -85,80 +93,70 @@ const ProductCard = ({ product }) => {
         {/* Product Image */}
         <div className="relative flex justify-center overflow-hidden">
           <img
-            src={product.image_url || '../../images/product.png'}
+            src={supplierItem?.image_url || product.image_url || product.base_image_url || '../../images/product.png'}
             alt={product.name}
             className="w-fit h-40 object-cover group-hover:scale-110 transition-transform duration-500"
             loading="lazy"
           />
 
           {/* Wishlist Button */}
-          {
-            userInfo ? (
-              <button
-                onClick={handleWishlist}
-                className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition-all duration-200 hover:scale-110"
-              >
-                <Heart
-                  className={`h-4 w-4 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-400 hover:text-red-400'
-                    }`}
-                />
-              </button>
-            ) : null
-          }
-
+          {userInfo && (
+            <button
+              onClick={handleWishlist}
+              className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition-all duration-200 hover:scale-110"
+            >
+              <Heart
+                className={`h-4 w-4 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-400 hover:text-red-400'
+                  }`}
+              />
+            </button>
+          )}
         </div>
 
         {/* Product Info */}
         <div className="p-4 flex flex-row">
           <div className='flex w-full flex-col'>
-            {/* Name */}
             <h3 className="text-lg font-semibold text-gray-800 mb-1 line-clamp-2 hover:text-blue-600 transition-colors">
               {product.name}
             </h3>
-
-            {/* Quantity */}
-            {/* <p className="text-sm text-gray-500 mb-1">
-          Quantity: {product.quantity_per_unit} {product.unit_symbol}
-        </p> */}
-
-            {/* Price */}
+            {supplierItem?.supplier_sku && (
+              <p className="text-xs text-gray-500 mb-1">
+                SKU: {supplierItem.supplier_sku}
+              </p>
+            )}
             {renderPrice()}
-
-            {/* Stock */}
             <div className="mb-4">
-              <span className="text-sm text-green-600 font-medium">✓ In Stock</span>
+              <span className="text-sm text-green-600 font-medium">
+                ✓ In Stock ({supplierItem?.stock_level || 0} available)
+              </span>
             </div>
           </div>
 
           <div className='flex w-1/2 justify-end'>
-            {/* Add to Cart Button */}
             <button
               onClick={handleAddToCart}
               disabled={isLoading}
-              className={` font-semibold w-11 h-11 rounded-3xl transition-all duration-200 flex items-center justify-center space-x-2 ${isLoading
+              className={`font-semibold w-11 h-11 rounded-3xl transition-all duration-200 flex items-center justify-center space-x-2 ${isLoading
                 ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-blue-600 hover:bg-blue-400 hover:shadow-lg transform hover:scale-105'
                 } text-white`}
             >
               {isLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                </>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
               ) : (
-                <>
-                  <ShoppingCartIcon className='p-1' />
-                  {/* Add to cart */}
-                </>
+                <ShoppingCartIcon className='p-1' />
               )}
             </button>
           </div>
         </div>
       </div>
+
       {showModal && (
         <ProductModal
           product={product}
+          supplierItem={supplierItem}
           onClose={() => setShowModal(false)}
-          handleAddToCart={handleAddToCart} // pass the function
+          handleAddToCart={handleAddToCart}
         />
       )}
     </>

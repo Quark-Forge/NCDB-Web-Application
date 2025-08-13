@@ -14,7 +14,7 @@ export const productsApiSlice = apiSlice.injectEndpoints({
         if (sort) params.append('sort', sort);
         if (page) params.append('page', page);
         if (limit) params.append('limit', limit);
-        
+
         return {
           url: `${PRODUCTS_URL}?${params.toString()}`,
           method: 'GET',
@@ -22,13 +22,22 @@ export const productsApiSlice = apiSlice.injectEndpoints({
       },
       providesTags: ['product'],
     }),
+    // GET /api/products/with-inactive
+    getProductsWithInactive: builder.query({
+      query: ({ search, category, sort, page, limit }) => {
+        const params = new URLSearchParams();
 
-    // GET /api/products/:id
-    getProductById: builder.query({
-      query: (id) => ({
-        url: `${PRODUCTS_URL}/${id}`,
-        method: 'GET',
-      }),
+        if (search) params.append('search', search);
+        if (category) params.append('category', category);
+        if (sort) params.append('sort', sort);
+        if (page) params.append('page', page);
+        if (limit) params.append('limit', limit);
+
+        return {
+          url: `${PRODUCTS_URL}/with-inactive?${params.toString()}`,
+          method: 'GET',
+        };
+      },
       providesTags: ['product'],
     }),
 
@@ -52,10 +61,10 @@ export const productsApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: ['product'],
     }),
 
-    // DELETE /api/products/:id
+    // DELETE /api/products/:product_id/suppliers/:supplier_id
     deleteProduct: builder.mutation({
-      query: (id) => ({
-        url: `${PRODUCTS_URL}/${id}`,
+      query: ({ product_id, supplier_id }) => ({  // Destructure the object
+        url: `${PRODUCTS_URL}/${product_id}/suppliers/${supplier_id}`,
         method: 'DELETE',
       }),
       invalidatesTags: ['product'],
@@ -65,6 +74,7 @@ export const productsApiSlice = apiSlice.injectEndpoints({
 
 export const {
   useGetProductsQuery,
+  useGetProductsWithInactiveQuery,
   useGetProductByIdQuery,
   useCreateProductMutation,
   useUpdateProductMutation,
