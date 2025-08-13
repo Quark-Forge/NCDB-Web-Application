@@ -14,6 +14,7 @@ const Navbar = ({ cartCount = 0, search, setSearch ,cartItems}) => {
 
   const handleCartClick = () => {
     // setIsCardOpen(true);
+    localStorage.setItem('cart', JSON.stringify(cartItems));
     navigate('/user/cart');
   };
 

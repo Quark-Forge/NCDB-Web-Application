@@ -53,7 +53,6 @@ const ProductCard = ({ product, onAddToCart }) => {
           {hasDiscount && (
             <span className="w-full text-sm text-gray-500 line-through">
               Rs {(price).toFixed(2)}
-              
             </span>
           )}
         </div>
@@ -107,9 +106,9 @@ const ProductCard = ({ product, onAddToCart }) => {
           </h3>
 
           {/* Quantity */}
-          {/* <p className="text-sm text-gray-500 mb-1">
+          {/* { <p className="text-sm text-gray-500 mb-1">
           Quantity: {product.quantity_per_unit} {product.unit_symbol}
-        </p> */}
+          </p> } */}
 
           {/* Price */}
           {renderPrice()}

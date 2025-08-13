@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import Navbar from '../../components/home/Navbar';
 import ProductCard from '../../components/home/ProductCard';
 import { useGetProductsQuery } from '../../slices/productsApiSlice';
@@ -30,12 +30,16 @@ const Home = () => {
   const totalCount = data?.totalCount || 0;
   const totalPages = Math.ceil(totalCount / productsPerPage);
 
+  useEffect(() => {
+  console.log("Cart items updated:", cartItems);
+}, [cartItems]);
   
 
   const handleAddToCart = (product) => {
     setCartCount(prev => prev + 1);
     setCartItems(prev => [...prev, product]);
     console.log('Added to cart:', product);
+    console.log(cartItems);
   };
 
   const handlePageChange = (page) => {
