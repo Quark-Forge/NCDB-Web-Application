@@ -406,57 +406,139 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 // GET order statistics
 export const getOrderStats = asyncHandler(async (req, res) => {
     try {
-        // Last 30 days sales data
+        // Date calculations
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        thirtyDaysAgo.setHours(0, 0, 0, 0); // Start of day
+        thirtyDaysAgo.setHours(0, 0, 0, 0);
 
-        const salesData = await Order.findAll({
-            attributes: [
-                [sequelize.fn('DATE', sequelize.col('created_at')), 'date'],
-                [sequelize.fn('SUM', sequelize.col('total_amount')), 'total_sales'],
-                [sequelize.fn('COUNT', sequelize.col('id')), 'order_count']
-            ],
-            where: {
-                createdAt: { [Op.gte]: thirtyDaysAgo },
-                status: { [Op.notIn]: ['cancelled'] }
-            },
-            group: [sequelize.fn('DATE', sequelize.col('created_at'))],
-            order: [[sequelize.fn('DATE', sequelize.col('created_at')), 'ASC']],
-            raw: true
-        });
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-        // Status distribution
-        const statusCounts = await Order.findAll({
-            attributes: [
-                'status',
-                [sequelize.fn('COUNT', sequelize.col('id')), 'count']
-            ],
-            group: ['status'],
-            raw: true
-        });
+        // Execute all queries in parallel for better performance
+        const [
+            salesData,
+            statusCounts,
+            totalRevenue,
+            avgOrderValue,
+            totalOrders,
+            completedOrders,
+            pendingOrders,
+            todayOrders,
+            highValueOrders,
+            recentCancellations
+        ] = await Promise.all([
+            // Last 30 days sales data
+            Order.findAll({
+                attributes: [
+                    [sequelize.fn('DATE', sequelize.col('created_at')), 'date'],
+                    [sequelize.fn('SUM', sequelize.col('total_amount')), 'total_sales'],
+                    [sequelize.fn('COUNT', sequelize.col('id')), 'order_count']
+                ],
+                where: {
+                    createdAt: { [Op.gte]: thirtyDaysAgo },
+                    status: { [Op.notIn]: ['cancelled'] }
+                },
+                group: [sequelize.fn('DATE', sequelize.col('created_at'))],
+                order: [[sequelize.fn('DATE', sequelize.col('created_at')), 'ASC']],
+                raw: true
+            }),
 
-        // Revenue metrics
-        const [totalRevenue, avgOrderValue] = await Promise.all([
+            // Status distribution
+            Order.findAll({
+                attributes: [
+                    'status',
+                    [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+                ],
+                group: ['status'],
+                raw: true
+            }),
+
+            // Total revenue (only delivered orders)
             Order.sum('total_amount', {
                 where: { status: 'delivered' }
             }),
+
+            // Average order value
             Order.findOne({
                 attributes: [
                     [sequelize.fn('AVG', sequelize.col('total_amount')), 'avg']
                 ],
                 where: { status: 'delivered' },
                 raw: true
+            }),
+
+            // Total orders count (excluding cancelled)
+            Order.count({
+                where: { status: { [Op.not]: 'cancelled' } }
+            }),
+
+            // Completed orders count (status = 'delivered')
+            Order.count({
+                where: { status: 'delivered' }
+            }),
+
+            // Pending orders count (status = 'pending' or 'processing')
+            Order.count({
+                where: {
+                    status: { [Op.in]: ['pending', 'processing'] }
+                }
+            }),
+
+            // Today's orders count
+            Order.count({
+                where: {
+                    createdAt: { [Op.gte]: today },
+                    status: { [Op.not]: 'cancelled' }
+                }
+            }),
+
+            // High value orders (top 5 orders by amount)
+            Order.findAll({
+                attributes: ['id', 'total_amount', 'created_at', 'status'],
+                where: { status: { [Op.not]: 'cancelled' } },
+                order: [['total_amount', 'DESC']],
+                limit: 5,
+                raw: true
+            }),
+
+            // Recent cancellations (last 10)
+            Order.findAll({
+                attributes: ['id', 'total_amount', 'created_at'],
+                where: { status: 'cancelled' },
+                order: [['created_at', 'DESC']],
+                limit: 10,
+                raw: true
             })
         ]);
+
+        // Calculate conversion rate (completed orders / total orders)
+        const conversionRate = totalOrders > 0
+            ? (completedOrders / totalOrders) * 100
+            : 0;
 
         res.json({
             success: true,
             data: {
+                // Time-based metrics
                 sales_trend: salesData,
+                today_orders: todayOrders,
+                recent_cancellations: recentCancellations,
+
+                // Status metrics
                 status_distribution: statusCounts,
+                total_orders: totalOrders,
+                completed_orders: completedOrders,
+                pending_orders: pendingOrders,
+                conversion_rate: parseFloat(conversionRate.toFixed(2)),
+
+                // Financial metrics
                 total_revenue: totalRevenue || 0,
-                average_order_value: avgOrderValue?.avg || 0
+                average_order_value: avgOrderValue?.avg || 0,
+                high_value_orders: highValueOrders,
+
+                // Performance metrics
+                orders_last_30_days: salesData.reduce((sum, day) => sum + day.order_count, 0),
+                revenue_last_30_days: salesData.reduce((sum, day) => sum + parseFloat(day.total_sales || 0), 0)
             }
         });
     } catch (error) {
