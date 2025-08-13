@@ -3,7 +3,19 @@ import { Cart, CartItem, Product, Supplier, SupplierItem } from '../models/index
 import sequelize from '../config/db.js';
 
 // Constants
-const MAX_QUANTITY_PER_ITEM = 10; // Maximum allowed quantity for a single cart item
+const MAX_QUANTITY_PER_ITEM = 10;
+
+// Helper function to handle transaction errors
+const handleTransactionError = async (transaction, error, res) => {
+    if (transaction && !transaction.finished) {
+        await transaction.rollback();
+    }
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({
+        success: false,
+        message: error.message
+    });
+};
 
 // GET cart items
 export const getCart = asyncHandler(async (req, res) => {
@@ -17,15 +29,11 @@ export const getCart = asyncHandler(async (req, res) => {
         }]
     });
 
-    if (!cart) {
-        res.status(200).json({
-            message: "Cart is empty",
-            cart: null
-        });
-        return;
-    }
-
-    res.status(200).json(cart);
+    res.status(200).json({
+        success: true,
+        data: cart || { CartItems: [] },
+        message: cart ? 'Cart retrieved successfully' : 'Cart is empty'
+    });
 });
 
 // POST add to cart
@@ -48,65 +56,46 @@ export const addToCart = asyncHandler(async (req, res) => {
     try {
         // Check product-supplier relationship and stock
         const supplierItem = await SupplierItem.findOne({
-            where: {
-                product_id,
-                supplier_id
-            },
+            where: { product_id, supplier_id },
             include: [Product],
             transaction
         });
 
         if (!supplierItem) {
-            await transaction.rollback();
-            res.status(404);
-            throw new Error('Product not available from this supplier');
+            throw Object.assign(new Error('Product not available from this supplier'), { statusCode: 404 });
         }
 
         if (supplierItem.stock_level < quantity) {
-            await transaction.rollback();
-            res.status(400);
-            throw new Error(`Only ${supplierItem.stock_level} units available`);
+            throw Object.assign(new Error(`Only ${supplierItem.stock_level} units available`), { statusCode: 400 });
         }
 
         // Get or create cart
         let cart = await Cart.findOne({
             where: { user_id: userId },
             transaction
-        });
-
-        if (!cart) {
-            cart = await Cart.create({ user_id: userId }, { transaction });
-        }
+        }) || await Cart.create({ user_id: userId }, { transaction });
 
         // Check if item already in cart from same supplier
-        const cartItem = await CartItem.findOne({
+        const [cartItem, created] = await CartItem.findOrCreate({
             where: {
                 cart_id: cart.id,
                 product_id,
                 supplier_id
             },
+            defaults: {
+                quantity,
+                price: supplierItem.price,
+            },
             transaction
         });
 
-        if (cartItem) {
+        if (!created) {
             const newQuantity = cartItem.quantity + Number(quantity);
             if (newQuantity > MAX_QUANTITY_PER_ITEM) {
-                await transaction.rollback();
-                res.status(400);
-                throw new Error(`Cannot exceed maximum quantity of ${MAX_QUANTITY_PER_ITEM} units`);
+                throw Object.assign(new Error(`Cannot exceed maximum quantity of ${MAX_QUANTITY_PER_ITEM} units`), { statusCode: 400 });
             }
-
             cartItem.quantity = newQuantity;
             await cartItem.save({ transaction });
-        } else {
-            await CartItem.create({
-                cart_id: cart.id,
-                product_id,
-                supplier_id,
-                quantity,
-                price: supplierItem.price,
-                purchase_price: supplierItem.purchase_price
-            }, { transaction });
         }
 
         // Return updated cart
@@ -119,10 +108,13 @@ export const addToCart = asyncHandler(async (req, res) => {
         });
 
         await transaction.commit();
-        res.status(200).json(updatedCart);
+        res.status(200).json({
+            success: true,
+            data: updatedCart,
+            message: 'Item added to cart successfully'
+        });
     } catch (error) {
-        await transaction.rollback();
-        throw error;
+        await handleTransactionError(transaction, error, res);
     }
 });
 
@@ -150,9 +142,7 @@ export const updateCartItem = asyncHandler(async (req, res) => {
         });
 
         if (!cart) {
-            await transaction.rollback();
-            res.status(404);
-            throw new Error('Cart not found');
+            throw Object.assign(new Error('Cart not found'), { statusCode: 404 });
         }
 
         const cartItem = await CartItem.findOne({
@@ -165,24 +155,17 @@ export const updateCartItem = asyncHandler(async (req, res) => {
         });
 
         if (!cartItem) {
-            await transaction.rollback();
-            res.status(404);
-            throw new Error('Item not found in cart');
+            throw Object.assign(new Error('Item not found in cart'), { statusCode: 404 });
         }
 
         // Verify stock availability
         const supplierItem = await SupplierItem.findOne({
-            where: {
-                product_id,
-                supplier_id
-            },
+            where: { product_id, supplier_id },
             transaction
         });
 
         if (supplierItem.stock_level < quantity) {
-            await transaction.rollback();
-            res.status(400);
-            throw new Error(`Only ${supplierItem.stock_level} units available`);
+            throw Object.assign(new Error(`Only ${supplierItem.stock_level} units available`), { statusCode: 400 });
         }
 
         cartItem.quantity = quantity;
@@ -197,10 +180,13 @@ export const updateCartItem = asyncHandler(async (req, res) => {
         });
 
         await transaction.commit();
-        res.status(200).json(updatedCart);
+        res.status(200).json({
+            success: true,
+            data: updatedCart,
+            message: 'Cart item updated successfully'
+        });
     } catch (error) {
-        await transaction.rollback();
-        throw error;
+        await handleTransactionError(transaction, error, res);
     }
 });
 
@@ -222,9 +208,7 @@ export const removeFromCart = asyncHandler(async (req, res) => {
         });
 
         if (!cart) {
-            await transaction.rollback();
-            res.status(404);
-            throw new Error('Cart not found');
+            throw Object.assign(new Error('Cart not found'), { statusCode: 404 });
         }
 
         const deleted = await CartItem.destroy({
@@ -237,9 +221,7 @@ export const removeFromCart = asyncHandler(async (req, res) => {
         });
 
         if (deleted === 0) {
-            await transaction.rollback();
-            res.status(404);
-            throw new Error('Item not found in cart');
+            throw Object.assign(new Error('Item not found in cart'), { statusCode: 404 });
         }
 
         const updatedCart = await Cart.findByPk(cart.id, {
@@ -251,10 +233,13 @@ export const removeFromCart = asyncHandler(async (req, res) => {
         });
 
         await transaction.commit();
-        res.status(200).json(updatedCart);
+        res.status(200).json({
+            success: true,
+            data: updatedCart,
+            message: 'Item removed from cart successfully'
+        });
     } catch (error) {
-        await transaction.rollback();
-        throw error;
+        await handleTransactionError(transaction, error, res);
     }
 });
 
@@ -270,29 +255,25 @@ export const clearCart = asyncHandler(async (req, res) => {
         });
 
         if (!cart) {
-            await transaction.rollback();
-            res.status(404);
-            throw new Error('Cart not found');
+            throw Object.assign(new Error('Cart not found'), { statusCode: 404 });
         }
 
         await CartItem.destroy({
-            where: {
-                cart_id: cart.id
-            },
+            where: { cart_id: cart.id },
             transaction
         });
 
         await transaction.commit();
         res.status(200).json({
-            message: 'Cart cleared successfully',
-            cart: {
+            success: true,
+            data: {
                 ...cart.get({ plain: true }),
                 CartItems: []
-            }
+            },
+            message: 'Cart cleared successfully'
         });
     } catch (error) {
-        await transaction.rollback();
-        throw error;
+        await handleTransactionError(transaction, error, res);
     }
 });
 
@@ -310,8 +291,12 @@ export const getCartTotal = asyncHandler(async (req, res) => {
 
     if (!cart || !cart.CartItems || cart.CartItems.length === 0) {
         return res.status(200).json({
-            totalItems: 0,
-            subtotal: 0,
+            success: true,
+            data: {
+                totalItems: 0,
+                subtotal: 0,
+                items: []
+            },
             message: "Cart is empty"
         });
     }
@@ -320,18 +305,22 @@ export const getCartTotal = asyncHandler(async (req, res) => {
     const subtotal = cart.CartItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
 
     res.status(200).json({
-        totalItems,
-        subtotal,
-        currency: 'LKR',
-        items: cart.CartItems.map(item => ({
-            id: item.id,
-            product_id: item.product_id,
-            product_name: item.Product.name,
-            supplier_id: item.supplier_id,
-            supplier_name: item.Supplier.name,
-            quantity: item.quantity,
-            price: item.price,
-            item_total: item.quantity * item.price
-        }))
+        success: true,
+        data: {
+            totalItems,
+            subtotal,
+            currency: 'LKR',
+            items: cart.CartItems.map(item => ({
+                id: item.id,
+                product_id: item.product_id,
+                product_name: item.Product.name,
+                supplier_id: item.supplier_id,
+                supplier_name: item.Supplier.name,
+                quantity: item.quantity,
+                price: item.price,
+                item_total: item.quantity * item.price
+            }))
+        },
+        message: 'Cart total calculated successfully'
     });
 });

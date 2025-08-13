@@ -1,6 +1,6 @@
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useGetProductsQuery } from "../../slices/productsApiSlice";
+import { useDeleteProductMutation, useGetProductsWithInactiveQuery } from "../../slices/productsApiSlice";
 import { useGetCategoriesQuery } from "../../slices/categoryApiSlice";
 import { useGetAllActiveSuppliersQuery } from "../../slices/suppliersApiSlice";
 import { Search, RefreshCw, Plus } from 'lucide-react';
@@ -9,20 +9,18 @@ import AddProduct from "../../components/admin/products/AddProduct";
 import ProductsList from "../../components/admin/products/ProductsList";
 import EditProduct from "../../components/admin/products/EditProduct";
 import { useEffect } from "react";
-import { useDeleteSupplierItemMutation } from "../../slices/supplierItemsApiSlice";
 
 const Products = () => {
-  const { data: productsData, isLoading, error, refetch } = useGetProductsQuery({});
+  const { data: productsData, isLoading, error, refetch } = useGetProductsWithInactiveQuery({});
   const { data: categoriesData } = useGetCategoriesQuery();
   const { data: suppliersData } = useGetAllActiveSuppliersQuery();
-  const [deleteProduct] = useDeleteSupplierItemMutation();
+  const [deleteSupplierItem] = useDeleteProductMutation();
 
-  // For modals and form data
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
-
   const [showEditModal, setShowEditModal] = useState(false);
-  const [formData, setFormData] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedSupplierItem, setSelectedSupplierItem] = useState(null);
 
   const products = productsData?.data || [];
   const categories = categoriesData?.data || [];
@@ -32,36 +30,44 @@ const Products = () => {
     if (error) {
       toast.error(error?.data?.message || error.error);
     }
-  }, [error]); 
+  }, [error]);
 
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    product.Category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleEdit = (product) => {
-    setFormData(product);
+  const handleEdit = (product, supplierItem) => {
+    setSelectedProduct(product);
+    setSelectedSupplierItem(supplierItem);
     setShowEditModal(true);
   };
 
-  const handleDelete = async ({supplier_id, product_id}) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
+  const handleDelete = async (product_id, supplier_id) => {
+    if (window.confirm('Are you sure you want to delete this product offering?')) {
       try {
-        await deleteProduct({ supplier_id, product_id }).unwrap();
-        toast.success('Product deleted successfully!');
+        await deleteSupplierItem({
+          product_id: product_id,
+          supplier_id: supplier_id
+        }).unwrap();
+        toast.success('Product offering deleted successfully!');
         refetch();
       } catch (err) {
-        toast.error(err?.data?.message || 'Error deleting product');
+        console.error('Delete error:', err);
+        toast.error(
+          err?.data?.message ||
+          'Error deleting product offering. Check console for details.'
+        );
       }
     }
   };
 
-  // Close modals helper
   const closeModals = () => {
     setShowCreateModal(false);
     setShowEditModal(false);
-    setFormData(null);
+    setSelectedProduct(null);
+    setSelectedSupplierItem(null);
   };
 
   return (
@@ -137,8 +143,8 @@ const Products = () => {
           <EditProduct
             showEditModal={showEditModal}
             closeModals={closeModals}
-            formData={formData}
-            setFormData={setFormData}
+            product={selectedProduct}
+            supplierItem={selectedSupplierItem}
             categories={categories}
             suppliers={suppliers}
             refetch={refetch}

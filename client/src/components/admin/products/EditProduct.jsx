@@ -6,46 +6,39 @@ import { toast } from "react-toastify";
 const EditProduct = ({
   showEditModal,
   closeModals,
-  formData: initialFormData,
+  product: initialProduct,
+  supplierItem: initialSupplierItem,
   categories,
-  suppliers,
   refetch
 }) => {
   const [formData, setFormData] = useState({
     name: '',
-    sku: '',
     description: '',
     price: '',
     discount_price: '',
     quantity_per_unit: '',
-    quantity: '',
     unit_symbol: '',
     category_id: '',
-    supplier_id: '',
-    image_url: ''
+    image_url: '',
   });
 
-  const [imagePreview, setImagePreview] = useState(null);
   const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
 
   // Initialize form data
   useEffect(() => {
-    if (initialFormData) {
+    if (initialProduct && initialSupplierItem) {
       setFormData({
-        name: initialFormData.name || '',
-        sku: initialFormData.sku || '',
-        description: initialFormData.description || '',
-        price: initialFormData.price?.toString() || '',
-        discount_price: initialFormData.discount_price?.toString() || '',
-        quantity_per_unit: initialFormData.quantity_per_unit?.toString() || '',
-        quantity: initialFormData.stock_level?.toString() || initialFormData.quantity?.toString() || '',
-        unit_symbol: initialFormData.unit_symbol || '',
-        category_id: initialFormData.category_id?.toString() || '',
-        supplier_id: initialFormData.supplier_id?.toString() || '',
-        image_url: initialFormData.image_url || ''
+        name: initialProduct.name || '',
+        description: initialSupplierItem.description || '',
+        price: initialSupplierItem.price?.toString() || '',
+        discount_price: initialSupplierItem.discount_price?.toString() || '',
+        quantity_per_unit: initialSupplierItem.quantity_per_unit?.toString() || '',
+        unit_symbol: initialSupplierItem.unit_symbol || '',
+        category_id: initialProduct.category_id?.toString() || '',
+        image_url: initialSupplierItem.image_url || '',
       });
     }
-  }, [initialFormData]);
+  }, [initialProduct, initialSupplierItem]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -58,34 +51,43 @@ const EditProduct = ({
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const updatedProduct = {
-        id: initialFormData.id,
-        name: formData.name,
-        sku: formData.sku,
-        description: formData.description,
+      const updatedData = {
+        id: initialProduct.id,
+        supplier_id: initialSupplierItem.supplier_id, // Directly use the supplier_id from initialSupplierItem
+        name: formData.name.trim(),
+        description: formData.description.trim(),
         price: parseFloat(formData.price),
         discount_price: formData.discount_price ? parseFloat(formData.discount_price) : null,
         quantity_per_unit: parseFloat(formData.quantity_per_unit),
-        quantity: parseInt(formData.quantity),
-        unit_symbol: formData.unit_symbol,
+        unit_symbol: formData.unit_symbol.trim(),
         category_id: formData.category_id,
-        supplier_id: formData.supplier_id,
-        image_url: formData.image_url || null
+        image_url: formData.image_url.trim() || null
       };
 
-      await updateProduct(updatedProduct).unwrap();
+      // Validate numeric fields
+      if (isNaN(updatedData.price) || isNaN(updatedData.quantity_per_unit) ||
+        (updatedData.discount_price !== null && isNaN(updatedData.discount_price))) {
+        throw new Error('Please enter valid numbers for price and quantity');
+      }
+
+      await updateProduct(updatedData).unwrap();
       toast.success('Product updated successfully!');
       closeModals();
       refetch();
     } catch (err) {
-      toast.error(err?.data?.message || 'Error updating product');
+      toast.error(
+        err?.data?.message ||
+        err?.data?.error?.message ||
+        err.message ||
+        'Error updating product'
+      );
     }
   };
 
   if (!showEditModal) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 backdrop-brightness-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg md:rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
@@ -99,6 +101,14 @@ const EditProduct = ({
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Display supplier ID as read-only */}
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <label className="block text-sm font-medium text-gray-500 mb-1">Supplier ID</label>
+              <div className="text-sm text-gray-900">
+                {initialSupplierItem?.supplier_id || 'N/A'}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Product Name *</label>
@@ -106,18 +116,6 @@ const EditProduct = ({
                   type="text"
                   name="name"
                   value={formData.name}
-                  onChange={handleInputChange}
-                  required
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">SKU *</label>
-                <input
-                  type="text"
-                  name="sku"
-                  value={formData.sku}
                   onChange={handleInputChange}
                   required
                   className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
@@ -136,22 +134,6 @@ const EditProduct = ({
                   <option value="">Select a category</option>
                   {categories.map(category => (
                     <option key={category.id} value={category.id}>{category.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Supplier *</label>
-                <select
-                  name="supplier_id"
-                  value={formData.supplier_id}
-                  onChange={handleInputChange}
-                  required
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                >
-                  <option value="">Select a supplier</option>
-                  {suppliers.map(supplier => (
-                    <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
                   ))}
                 </select>
               </div>
@@ -207,19 +189,6 @@ const EditProduct = ({
                   className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                 />
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Stock Quantity *</label>
-                <input
-                  type="number"
-                  name="quantity"
-                  value={formData.quantity}
-                  onChange={handleInputChange}
-                  required
-                  min="0"
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                />
-              </div>
             </div>
 
             <div>
@@ -242,6 +211,20 @@ const EditProduct = ({
                 onChange={handleInputChange}
                 className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
               />
+            </div>
+
+            {/* Display readonly SKU information */}
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Product SKU</label>
+                  <div className="text-sm text-gray-900">{initialProduct?.sku || 'N/A'}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Supplier SKU</label>
+                  <div className="text-sm text-gray-900">{initialSupplierItem?.supplier_sku || 'N/A'}</div>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end space-x-4 pt-6">

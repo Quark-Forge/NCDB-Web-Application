@@ -4,7 +4,10 @@ import sequelize from '../config/db.js';
 import { Op } from 'sequelize';
 
 // Helper function
-const toTitleCase = (str) => str.replace(/\b\w/g, char => char.toUpperCase());
+const toTitleCase = (str) => {
+    if (!str) return str;
+    return str.replace(/\b\w/g, char => char.toUpperCase());
+};
 
 // Add new product
 export const addProduct = asyncHandler(async (req, res) => {
@@ -102,12 +105,12 @@ export const addProduct = asyncHandler(async (req, res) => {
 // Get all products with filters
 export const getAllProducts = asyncHandler(async (req, res) => {
     try {
-        const { search, category, supplier, minStock, page = 1, limit = 10 } = req.query;
+        const { search, category, supplier, minStock, page = 1, limit = 10, sort } = req.query;
 
         const where = {};
         const supplierItemWhere = {};
 
-        if (search) where.name = { [Op.like]: `%${search}%` };
+        if (search) where.name = { [Op.like]: `%${search.toLowerCase()}%` };
         if (supplier) supplierItemWhere.supplier_id = supplier;
         if (minStock) supplierItemWhere.stock_level = { [Op.gte]: minStock };
 
@@ -120,28 +123,161 @@ export const getAllProducts = asyncHandler(async (req, res) => {
             },
             {
                 model: SupplierItem,
-                as: 'SupplierItems',
                 where: supplierItemWhere,
                 required: !!supplier || !!minStock,
                 include: [{
                     model: Supplier,
-                    as: 'Supplier',
                     attributes: ['id', 'name']
                 }]
             }
         ];
 
+        // Handle sorting
+        let order = [];
+        switch (sort) {
+            case 'created_at_desc':
+                order = [['createdAt', 'DESC']];
+                break;
+            case 'created_at_asc':
+                order = [['createdAt', 'ASC']];
+                break;
+            case 'price_asc':
+                // Sort by the first supplier item's price
+                order = [[{ model: SupplierItem, as: 'SupplierItems' }, 'price', 'ASC']];
+                break;
+            case 'price_desc':
+                // Sort by the first supplier item's price
+                order = [[{ model: SupplierItem, as: 'SupplierItems' }, 'price', 'DESC']];
+                break;
+            case 'name_asc':
+                order = [['name', 'ASC']];
+                break;
+            case 'name_desc':
+                order = [['name', 'DESC']];
+                break;
+            default:
+                order = [['createdAt', 'DESC']];
+        }
+
         const { count, rows } = await Product.findAndCountAll({
             where,
             include,
+            order,
             limit: parseInt(limit),
             offset: (page - 1) * limit,
-            distinct: true
+            distinct: true,
+            subQuery: false // Important for sorting with includes
+        });
+
+        // Format the response data
+        const formattedProducts = rows.map(product => {
+            const productJson = product.toJSON();
+
+            // Ensure prices are numbers
+            if (productJson.SupplierItems && productJson.SupplierItems.length > 0) {
+                productJson.SupplierItems = productJson.SupplierItems.map(item => ({
+                    ...item,
+                    price: Number(item.price),
+                    purchase_price: Number(item.purchase_price),
+                    discount_price: item.discount_price ? Number(item.discount_price) : null
+                }));
+            }
+
+            return {
+                ...productJson,
+                name: toTitleCase(productJson.name),
+                description: toTitleCase(productJson.description)
+            };
         });
 
         res.status(200).json({
             success: true,
-            data: rows,
+            data: formattedProducts,
+            pagination: {
+                total: count,
+                page: parseInt(page),
+                totalPages: Math.ceil(count / limit),
+                limit: parseInt(limit)
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: `Failed to fetch products: ${error.message}`
+        });
+    }
+});
+
+// Get all products including soft-deleted ones
+export const getAllProductsWithDeleted = asyncHandler(async (req, res) => {
+    try {
+        const { search, category, supplier, minStock, page = 1, limit = 10, sort } = req.query;
+
+        const where = {
+            [Op.or]: [
+                { deletedAt: null },
+                { deletedAt: { [Op.ne]: null } }
+            ]
+        };
+
+        const supplierItemWhere = {};
+
+        if (search) where.name = { [Op.like]: `%${search.toLowerCase()}%` };
+        if (supplier) supplierItemWhere.supplier_id = supplier;
+        if (minStock) supplierItemWhere.stock_level = { [Op.gte]: minStock };
+
+        const include = [
+            {
+                model: Category,
+                where: category ? { name: category } : undefined,
+                attributes: ['id', 'name'],
+                required: !!category
+            },
+            {
+                model: SupplierItem,
+                where: supplierItemWhere,
+                required: !!supplier || !!minStock,
+                include: [{
+                    model: Supplier,
+                    attributes: ['id', 'name']
+                }],
+                paranoid: false // Include deleted supplier items too
+            }
+        ];
+
+        // Handle sorting 
+        let order = [];
+        switch (sort) {
+            case 'created_at_desc':
+                order = [['createdAt', 'DESC']];
+                break;
+            default:
+                order = [['createdAt', 'DESC']];
+        }
+
+        const { count, rows } = await Product.findAndCountAll({
+            where,
+            include,
+            order,
+            limit: parseInt(limit),
+            offset: (page - 1) * limit,
+            distinct: true,
+            paranoid: false, // This is key to include soft-deleted records
+            subQuery: false
+        });
+
+        // Format response
+        const formattedProducts = rows.map(product => ({
+            ...product.toJSON(),
+            name: toTitleCase(product.name),
+            description: toTitleCase(product.description),
+            is_active: product.deletedAt ? false : true,
+        }));
+
+        res.status(200).json({
+            success: true,
+            data: formattedProducts,
             pagination: {
                 total: count,
                 page: parseInt(page),
@@ -169,10 +305,9 @@ export const getProductById = asyncHandler(async (req, res) => {
                 },
                 {
                     model: SupplierItem,
-                    as: 'SupplierItems',
+                    as: 'supplierItems',
                     include: [{
                         model: Supplier,
-                        as: 'Supplier',
                         attributes: ['id', 'name', 'contact_number', 'email']
                     }]
                 }
@@ -213,81 +348,180 @@ export const getProductById = asyncHandler(async (req, res) => {
     }
 });
 
-// Update product details
+// Update product
 export const updateProduct = asyncHandler(async (req, res) => {
-    const transaction = await sequelize.transaction();
+    const { id } = req.params;
+    const { supplier_id, ...updates } = req.body;
+
+    // Validate that supplier_id is provided
+    if (!supplier_id) {
+        return res.status(400).json({
+            success: false,
+            message: "Supplier ID is required",
+            code: "SUPPLIER_ID_REQUIRED"
+        });
+    }
+
+    let transaction;
+
     try {
-        const product = await Product.findByPk(req.params.id, { transaction });
+        transaction = await sequelize.transaction();
+
+        // 1. Verify product exists
+        const product = await Product.findByPk(id, { transaction });
         if (!product) {
             await transaction.rollback();
             return res.status(404).json({
                 success: false,
-                message: 'Product not found'
+                message: "Product not found",
+                code: "PRODUCT_NOT_FOUND"
             });
         }
-        // Remove restricted fields
-        const { sku, supplier_sku, ...updates } = req.body;
 
-        if (sku !== undefined || supplier_sku !== undefined) {
+        // 2. Verify supplier exists
+        const supplier = await Supplier.findByPk(supplier_id, { transaction });
+        if (!supplier) {
             await transaction.rollback();
-            return res.status(400).json({
+            return res.status(404).json({
                 success: false,
-                message: 'SKU and supplier SKU cannot be modified through this endpoint'
+                message: "Supplier not found",
+                code: "SUPPLIER_NOT_FOUND"
             });
         }
 
-        const updatableFields = [
-            'name', 'description', 'price',
-            'discount_price', 'quantity_per_unit',
-            'unit_symbol', 'image_url', 'category_id'
-        ];
+        // 3. Find the specific supplier item (using default association name)
+        const supplierItem = await SupplierItem.findOne({
+            where: { product_id: id, supplier_id },
+            transaction
+        });
 
-        const changes = {};
-        for (const field of updatableFields) {
-            if (updates[field] !== undefined && updates[field] !== product[field]) {
-                changes[field] = field === 'name'
-                    ? updates[field].trim().toLowerCase()
-                    : updates[field];
+        if (!supplierItem) {
+            await transaction.rollback();
+            return res.status(404).json({
+                success: false,
+                message: "Supplier item not found for this product",
+                code: "PRODUCT_SUPPLIER_NOT_FOUND"
+            });
+        }
+
+        // Prepare updates
+        const productUpdates = {};
+        const supplierItemUpdates = {};
+
+        // Product fields
+        if (updates.name !== undefined) {
+            productUpdates.name = String(updates.name).trim().toLowerCase();
+        }
+        if (updates.category_id !== undefined) {
+            productUpdates.category_id = updates.category_id;
+        }
+
+        // SupplierItem fields
+        const numericFields = {
+            price: updates.price,
+            discount_price: updates.discount_price,
+            quantity_per_unit: updates.quantity_per_unit,
+        };
+
+        for (const [field, value] of Object.entries(numericFields)) {
+            if (value !== undefined) {
+                const numValue = Number(value);
+                if (isNaN(numValue)) {
+                    await transaction.rollback();
+                    return res.status(400).json({
+                        success: false,
+                        message: `${field.replace('_', ' ')} must be a valid number`,
+                        code: `INVALID_${field.toUpperCase()}`
+                    });
+                }
+                supplierItemUpdates[field] = numValue;
             }
         }
 
-        if (Object.keys(changes).length === 0) {
+        if (updates.unit_symbol !== undefined) {
+            supplierItemUpdates.unit_symbol = updates.unit_symbol;
+        }
+        if (updates.description !== undefined) {
+            supplierItemUpdates.description = updates.description === '' ? null : updates.description;
+        }
+        if (updates.image_url !== undefined) {
+            supplierItemUpdates.image_url = updates.image_url === '' ? null : updates.image_url;
+        }
+
+        // Check if we have any updates to perform
+        if (Object.keys(productUpdates).length === 0 &&
+            Object.keys(supplierItemUpdates).length === 0) {
             await transaction.rollback();
             return res.status(400).json({
                 success: false,
-                message: 'No valid changes provided'
+                message: "No valid changes provided",
+                code: "NO_CHANGES"
             });
         }
 
-        if (changes.category_id) {
-            const categoryExists = await Category.findByPk(changes.category_id, { transaction });
-            if (!categoryExists) {
-                await transaction.rollback();
-                return res.status(400).json({
-                    success: false,
-                    message: 'Category not found'
-                });
-            }
+        // Perform updates
+        if (Object.keys(productUpdates).length > 0) {
+            await product.update(productUpdates, { transaction });
         }
 
-        await product.update(changes, { transaction });
+        await supplierItem.update(supplierItemUpdates, { transaction });
+
         await transaction.commit();
 
-        res.status(200).json({
+        // Return updated data
+        const updatedProduct = await Product.findByPk(id, {
+            include: [
+                {
+                    model: SupplierItem,
+                    where: { supplier_id }
+                },
+                {
+                    model: Category
+                }
+            ]
+        });
+
+        // Access the supplier items through the default association name
+        const supplierItems = updatedProduct.SupplierItems || [];
+
+        return res.status(200).json({
             success: true,
-            message: 'Product updated successfully',
+            message: "Product updated successfully",
             data: {
-                ...product.toJSON(),
-                name: toTitleCase(product.name)
+                ...updatedProduct.get({ plain: true }),
+                supplierItem: supplierItems[0] || null
             }
         });
 
     } catch (error) {
-        await transaction.rollback();
-        res.status(500).json({
+        console.error('Update error:', error);
+
+        if (transaction && !transaction.finished) {
+            try {
+                await transaction.rollback();
+            } catch (rollbackError) {
+                console.error('Rollback error:', rollbackError);
+            }
+        }
+
+        const response = {
             success: false,
-            message: `Failed to update product: ${error.message}`
-        });
+            message: "Error updating product",
+            code: "UPDATE_FAILED"
+        };
+
+        if (process.env.NODE_ENV === 'development') {
+            response.error = error.message;
+            if (error.name === 'SequelizeValidationError') {
+                response.details = error.errors.map(e => ({
+                    field: e.path,
+                    message: e.message,
+                    value: e.value
+                }));
+            }
+        }
+
+        return res.status(500).json(response);
     }
 });
 
@@ -381,22 +615,40 @@ export const updateProductSku = asyncHandler(async (req, res) => {
     }
 });
 
-// Delete product
+// Delete specific supplier's product item
 export const deleteProduct = asyncHandler(async (req, res) => {
+    const { product_id, supplier_id } = req.params;
     const transaction = await sequelize.transaction();
-    try {
-        const product = await Product.findByPk(req.params.id, { transaction });
 
+    try {
+        // Verify product exists
+        const product = await Product.findByPk(product_id, { transaction });
         if (!product) {
             await transaction.rollback();
             return res.status(404).json({
                 success: false,
-                message: 'Product not found'
+                message: 'Product not found',
+                code: 'PRODUCT_NOT_FOUND'
             });
         }
 
+        // Verify supplier exists
+        const supplier = await Supplier.findByPk(supplier_id, { transaction });
+        if (!supplier) {
+            await transaction.rollback();
+            return res.status(404).json({
+                success: false,
+                message: 'Supplier not found',
+                code: 'SUPPLIER_NOT_FOUND'
+            });
+        }
+
+        // Check if product has orders from this supplier
         const hasOrders = await OrderItem.findOne({
-            where: { product_id: req.params.id },
+            where: {
+                product_id,
+                supplier_id
+            },
             transaction
         });
 
@@ -404,24 +656,53 @@ export const deleteProduct = asyncHandler(async (req, res) => {
             await transaction.rollback();
             return res.status(400).json({
                 success: false,
-                message: 'Cannot delete product with existing orders'
+                message: 'Cannot delete product with existing orders from this supplier',
+                code: 'HAS_ACTIVE_ORDERS'
             });
         }
 
-        await SupplierItem.destroy({
-            where: { product_id: req.params.id },
+        // Delete the specific supplier's product item
+        const deletedCount = await SupplierItem.destroy({
+            where: {
+                product_id,
+                supplier_id
+            },
             transaction
         });
 
-        await product.destroy({ transaction });
+        if (deletedCount === 0) {
+            await transaction.rollback();
+            return res.status(404).json({
+                success: false,
+                message: 'Supplier item not found for this product',
+                code: 'SUPPLIER_ITEM_NOT_FOUND'
+            });
+        }
+
+        // Check if this was the last supplier for the product
+        const remainingSuppliers = await SupplierItem.count({
+            where: { product_id },
+            transaction
+        });
+
+        // If no more suppliers, delete the product itself
+        if (remainingSuppliers === 0) {
+            await product.destroy({ transaction });
+        }
+
         await transaction.commit();
 
         res.status(200).json({
             success: true,
-            message: 'Product deleted successfully',
+            message: remainingSuppliers > 0
+                ? 'Supplier product item deleted successfully'
+                : 'Product deleted successfully (no remaining suppliers)',
             data: {
-                id: req.params.id,
-                name: toTitleCase(product.name)
+                product_id,
+                product_name: toTitleCase(product.name),
+                supplier_id,
+                supplier_name: supplier.name,
+                remaining_suppliers: remainingSuppliers
             }
         });
 
@@ -429,7 +710,9 @@ export const deleteProduct = asyncHandler(async (req, res) => {
         await transaction.rollback();
         res.status(500).json({
             success: false,
-            message: `Failed to delete product: ${error.message}`
+            message: 'Failed to delete product',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            code: 'DELETE_FAILED'
         });
     }
 });
