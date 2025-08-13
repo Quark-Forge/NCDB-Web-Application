@@ -11,6 +11,8 @@ import SupplierItem from "./suplierItem.js"
 import Order from "./orders.js";
 import OrderItem from "./orderItems.js";
 import Payment from "./payment.js";
+import InventoryStock from "./inventoryStock.js";
+import InventoryTransaction from "./inventoryTransaction.js";
 
 // User <-> Role
 User.belongsTo(Role, {
@@ -95,7 +97,13 @@ Order.hasOne(Payment, {
 Payment.belongsTo(Order, { 
   foreignKey: 'order_id' 
 });
+// InventoryStock <-> Product
+Product.hasOne(InventoryStock, { foreignKey: 'product_id' });
+InventoryStock.belongsTo(Product, { foreignKey: 'product_id' });
 
+// InventoryTransaction <-> Product
+Product.hasMany(InventoryTransaction, { foreignKey: 'product_id' });
+InventoryTransaction.belongsTo(Product, { foreignKey: 'product_id' });
 
 export {
   sequelize,
@@ -109,4 +117,6 @@ export {
   SupplierItem,
   Order,
   OrderItem,
+  InventoryStock,
+  InventoryTransaction
 };

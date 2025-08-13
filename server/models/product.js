@@ -2,6 +2,7 @@ import { DataTypes } from "sequelize";
 import sequelize from "../config/db.js";
 import Category from "./category.js";
 
+
 const Product = sequelize.define('Product', {
     id: {
         type: DataTypes.UUID,

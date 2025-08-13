@@ -5,6 +5,10 @@ import { toast } from "react-toastify";
 import { Loader2 } from "lucide-react";
 
 const AddProduct = ({ setShowCreateModal, refetch, categories, suppliers }) => {
+    
+
+
+
     const [formData, setFormData] = useState({
         name: '',
         sku: '',

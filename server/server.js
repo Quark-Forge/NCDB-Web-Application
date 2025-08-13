@@ -10,6 +10,7 @@ import categoryRoute from './routes/categoryRoutes.js';
 import productRoute from './routes/productRoutes.js';
 import supplierItemRoutes from './routes/supplierItemRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
+import inventoryRoutes from './routes/inventoryRoutes.js';
 
 dotenv.config();
 const port = process.env.PORT || 5000;
@@ -27,6 +28,7 @@ app.use('/api/categories', categoryRoute);
 app.use('/api/products', productRoute);
 app.use('/api/supplier-items', supplierItemRoutes);
 app.use('/api/carts', cartRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 
 app.get('/', (req, res) => res.send('server is ready'));

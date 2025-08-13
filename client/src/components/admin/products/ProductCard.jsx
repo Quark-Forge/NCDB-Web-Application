@@ -1,6 +1,23 @@
-import { Pencil, Trash2 } from "lucide-react";
+import {Eye, Pencil, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { useSelector } from "react-redux";                  
+import ProductDetailModel from './ProductsDetailModel';
+const allowedRoles=['Admin','Inventory Manager'];
 
 const ProductCard = ({ filteredProducts = [], handleEdit, handleDelete }) => {
+     const { userInfo } = useSelector((state) => state.auth);
+    const [selectedProduct,setSelectedProduct]=useState(null);
+    const [isDetailModelOpen,setIsDetailModelOpen]=useState(false);
+    const handleViewDetails=(product)=>{
+        setSelectedProduct(product);
+        setIsDetailModelOpen(true);
+    }
+
+    const closeModel= () =>{
+         setSelectedProduct(null);
+        setIsDetailModelOpen(false);
+    }
+     const canEditDelete = allowedRoles.includes(userInfo?.user_role);
     const formatPrice = (price) => {
         if (price === null || price === undefined) return '0.00';
         const num = typeof price === 'string' ? parseFloat(price) : price;
@@ -81,6 +98,9 @@ const ProductCard = ({ filteredProducts = [], handleEdit, handleDelete }) => {
                                     {product.Category?.name || 'No Category'}
                                 </span>
                                 <div className="flex space-x-2">
+                                    <button>
+                                        <Eye size={18} /> 
+                                    </button>
                                     <button
                                         onClick={() => handleEdit(product)}
                                         className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50 transition-colors"
@@ -188,6 +208,13 @@ const ProductCard = ({ filteredProducts = [], handleEdit, handleDelete }) => {
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div className="flex justify-end space-x-3">
                                             <button
+                                                onClick={() => handleViewDetails(product)}
+                                                className="text-gray-600 hover:text-gray-900 p-1 rounded-md hover:bg-gray-50 transition-colors"
+                                                aria-label="View product"
+                                            >
+                                                <Eye size={18} /> 
+                                            </button>
+                                            <button
                                                 onClick={() => handleEdit(product)}
                                                 className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50 transition-colors"
                                                 aria-label="Edit product"
@@ -209,6 +236,18 @@ const ProductCard = ({ filteredProducts = [], handleEdit, handleDelete }) => {
                     </tbody>
                 </table>
             </div>
+
+           { isDetailModelOpen && selectedProduct &&(
+                <ProductDetailModel
+                   product={selectedProduct}
+                   onClose={closeModel}
+                   onEdit={handleEdit}
+                   onDelete={handleDelete}
+                   canEditDelete={canEditDelete}
+                />
+           )
+
+           }
         </div>
     );
 };

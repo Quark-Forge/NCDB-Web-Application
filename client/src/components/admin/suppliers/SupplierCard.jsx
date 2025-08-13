@@ -1,6 +1,24 @@
-import { Pencil, Trash2 } from "lucide-react";
+import { Eye,Pencil, Trash2 } from "lucide-react";
+import SupplierDetailModel from './SupplierDetailModel';
+import {useState} from 'react';
+import { useSelector } from "react-redux";
+const allowedRolels=['Admin','Inventory Manager'];
 
 const SupplierCard = ({ filteredSuppliers, handleEdit, handleDelete }) => {
+    const {userInfo}=useSelector((state)=>state.auth);
+    const [selectSupplier,setSelectSupplier]=useState(null);
+    const [isDetailModelOpen,setIsDetailModelOpen]=useState(false);
+    const handleViewDetail=(supplier)=>{
+        setSelectSupplier(supplier);
+        setIsDetailModelOpen(true);
+    }
+    const closeModel=()=>{
+        setSelectSupplier(null);
+        setIsDetailModelOpen(false);
+
+
+    }
+    const canEditDelete=allowedRolels.includes(userInfo?.user_role);
     return (
         <div>
             {/* Mobile Cards View */}
@@ -24,6 +42,9 @@ const SupplierCard = ({ filteredSuppliers, handleEdit, handleDelete }) => {
                         </div>
                         <div className="mt-3 flex items-center justify-end">
                             <div className="flex space-x-2">
+                                <button>
+                                    <Eye size={16}/>
+                                </button>
                                 <button
                                     onClick={() => handleEdit(supplier)}
                                     className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50 transition-colors"
@@ -88,6 +109,14 @@ const SupplierCard = ({ filteredSuppliers, handleEdit, handleDelete }) => {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div className="flex justify-end space-x-3">
+                                          <button onClick={()=>handleViewDetail(supplier)}
+                                                className="text-gray-600 hover:text-gray-900 p-1 rounded-md hover:bg-gray-50 transition-colors"
+                                                aria-label="View product"
+                                            
+                                            
+                                         >
+                                             <Eye size={16}/>
+                                         </button>
                                         <button
                                             onClick={() => handleEdit(supplier)}
                                             className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50 transition-colors"
@@ -107,6 +136,16 @@ const SupplierCard = ({ filteredSuppliers, handleEdit, handleDelete }) => {
                     </tbody>
                 </table>
             </div>
+            {isDetailModelOpen && selectSupplier &&(
+                <SupplierDetailModel
+                supplier={selectSupplier}
+                onClose={closeModel}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                canEditDelete={canEditDelete}
+                
+                />
+            )}
         </div>
     )
 }
