@@ -44,7 +44,7 @@ const ProductCard = ({ product, supplierItem }) => {
           supplier_name: supplierItem?.Supplier?.name
         }
       }).unwrap();
-      toast.success('Product added to cart!');
+      // toast.success('Product added to cart!');
     } catch (err) {
       toast.error(err?.data?.message || 'Error adding to cart');
     }
