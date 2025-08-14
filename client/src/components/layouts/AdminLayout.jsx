@@ -76,11 +76,6 @@ const adminNavConfig = {
       label: 'Categories',
       icon: <Tag size={16} />
     },
-    {
-      to: '/admin/inventory',
-      label: 'Inventory',
-      icon: <Layers size={16} />
-    }
   ]
 };
 

@@ -31,7 +31,7 @@ export const usersApiSlice = apiSlice.injectEndpoints({
             })
         }),
         getAllUsers: builder.query({
-            query: ({ page = 1, limit = 2 }) => ({
+            query: ({ page = 1, limit = 10 }) => ({
                 url: `${USERS_URL}`,
                 method: 'GET',
                 params: { page, limit }

@@ -10,8 +10,14 @@ import Pagination from "../../components/common/Pagination";
 const Users = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(2); // Number of users per page
-  const { data: usersData, isLoading, error, refetch } = useGetAllUsersQuery({ page, limit });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+  });
+  const { data: usersData, isLoading, error, refetch } = useGetAllUsersQuery({ ...pagination });
   const [deleteUser] = useDeleteUserMutation();
+
+
 
   const [searchTerm, setSearchTerm] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -50,18 +56,6 @@ const Users = () => {
     }
   };
 
-  const handlePreviousPage = () => {
-    if (page > 1) {
-      setPage(page - 1);
-    }
-  };
-
-  const handleNextPage = () => {
-    if (page < totalPages) {
-      setPage(page + 1);
-    }
-  };
-
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <ToastContainer position="top-right" autoClose={3000} />
@@ -79,7 +73,7 @@ const Users = () => {
             <button
               onClick={() => {
                 refetch();
-                setPage(1);
+                setPagination(1, 10);
               }}
               className="flex items-center px-3 py-1.5 md:px-4 md:py-2 bg-white border border-gray-200 rounded-lg text-xs md:text-sm font-medium hover:bg-gray-50 transition-colors"
             >
@@ -131,10 +125,9 @@ const Users = () => {
 
               {/* Pagination Controls */}
               <Pagination
-                page={page}
+                currentPage={pagination.page}
                 totalPages={totalPages}
-                handlePreviousPage={handlePreviousPage}
-                handleNextPage={handleNextPage}
+                onPageChange={(page) => setPagination(prev => ({ ...prev, page }))}
               />
             </>
           )}
