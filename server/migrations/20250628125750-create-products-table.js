@@ -14,42 +14,28 @@ export const up = async (queryInterface, Sequelize) => {
       type: Sequelize.STRING(100),
       allowNull: false,
     },
-    description: {
-      type: Sequelize.TEXT,
-    },
-    price: {
-      type: Sequelize.DECIMAL(10, 2),
-      allowNull: false,
-    },
-    discount_price: {
-      type: Sequelize.DECIMAL(10, 2),
-      allowNull: true,
-    },
-    quantity_per_unit: {
-      type: Sequelize.DECIMAL(10, 2),
-      allowNull: false,
-    },
-    unit_symbol: {
-      type: Sequelize.STRING(20),
-      allowNull: false,
-    },
     sku: {
       type: Sequelize.STRING(50),
       allowNull: false,
+      unique: true
     },
-    image_url: {
+    description: {
       type: Sequelize.TEXT,
-      allowNull: true,
+      allowNull: true
+    },
+    base_image_url: {
+      type: Sequelize.TEXT,
+      allowNull: true
     },
     category_id: {
       type: Sequelize.UUID,
       allowNull: false,
       references: {
         model: 'categories',
-        key: 'id',
+        key: 'id'
       },
       onUpdate: 'CASCADE',
-      onDelete: 'RESTRICT',
+      onDelete: 'RESTRICT'
     },
     created_at: {
       allowNull: false,
@@ -63,7 +49,8 @@ export const up = async (queryInterface, Sequelize) => {
     },
     deleted_at: {
       type: Sequelize.DATE,
-    },
+      allowNull: true
+    }
   });
 };
 

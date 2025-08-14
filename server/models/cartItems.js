@@ -2,6 +2,7 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../config/db.js";
 import Product from "./product.js";
+import Supplier from "./suppliers.js";
 
 const CartItem = sequelize.define('CartItem', {
     id: {
@@ -24,6 +25,14 @@ const CartItem = sequelize.define('CartItem', {
             model: Product,
             key: 'id'
         },
+    },
+    supplier_id: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: {
+            model: Supplier,
+            key: 'id'
+        }
     },
     quantity: {
         type: DataTypes.INTEGER,

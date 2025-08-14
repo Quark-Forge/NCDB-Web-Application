@@ -1,6 +1,5 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import sequelize from './config/db.js';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
@@ -11,6 +10,7 @@ import categoryRoute from './routes/categoryRoutes.js';
 import productRoute from './routes/productRoutes.js';
 import supplierItemRoutes from './routes/supplierItemRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
 
 dotenv.config();
 const port = process.env.PORT || 5000;
@@ -27,10 +27,8 @@ app.use('/api/suppliers', supplierRoute);
 app.use('/api/categories', categoryRoute);
 app.use('/api/products', productRoute);
 app.use('/api/supplier-items', supplierItemRoutes);
-app.use('/api/cart', cartRoutes);
-
-
-app.get('/', (req, res) => res.send('server is ready'));
+app.use('/api/carts', cartRoutes);
+app.use('/api/orders', orderRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

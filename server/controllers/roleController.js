@@ -16,7 +16,10 @@ export const createRole = asyncHandler(async (req, res) => {
 // Get all roles
 export const getAllRoles = asyncHandler(async (req, res) => {
   const roles = await Role.findAll();
-  res.status(200).json(roles);
+  res.status(200).json({
+    success: true,
+    data: roles,
+  });
 });
 
 // Get role by ID (UUID)
