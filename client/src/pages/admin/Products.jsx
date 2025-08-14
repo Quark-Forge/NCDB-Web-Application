@@ -1,6 +1,6 @@
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useDeleteProductMutation, useGetProductsWithInactiveQuery } from "../../slices/productsApiSlice";
+import { useDeleteProductMutation, useGetProductsWithInactiveQuery } from "../../slices/ProductsApiSlice";
 import { useGetCategoriesQuery } from "../../slices/categoryApiSlice";
 import { useGetAllActiveSuppliersQuery } from "../../slices/suppliersApiSlice";
 import { Search, RefreshCw, Plus } from 'lucide-react';
@@ -8,6 +8,7 @@ import { useState } from 'react';
 import AddProduct from "../../components/admin/products/AddProduct";
 import ProductsList from "../../components/admin/products/ProductsList";
 import EditProduct from "../../components/admin/products/EditProduct";
+import DeleteConfirmation from "../../components/common/DeleteConfirmation";
 import { useEffect } from "react";
 
 const Products = () => {
@@ -19,6 +20,8 @@ const Products = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedSupplierItem, setSelectedSupplierItem] = useState(null);
 
@@ -45,29 +48,44 @@ const Products = () => {
   };
 
   const handleDelete = async (product_id, supplier_id) => {
-    if (window.confirm('Are you sure you want to delete this product offering?')) {
-      try {
-        await deleteSupplierItem({
-          product_id: product_id,
-          supplier_id: supplier_id
-        }).unwrap();
-        toast.success('Product offering deleted successfully!');
-        refetch();
-      } catch (err) {
-        console.error('Delete error:', err);
-        toast.error(
-          err?.data?.message ||
-          'Error deleting product offering. Check console for details.'
-        );
-      }
+    setProductToDelete({ product_id, supplier_id });
+    setShowDeleteModal(true);
+  };
+
+  const onConfirmDelete = async () => {
+    try {
+      await deleteSupplierItem({
+        product_id: productToDelete.product_id,
+        supplier_id: productToDelete.supplier_id
+      }).unwrap();
+      toast.success('Product offering deleted successfully!');
+      setShowDeleteModal(false);
+      setProductToDelete(null);
+      refetch();
+    } catch (err) {
+      console.error('Delete error:', err);
+      toast.error(
+        err?.data?.message ||
+        'Error deleting product offering. Check console for details.'
+      );
+    }
+  };
+
+  const handleToggleStatus = async (productId, newStatus) => {
+    try {
+      toast.info('Status toggle feature coming soon!');
+    } catch (err) {
+      toast.error('Error updating product status');
     }
   };
 
   const closeModals = () => {
     setShowCreateModal(false);
     setShowEditModal(false);
+    setShowDeleteModal(false);
     setSelectedProduct(null);
     setSelectedSupplierItem(null);
+    setProductToDelete(null);
   };
 
   return (
@@ -75,7 +93,6 @@ const Products = () => {
       <ToastContainer position="top-right" autoClose={3000} />
 
       <div className="flex flex-col space-y-4 md:space-y-6">
-        {/* Header Section */}
         <div className="flex flex-col space-y-3 md:flex-row md:items-center md:justify-between md:space-y-0">
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-gray-800">Product Management</h1>
@@ -92,7 +109,6 @@ const Products = () => {
           </div>
         </div>
 
-        {/* Search and Filters */}
         <div className="bg-white p-3 md:p-4 rounded-lg md:rounded-xl shadow-sm border border-gray-100">
           <div className="flex flex-col space-y-3 md:flex-row md:items-center md:space-y-0 md:space-x-4">
             <div className="relative flex-1">
@@ -117,7 +133,6 @@ const Products = () => {
           </div>
         </div>
 
-        {/* Table Section */}
         <div className="bg-white rounded-lg md:rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <ProductsList
             isLoading={isLoading}
@@ -125,10 +140,10 @@ const Products = () => {
             searchTerm={searchTerm}
             handleEdit={handleEdit}
             handleDelete={handleDelete}
+            handleToggleStatus={handleToggleStatus}
           />
         </div>
 
-        {/* Create Product Modal */}
         {showCreateModal && (
           <AddProduct
             setShowCreateModal={setShowCreateModal}
@@ -138,7 +153,6 @@ const Products = () => {
           />
         )}
 
-        {/* Edit Product Modal */}
         {showEditModal && (
           <EditProduct
             showEditModal={showEditModal}
@@ -148,6 +162,17 @@ const Products = () => {
             categories={categories}
             suppliers={suppliers}
             refetch={refetch}
+          />
+        )}
+
+        {showDeleteModal && (
+          <DeleteConfirmation
+            isOpen={showDeleteModal}
+            onClose={() => setShowDeleteModal(false)}
+            onConfirm={onConfirmDelete}
+            title="Delete Product Offering"
+            description="Are you sure you want to delete this product offering? This action cannot be undone."
+            confirmText="Delete Product"
           />
         )}
       </div>

@@ -2,7 +2,8 @@ import {Eye, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useSelector } from "react-redux";                  
 import ProductDetailModel from './ProductsDetailModel';
-const allowedRoles=['Admin','Inventory Manager'];
+
+const allowedRoles = ['Admin','Inventory Manager'];
 
 const ProductCard = ({
     filteredProducts = [],
@@ -10,6 +11,10 @@ const ProductCard = ({
     handleDelete,
     handleToggleStatus
 }) => {
+    const [isDetailModelOpen, setIsDetailModelOpen] = useState(false);
+    const [selectedProduct, setSelectedProduct] = useState(null);
+    const { userInfo } = useSelector((state) => state.auth);
+    
     const formatPrice = (price) => {
         if (price === null || price === undefined) return '0.00';
         const num = typeof price === 'string' ? parseFloat(price) : price;
@@ -21,6 +26,18 @@ const ProductCard = ({
         return product.SupplierItems.reduce((sum, item) => sum + (item.stock_level || 0), 0);
     };
 
+    const handleViewDetails = (product, supplierItem) => {
+        setSelectedProduct({ ...product, currentSupplierItem: supplierItem });
+        setIsDetailModelOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsDetailModelOpen(false);
+        setSelectedProduct(null);
+    };
+
+    const canEditDelete = allowedRoles.includes(userInfo?.user_role);
+
     if (filteredProducts.length === 0) {
         return (
             <div className="bg-white p-6 text-center text-gray-500">
@@ -31,7 +48,6 @@ const ProductCard = ({
 
     return (
         <div className="bg-white">
-            {/* Mobile Cards View */}
             <div className="md:hidden space-y-3 p-3">
                 {filteredProducts.flatMap(product =>
                     product.SupplierItems?.map(supplierItem => (
@@ -114,7 +130,15 @@ const ProductCard = ({
                                     </button>
                                 </div>
                                 <div className="flex space-x-2">
-                                    <button>
+                                    <button 
+                                        onClick={() => handleViewDetails(product, supplierItem)}
+                                        className={`p-1 rounded-md transition-colors ${product.is_active
+                                            ? 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                                            : 'text-gray-400 cursor-not-allowed'
+                                        }`}
+                                        aria-label="View product details"
+                                        disabled={!product.is_active}
+                                    >
                                         <Eye size={18} /> 
                                     </button>
                                     <button
@@ -146,7 +170,6 @@ const ProductCard = ({
                 )}
             </div>
 
-            {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-200">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
@@ -263,6 +286,17 @@ const ProductCard = ({
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div className="flex justify-end space-x-3">
                                             <button
+                                                onClick={() => handleViewDetails(product, supplierItem)}
+                                                className={`p-1 rounded-md transition-colors ${product.is_active
+                                                    ? 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                                                    : 'text-gray-400 cursor-not-allowed'
+                                                }`}
+                                                aria-label="View product details"
+                                                disabled={!product.is_active}
+                                            >
+                                                <Eye size={18} />
+                                            </button>
+                                            <button
                                                 onClick={() => handleEdit(product, supplierItem)}
                                                 className={`p-1 rounded-md transition-colors ${product.is_active
                                                     ? 'text-blue-600 hover:text-blue-900 hover:bg-blue-50'
@@ -276,7 +310,7 @@ const ProductCard = ({
                                             <button
                                                 onClick={() => handleDelete(product.id, supplierItem.supplier_id)}
                                                 className={`p-1 rounded-md transition-colors ${product.is_active
-                                                    ? 'text-red-600 hover:text-red-900 hover:red-blue-50'
+                                                    ? 'text-red-600 hover:text-red-900 hover:bg-red-50'
                                                     : 'text-gray-400 cursor-not-allowed'
                                                     }`}
                                                 aria-label="Delete product"
@@ -293,17 +327,15 @@ const ProductCard = ({
                 </table>
             </div>
 
-           { isDetailModelOpen && selectedProduct &&(
+            {isDetailModelOpen && selectedProduct && (
                 <ProductDetailModel
-                   product={selectedProduct}
-                   onClose={closeModel}
-                   onEdit={handleEdit}
-                   onDelete={handleDelete}
-                   canEditDelete={canEditDelete}
+                    product={selectedProduct}
+                    onClose={closeModal}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    canEditDelete={canEditDelete}
                 />
-           )
-
-           }
+            )}
         </div>
     );
 };
