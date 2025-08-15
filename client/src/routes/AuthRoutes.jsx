@@ -3,7 +3,7 @@ import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
 import Vrification from '../pages/auth/Vrification';
 import Verified from '../pages/auth/Verified';
-import Unauthorized from '../pages/auth/Unauthorized';
+import Unauthorized from '../pages/Unauthorized';
 
 export const authChildren = (
 

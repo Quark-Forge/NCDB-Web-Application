@@ -8,6 +8,8 @@ import AdminLayout from '../components/layouts/AdminLayout';
 import UserLayout from '../components/layouts/UserLayout';
 import HomeLayout from '../components/layouts/HomeLayout';
 import ProtectedRoute from './ProtectedRoute';
+import ErrorPage from '../pages/ErrorPage';
+import Unauthorized from '../pages/Unauthorized';
 
 
 
@@ -16,7 +18,7 @@ const AppRoutes = () => {
     <>
       <Routes>
 
-        <Route path='/*' element={<HomeLayout />} >
+        <Route path='/' element={<HomeLayout />} >
           {homeChildren}
         </Route>
 
@@ -25,7 +27,7 @@ const AppRoutes = () => {
         </Route>
 
         {/* Protected route only for admin */}
-        <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
+        <Route element={<ProtectedRoute allowedRoles={['Admin', 'Order Manager', 'Inventory Manager']} />}>
           <Route path='/admin/*' element={<AdminLayout />}>
             {adminChildren}
           </Route>
@@ -37,6 +39,9 @@ const AppRoutes = () => {
             {userChildren}
           </Route>
         </Route>
+
+        <Route path="/unauthorized" element={<Unauthorized />} />
+        <Route path="*" element={<ErrorPage statusCode={404} message="Page not found!" />} />
 
       </Routes>
     </>

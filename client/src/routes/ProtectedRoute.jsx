@@ -4,7 +4,6 @@ import { useSelector } from "react-redux";
 const ProtectedRoute = ({ allowedRoles }) => {
 
   const { userInfo } = useSelector((state) => state.auth);
-  console.log("userInfo:", userInfo);
   if (!userInfo) return <Navigate to="/auth/login" replace />;
 
   return allowedRoles.includes(userInfo.user_role) ? (

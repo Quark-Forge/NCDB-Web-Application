@@ -1,20 +1,22 @@
-import React, { useState } from 'react';
-import { Heart, Star, ShoppingCartIcon } from 'lucide-react';
+import { useState } from 'react';
+import { Heart, ShoppingCartIcon } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import ProductModal from '../products/ProductModel';
+import { useAddToCartMutation } from '../../slices/cartApiSlice';
+import { toast } from 'react-toastify';
 
-const ProductCard = ({ product, onAddToCart }) => {
+const ProductCard = ({ product, supplierItem }) => {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-
   const [showModal, setShowModal] = useState(false);
+  const [addToCart, { isLoading: isAdding }] = useAddToCartMutation();
+  const { userInfo } = useSelector((state) => state.auth);
 
   const handleCardClick = () => {
     setShowModal(true);
   };
-  const { userInfo } = useSelector((state) => state.auth);
 
   const handleWishlist = (e) => {
     e.stopPropagation();
@@ -22,26 +24,41 @@ const ProductCard = ({ product, onAddToCart }) => {
     console.log(`${isWishlisted ? 'Removed from' : 'Added to'} wishlist:`, product.name);
   };
 
-  const handleAddToCart = (e) => {
+  const handleAddToCart = async (e) => {
+    e.stopPropagation();
     if (!userInfo) {
       navigate('/auth/login');
+      return;
     }
-    e.stopPropagation();
-    setIsLoading(true);
-    setTimeout(() => {
-      onAddToCart(product);
-      setIsLoading(false);
-    }, 300);
+
+    try {
+      await addToCart({
+        product_id: product.id,
+        supplier_id: supplierItem?.supplier_id,
+        quantity: '1',
+        product_data: {
+          ...product,
+          supplierItem,
+          price: supplierItem?.price || product.price,
+          image_url: supplierItem?.image_url || product.image_url || product.base_image_url,
+          supplier_name: supplierItem?.Supplier?.name
+        }
+      }).unwrap();
+      // toast.success('Product added to cart!');
+    } catch (err) {
+      toast.error(err?.data?.message || 'Error adding to cart');
+    }
   };
 
-  // const handleCardClick = () => {
-  //   console.log('Navigate to product:', product.id);
-  // };
-
   const renderPrice = () => {
-    const price = parseFloat(product.price);
-    const discountPrice = parseFloat(product.discount_price);
-    const hasDiscount = discountPrice < price;
+    if (!supplierItem) return null;
+
+    const price = parseFloat(supplierItem.price || 0);
+    const discountPrice = supplierItem.discount_price
+      ? parseFloat(supplierItem.discount_price)
+      : null;
+
+    const hasDiscount = discountPrice && discountPrice < price;
 
     return (
       <div className="flex flex-col items-center text-left justify-between gap-2 mb-2">
@@ -61,28 +78,30 @@ const ProductCard = ({ product, onAddToCart }) => {
             Save Rs {(discountPrice).toFixed(2)}
           </span>
         )}
+        <span className="w-full text-xs text-gray-500">
+          Sold by: {supplierItem.Supplier?.name || 'Unknown supplier'}
+        </span>
       </div>
     );
   };
 
   return (
     <>
-    <div
-      onClick={handleCardClick}
-      className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group cursor-pointer transform hover:-translate-y-1"
-    >
-      {/* Product Image */}
-      <div className="relative flex justify-center overflow-hidden">
-        <img
-          src={product.image_url || '../../images/product.png'}
-          alt={product.name}
-          className="w-fit h-40 object-cover group-hover:scale-110 transition-transform duration-500"
-          loading="lazy"
-        />
+      <div
+        onClick={handleCardClick}
+        className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group cursor-pointer transform hover:-translate-y-1"
+      >
+        {/* Product Image */}
+        <div className="relative flex justify-center overflow-hidden">
+          <img
+            src={supplierItem?.image_url || product.image_url || product.base_image_url || '../../images/product.png'}
+            alt={product.name}
+            className="w-fit h-40 object-cover group-hover:scale-110 transition-transform duration-500"
+            loading="lazy"
+          />
 
-        {/* Wishlist Button */}
-        {
-          userInfo ? (
+          {/* Wishlist Button */}
+          {userInfo && (
             <button
               onClick={handleWishlist}
               className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition-all duration-200 hover:scale-110"
@@ -92,10 +111,8 @@ const ProductCard = ({ product, onAddToCart }) => {
                   }`}
               />
             </button>
-          ) : null
-        }
-
-      </div>
+          )}
+        </div>
 
       {/* Product Info */}
       <div className="p-4 flex flex-row">
@@ -119,37 +136,33 @@ const ProductCard = ({ product, onAddToCart }) => {
           </div>
         </div>
 
-        <div className='flex w-1/2 justify-end'>
-          {/* Add to Cart Button */}
-          <button
-            onClick={handleAddToCart}
-            disabled={isLoading}
-            className={` font-semibold w-11 h-11 rounded-3xl transition-all duration-200 flex items-center justify-center space-x-2 ${isLoading
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-blue-600 hover:bg-blue-400 hover:shadow-lg transform hover:scale-105'
-              } text-white`}
-          >
-            {isLoading ? (
-              <>
+          <div className='flex w-1/2 justify-end'>
+            <button
+              onClick={handleAddToCart}
+              disabled={isLoading}
+              className={`font-semibold w-11 h-11 rounded-3xl transition-all duration-200 flex items-center justify-center space-x-2 ${isLoading
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-400 hover:shadow-lg transform hover:scale-105'
+                } text-white`}
+            >
+              {isLoading ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              </>
-            ) : (
-              <>
+              ) : (
                 <ShoppingCartIcon className='p-1' />
-                {/* Add to cart */}
-              </>
-            )}
-          </button>
+              )}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-    {showModal && (
-      <ProductModal
-    product={product}
-    onClose={() => setShowModal(false)}
-    onAddToCart={onAddToCart} // pass the function
-  />
-    )}
+
+      {showModal && (
+        <ProductModal
+          product={product}
+          supplierItem={supplierItem}
+          onClose={() => setShowModal(false)}
+          handleAddToCart={handleAddToCart}
+        />
+      )}
     </>
   );
 };
