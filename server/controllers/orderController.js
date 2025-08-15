@@ -436,7 +436,7 @@ export const getOrderStats = asyncHandler(async (req, res) => {
                 ],
                 where: {
                     createdAt: { [Op.gte]: thirtyDaysAgo },
-                    status: { [Op.notIn]: ['cancelled'] }
+                    status: { [Op.notIn]: ['cancelled'] },
                 },
                 group: [sequelize.fn('DATE', sequelize.col('created_at'))],
                 order: [[sequelize.fn('DATE', sequelize.col('created_at')), 'ASC']],
@@ -468,9 +468,7 @@ export const getOrderStats = asyncHandler(async (req, res) => {
             }),
 
             // Total orders count (excluding cancelled)
-            Order.count({
-                where: { status: { [Op.not]: 'cancelled' } }
-            }),
+            Order.count(),
 
             // Completed orders count (status = 'delivered')
             Order.count({
