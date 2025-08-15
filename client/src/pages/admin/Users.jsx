@@ -6,6 +6,12 @@ import { useEffect, useState } from 'react';
 import UserCard from "../../components/admin/users/UserCard";
 import DeleteConfirmation from "../../components/common/DeleteConfirmation";
 import Pagination from "../../components/common/Pagination";
+import { useDeleteUserMutation, useGetAllUsersQuery } from "../../slices/usersApiSlice";
+import { Search, Frown, Loader2, RefreshCw, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import UserCard from "../../components/admin/users/UserCard";
+import DeleteConfirmation from "../../components/common/DeleteConfirmation";
+import Pagination from "../../components/common/Pagination";
 
 const Users = () => {
   const [page, setPage] = useState(1);
@@ -13,7 +19,30 @@ const Users = () => {
   const { data: usersData, isLoading, error, refetch } = useGetAllUsersQuery({ page, limit });
   const [deleteUser] = useDeleteUserMutation();
 
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(2); // Number of users per page
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+  });
+  const { data: usersData, isLoading, error, refetch } = useGetAllUsersQuery({ ...pagination });
+  const [deleteUser] = useDeleteUserMutation();
+
+
+
   const [searchTerm, setSearchTerm] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userId, setUserId] = useState();
+
+  const users = usersData?.data || [];
+  const totalPages = usersData?.totalPages || 1;
+  const totalUsers = usersData?.totalCount || 0;
+
+  useEffect(() => {
+    if (error) {
+      toast.error(error?.data?.message || error.error);
+    }
+  }, [error]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userId, setUserId] = useState();
 
@@ -32,6 +61,23 @@ const Users = () => {
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (user.role_name && user.role_name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  const deleteHandle = ({ userID }) => {
+    setUserId(userID);
+    setShowDeleteModal(true);
+  }
+
+  const onConfirm = async () => {
+    try {
+      await deleteUser(userId).unwrap();
+      toast.success('User deactivated successfully!');
+      setShowDeleteModal(false);
+      setUserId(null);
+      refetch();
+    } catch (err) {
+      toast.error(err?.data?.message || 'Error deactivating user');
+    }
+  };
 
   const deleteHandle = ({ userID }) => {
     setUserId(userID);
@@ -74,6 +120,9 @@ const Users = () => {
             <p className="text-sm md:text-base text-gray-500 mt-1">
               Showing {(page - 1) * limit + 1}-{Math.min(page * limit, totalUsers)} of {totalUsers} users
             </p>
+            <p className="text-sm md:text-base text-gray-500 mt-1">
+              Showing {(page - 1) * limit + 1}-{Math.min(page * limit, totalUsers)} of {totalUsers} users
+            </p>
           </div>
           <div className="flex items-center space-x-2">
             <button
@@ -91,6 +140,21 @@ const Users = () => {
 
         {/* Search and Filters */}
         <div className="bg-white p-3 md:p-4 rounded-lg md:rounded-xl shadow-sm border border-gray-100">
+          <div className="flex flex-col space-y-3 md:flex-row md:items-center md:space-y-0 md:space-x-4">
+            <div className="relative flex-1">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search users..."
+                className="block w-full pl-10 pr-3 py-2 md:py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm md:text-base"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
           <div className="flex flex-col space-y-3 md:flex-row md:items-center md:space-y-0 md:space-x-4">
             <div className="relative flex-1">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -128,6 +192,11 @@ const Users = () => {
                 refetch={refetch}
                 deleteHandle={deleteHandle}
               />
+              <UserCard
+                filteredUsers={filteredUsers}
+                refetch={refetch}
+                deleteHandle={deleteHandle}
+              />
 
               {/* Pagination Controls */}
               <Pagination
@@ -139,6 +208,15 @@ const Users = () => {
             </>
           )}
         </div>
+
+        {/* Edit User Modal */}
+        {showDeleteModal && (
+          <DeleteConfirmation
+            isOpen={showDeleteModal}
+            onClose={() => setShowDeleteModal(false)}
+            onConfirm={onConfirm}
+          />
+        )}
 
         {/* Edit User Modal */}
         {showDeleteModal && (

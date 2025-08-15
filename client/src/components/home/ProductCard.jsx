@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Heart, ShoppingCartIcon } from 'lucide-react';
+import { useState } from 'react';
+import { Heart, ShoppingCartIcon } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import ProductModal from '../products/ProductModel';
@@ -7,10 +9,13 @@ import { useAddToCartMutation } from '../../slices/cartApiSlice';
 import { toast } from 'react-toastify';
 
 const ProductCard = ({ product, supplierItem }) => {
+const ProductCard = ({ product, supplierItem }) => {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
+  const [addToCart, { isLoading: isAdding }] = useAddToCartMutation();
+  const { userInfo } = useSelector((state) => state.auth);
   const [addToCart, { isLoading: isAdding }] = useAddToCartMutation();
   const { userInfo } = useSelector((state) => state.auth);
 
@@ -24,6 +29,8 @@ const ProductCard = ({ product, supplierItem }) => {
     console.log(`${isWishlisted ? 'Removed from' : 'Added to'} wishlist:`, product.name);
   };
 
+  const handleAddToCart = async (e) => {
+    e.stopPropagation();
   const handleAddToCart = async (e) => {
     e.stopPropagation();
     if (!userInfo) {
@@ -59,6 +66,14 @@ const ProductCard = ({ product, supplierItem }) => {
       : null;
 
     const hasDiscount = discountPrice && discountPrice < price;
+    if (!supplierItem) return null;
+
+    const price = parseFloat(supplierItem.price || 0);
+    const discountPrice = supplierItem.discount_price
+      ? parseFloat(supplierItem.discount_price)
+      : null;
+
+    const hasDiscount = discountPrice && discountPrice < price;
 
     return (
       <div className="flex flex-col items-center text-left justify-between gap-2 mb-2">
@@ -81,6 +96,9 @@ const ProductCard = ({ product, supplierItem }) => {
         <span className="w-full text-xs text-gray-500">
           Sold by: {supplierItem.Supplier?.name || 'Unknown supplier'}
         </span>
+        <span className="w-full text-xs text-gray-500">
+          Sold by: {supplierItem.Supplier?.name || 'Unknown supplier'}
+        </span>
       </div>
     );
   };
@@ -99,7 +117,21 @@ const ProductCard = ({ product, supplierItem }) => {
             className="w-fit h-40 object-cover group-hover:scale-110 transition-transform duration-500"
             loading="lazy"
           />
+      <div
+        onClick={handleCardClick}
+        className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group cursor-pointer transform hover:-translate-y-1"
+      >
+        {/* Product Image */}
+        <div className="relative flex justify-center overflow-hidden">
+          <img
+            src={supplierItem?.image_url || product.image_url || product.base_image_url || '../../images/product.png'}
+            alt={product.name}
+            className="w-fit h-40 object-cover group-hover:scale-110 transition-transform duration-500"
+            loading="lazy"
+          />
 
+          {/* Wishlist Button */}
+          {userInfo && (
           {/* Wishlist Button */}
           {userInfo && (
             <button
@@ -111,6 +143,8 @@ const ProductCard = ({ product, supplierItem }) => {
                   }`}
               />
             </button>
+          )}
+        </div>
           )}
         </div>
 
@@ -134,8 +168,17 @@ const ProductCard = ({ product, supplierItem }) => {
           <div className="mb-4">
             <span className="text-sm text-green-600 font-medium">✓ In Stock</span>
           </div>
-        </div>
 
+          <div className='flex w-1/2 justify-end'>
+            <button
+              onClick={handleAddToCart}
+              disabled={isLoading}
+              className={`font-semibold w-11 h-11 rounded-3xl transition-all duration-200 flex items-center justify-center space-x-2 ${isLoading
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-400 hover:shadow-lg transform hover:scale-105'
+                } text-white`}
+            >
+              {isLoading ? (
           <div className='flex w-1/2 justify-end'>
             <button
               onClick={handleAddToCart}
@@ -148,7 +191,22 @@ const ProductCard = ({ product, supplierItem }) => {
               {isLoading ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
               ) : (
+              ) : (
                 <ShoppingCartIcon className='p-1' />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {showModal && (
+        <ProductModal
+          product={product}
+          supplierItem={supplierItem}
+          onClose={() => setShowModal(false)}
+          handleAddToCart={handleAddToCart}
+        />
+      )}
               )}
             </button>
           </div>
