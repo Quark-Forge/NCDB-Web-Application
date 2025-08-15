@@ -52,6 +52,7 @@ const ProductCard = ({ product, supplierItem }) => {
         }
       }).unwrap();
       // toast.success('Product added to cart!');
+      // toast.success('Product added to cart!');
     } catch (err) {
       toast.error(err?.data?.message || 'Error adding to cart');
     }
