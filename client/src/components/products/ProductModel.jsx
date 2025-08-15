@@ -114,10 +114,11 @@ const ProductModal = ({ product, supplierItem, onClose, handleAddToCart }) => {
                   handleAddToCart(e);
                 }}
                 disabled={isLoading}
-                className={`flex items-center gap-2 px-5 py-2 rounded-full font-semibold transition duration-200 text-white ${isLoading
+                className={`flex items-center gap-2 px-5 py-2 rounded-full font-semibold transition duration-200 text-white ${
+                  isLoading
                     ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-blue-600 hover:bg-blue-500 hover:scale-105'
-                  }`}
+                }`}
               >
                 {isLoading ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
