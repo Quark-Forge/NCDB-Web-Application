@@ -8,7 +8,6 @@ import Orders from '../pages/admin/Orders';
 import Dashboard from '../pages/admin/Dashboard';
 import Settings from '../pages/admin/Settings';
 import AdminProfile from '../pages/admin/AdminProfile';
-import AdminProfile from '../pages/admin/AdminProfile';
 import OrderDetails from '../pages/admin/OrderDetails';
 
 export const adminChildren = (

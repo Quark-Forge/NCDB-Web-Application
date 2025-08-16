@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import React, { useState,useEffect } from 'react';
 import Navbar from '../../components/home/Navbar';
 import ProductWithSuppliers from '../../components/home/ProductWithSuppliers';
@@ -73,12 +72,9 @@ const Home = () => {
         {isLoading ? (
           <p>Loading products...</p>
         ) : error ? (
-          <p className="text-red-500 flex items-center gap-2 flex items-center gap-2">
-            <CircleAlert className="h-5 w-5" />
-            
+          <p className="text-red-500 flex items-center gap-2">
             <CircleAlert className="h-5 w-5" />
             Failed to load products
-          
           </p>
         ) : (
           <>
@@ -93,16 +89,40 @@ const Home = () => {
 
             {/* Pagination */}
             <div className="flex justify-center items-center space-x-2 mt-12">
-              <Pagination 
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-                onLimitChange={(limit) => {
-                  setCurrentPage(1);
-                  // Update productsPerPage if needed
-                }}
-                className="mt-4"
-              />
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`px-1 py-1 rounded-3xl font-semibold transition-colors duration-200 ${currentPage === 1
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'text-gray-700 hover:bg-gray-600'
+                  }`}
+              >
+                <ChevronLeft />
+              </button>
+
+              {pageNumbers.map((number) => (
+                <button
+                  key={number}
+                  onClick={() => handlePageChange(number)}
+                  className={`px-3 py-1 rounded-3xl font-semibold transition-colors duration-200 ${currentPage === number
+                      ? 'text-gray-700'
+                      : 'bg-gray-200 text-gray-700 hover:bg-blue-100'
+                    }`}
+                >
+                  {number}
+                </button>
+              ))}
+
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className={`px-1 py-1 rounded-3xl font-semibold transition-colors duration-200 ${currentPage === totalPages
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'text-gray-700 hover:bg-gray-600'
+                  }`}
+              >
+                <ChevronRight />
+              </button>
             </div>
           </>
         )}

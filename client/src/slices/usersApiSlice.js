@@ -31,12 +31,11 @@ export const usersApiSlice = apiSlice.injectEndpoints({
             })
         }),
         getAllUsers: builder.query({
-            query: ({ page = 1, limit = 2 }{ page = 1, limit = 10 }) => ({
+            query: ({ page = 1, limit = 10 }) => ({
                 url: `${USERS_URL}`,
                 method: 'GET',
-                params: { page, limit }
-                params: { page, limit }
-            }),
+                params: { page, limit }}
+            ),
             providesTags: ['user']
         }),
         updateUserRole: builder.mutation({
@@ -102,9 +101,5 @@ export const {
     useGetAllUsersQuery,
     useDeleteUserMutation,
     useRestoreUserMutation,
-   ,
-    useDeleteUserMutation,
-    useRestoreUserMutation,
-    useUpdateUserRoleMutation
-useUpdateUserRoleMutation
+     useUpdateUserRoleMutation
 } = usersApiSlice;
