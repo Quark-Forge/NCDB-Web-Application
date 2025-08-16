@@ -6,9 +6,10 @@ const ordersApiSlice = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
         // GET ${ORDER_URL}
         getAllOrders: builder.query({
-            query: ({ status, startDate, endDate, product_id, supplier_id, limit, page }) => {
+            query: ({ search, status, startDate, endDate, product_id, supplier_id, limit, page }) => {
                 const params = new URLSearchParams();
 
+                if (search) params.append("search", search);
                 if (startDate) params.append("startDate", startDate);
                 if (endDate) params.append("endDate", startDate);
                 if (product_id) params.append("product_id", product_id);

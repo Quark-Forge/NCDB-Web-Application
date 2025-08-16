@@ -1,5 +1,5 @@
 import asyncHandler from 'express-async-handler';
-import { Op, or, where } from 'sequelize';
+import { Op } from 'sequelize';
 import { generateOrderNumber } from '../utils/orderUtils.js';
 import sequelize from '../config/db.js';
 import {
@@ -190,7 +190,8 @@ export const checkoutCart = asyncHandler(async (req, res) => {
                 })),
                 address_id: orderDetail.Address.id,
                 city: orderDetail.Address.city,
-                shipping_cost: shippingCost ? shippingCost.cost : 0
+                shipping_cost: shippingCost ? shippingCost.cost : 0,
+                payment_status: 'pending',
             };
 
             res.status(201).json({
@@ -222,7 +223,7 @@ export const checkoutCart = asyncHandler(async (req, res) => {
 
 // GET all orders (Admin)
 export const getAllOrders = asyncHandler(async (req, res) => {
-    const { status, startDate, endDate, product_id, supplier_id, page = 1, limit = 10 } = req.query;
+    const { search, status, startDate, endDate, product_id, supplier_id, page = 1, limit = 10 } = req.query;
 
     const where = {};
     const include = [{
@@ -240,12 +241,19 @@ export const getAllOrders = asyncHandler(async (req, res) => {
         };
     }
 
+    if (search) {
+        where[Op.or] = [
+            { order_id: { [Op.like]: `%${search}%` } },
+            { '$Orders.id$': { [Op.like]: `%${search}%` } },
+            { '$Orders.Users.name$': { [Op.like]: `%${search}%` } }
+        ];
+        include[0].include.push(Product, Supplier);
+    }
     // Product filter
     if (product_id) {
         include[0].where = include[0].where || {};
         include[0].where.product_id = product_id;
     }
-
     // Supplier filter
     if (supplier_id) {
         include[0].include.push({
