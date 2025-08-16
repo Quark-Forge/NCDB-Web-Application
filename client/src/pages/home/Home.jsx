@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import Navbar from '../../components/home/Navbar';
 import ProductWithSuppliers from '../../components/home/ProductWithSuppliers';
 import { useGetProductsQuery } from '../../slices/productsApiSlice';
@@ -10,7 +10,7 @@ const Home = () => {
   const [cartCount, setCartCount] = useState(0);
   const [cartItems, setCartItems] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 10;
+  const productsPerPage = 5;
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [sort, setSort] = useState('created_at_desc');
@@ -27,6 +27,18 @@ const Home = () => {
   const products = data?.data || [];
   const totalCount = data?.pagination?.total || 0;
   const totalPages = Math.ceil(totalCount / productsPerPage);
+
+  useEffect(() => {
+  console.log("Cart items updated:", cartItems);
+}, [cartItems]);
+  
+
+  const handleAddToCart = (product) => {
+    setCartCount(prev => prev + 1);
+    setCartItems(prev => [...prev, product]);
+    console.log('Added to cart:', product);
+    console.log(cartItems);
+  };
 
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
@@ -77,16 +89,40 @@ const Home = () => {
 
             {/* Pagination */}
             <div className="flex justify-center items-center space-x-2 mt-12">
-              <Pagination 
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-                onLimitChange={(limit) => {
-                  setCurrentPage(1);
-                  // Update productsPerPage if needed
-                }}
-                className="mt-4"
-              />
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`px-1 py-1 rounded-3xl font-semibold transition-colors duration-200 ${currentPage === 1
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'text-gray-700 hover:bg-gray-600'
+                  }`}
+              >
+                <ChevronLeft />
+              </button>
+
+              {pageNumbers.map((number) => (
+                <button
+                  key={number}
+                  onClick={() => handlePageChange(number)}
+                  className={`px-3 py-1 rounded-3xl font-semibold transition-colors duration-200 ${currentPage === number
+                      ? 'text-gray-700'
+                      : 'bg-gray-200 text-gray-700 hover:bg-blue-100'
+                    }`}
+                >
+                  {number}
+                </button>
+              ))}
+
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className={`px-1 py-1 rounded-3xl font-semibold transition-colors duration-200 ${currentPage === totalPages
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'text-gray-700 hover:bg-gray-600'
+                  }`}
+              >
+                <ChevronRight />
+              </button>
             </div>
           </>
         )}

@@ -32,6 +32,7 @@ export const adminChildren = (
       <Route path='suppliers' element={<Suppliers />}></Route>
       <Route path='dashboard' element={<Dashboard />}></Route>
       <Route path='settings' element={<Settings />}></Route>
+    <Route path='profile' element={<AdminProfile/>}></Route>
       <Route path='profile' element={<AdminProfile />}></Route>
     </Route>
 

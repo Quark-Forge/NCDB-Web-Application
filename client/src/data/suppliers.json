@@ -1,0 +1,14 @@
+[
+    {
+        "name": "test Suplier 2",
+        "contact_number": "0771234568",
+        "email": "testsuplier2@test.com",
+        "address": "Jaffna, Srilanka"
+    },
+    {
+        "name": "test Suplier",
+        "contact_number": "0771234567",
+        "email": "testsupplier@test.com",
+        "address": "Jaffna, Srilanka"
+    }
+]
