@@ -11,6 +11,7 @@ import { useState } from 'react';
 import CategoriesList from "../../components/admin/categories/CategoriesList";
 import AddCategory from "../../components/admin/categories/AddCategory";
 import EditCategory from "../../components/admin/categories/EditCategory";
+import DeleteConfirmation from "../../components/common/DeleteConfirmation";
 import { useSelector } from "react-redux";
 
 const allowedRoles = ['Admin', 'Inventory Manager'];
@@ -25,6 +26,8 @@ const Categories = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -88,14 +91,19 @@ const Categories = () => {
   };
 
   const handleDelete = async (categoryId) => {
-    if (window.confirm('Are you sure you want to delete this category?')) {
-      try {
-        await deleteCategory(categoryId).unwrap();
-        toast.success('Category deleted successfully!');
-        refetch();
-      } catch (err) {
-        toast.error(err?.data?.message || 'Error deleting category');
-      }
+    setCategoryToDelete(categoryId);
+    setShowDeleteModal(true);
+  };
+
+  const onConfirmDelete = async () => {
+    try {
+      await deleteCategory(categoryToDelete).unwrap();
+      toast.success('Category deleted successfully!');
+      setShowDeleteModal(false);
+      setCategoryToDelete(null);
+      refetch();
+    } catch (err) {
+      toast.error(err?.data?.message || 'Error deleting category');
     }
   };
 
@@ -193,6 +201,17 @@ const Categories = () => {
             isUpdating={isUpdating}
           />
         }
+
+        {showDeleteModal && (
+          <DeleteConfirmation
+            isOpen={showDeleteModal}
+            onClose={() => setShowDeleteModal(false)}
+            onConfirm={onConfirmDelete}
+            title="Delete Category"
+            description="Are you sure you want to delete this category? This action cannot be undone."
+            confirmText="Delete Category"
+          />
+        )}
 
       </div>
     </div>

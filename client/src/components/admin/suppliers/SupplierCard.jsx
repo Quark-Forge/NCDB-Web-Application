@@ -1,20 +1,40 @@
-import { Pencil, Trash2 } from "lucide-react";
+import { Eye,Pencil, Trash2 } from "lucide-react";
+import SupplierDetailModel from './SupplierDetailModel';
+import {useState} from 'react';
+import { useSelector } from "react-redux";
+const allowedRolels=['Admin','Inventory Manager'];
 
 const SupplierCard = ({ filteredSuppliers, handleEdit, handleDelete }) => {
+    const {userInfo}=useSelector((state)=>state.auth);
+    const [selectSupplier,setSelectSupplier]=useState(null);
+    const [isDetailModelOpen,setIsDetailModelOpen]=useState(false);
+    const handleViewDetail=(supplier)=>{
+        setSelectSupplier(supplier);
+        setIsDetailModelOpen(true);
+    }
+    const closeModel=()=>{
+        setSelectSupplier(null);
+        setIsDetailModelOpen(false);
+
+
+    }
+    const canEditDelete=allowedRolels.includes(userInfo?.user_role);
     return (
         <div>
-            {/* Mobile Cards View */}
             <div className="md:hidden space-y-3 p-3">
                 {filteredSuppliers.map((supplier) => (
                     <div key={supplier.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
                         <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
+                            <div 
+                                className="flex items-center space-x-3 cursor-pointer"
+                                onClick={() => handleViewDetail(supplier)}
+                            >
                                 <div className="flex-shrink-0 h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
                                     {supplier.name.charAt(0)}
                                 </div>
                                 <div>
                                     <h3 className="text-sm font-medium text-gray-900">{supplier.name}</h3>
-                                    <p className="text-xs text-gray-500">{supplier.contact_number || 'No description'}</p>
+                                    <p className="text-xs text-gray-500">{supplier.contact_number || 'No contact number'}</p>
                                 </div>
                             </div>
                             <span className={`px-2 py-1 text-xs font-semibold rounded-full ${!supplier.deletedAt ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
@@ -22,27 +42,39 @@ const SupplierCard = ({ filteredSuppliers, handleEdit, handleDelete }) => {
                                 {!supplier.deletedAt ? 'Active' : 'Inactive'}
                             </span>
                         </div>
-                        <div className="mt-3 flex items-center justify-end">
+                        <div className="mt-3 flex items-center justify-between">
+                            <div className="text-xs text-gray-500">
+                                {supplier.email || 'No email provided'}
+                            </div>
                             <div className="flex space-x-2">
                                 <button
-                                    onClick={() => handleEdit(supplier)}
-                                    className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50 transition-colors"
+                                    onClick={() => handleViewDetail(supplier)}
+                                    className="text-gray-600 hover:text-gray-900 p-1 rounded-md hover:bg-gray-50 transition-colors"
                                 >
-                                    <Pencil size={16} />
+                                    <Eye size={16}/>
                                 </button>
-                                <button
-                                    onClick={() => handleDelete(supplier.id)}
-                                    className="text-red-600 hover:text-red-900 p-1 rounded-md hover:bg-red-50 transition-colors"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
+                                {canEditDelete && (
+                                    <>
+                                        <button
+                                            onClick={() => handleEdit(supplier)}
+                                            className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50 transition-colors"
+                                        >
+                                            <Pencil size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(supplier.id)}
+                                            className="text-red-600 hover:text-red-900 p-1 rounded-md hover:bg-red-50 transition-colors"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
                 ))}
             </div>
 
-            {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
@@ -64,7 +96,10 @@ const SupplierCard = ({ filteredSuppliers, handleEdit, handleDelete }) => {
                     <tbody className="bg-white divide-y divide-gray-200">
                         {filteredSuppliers.map((supplier) => (
                             <tr key={supplier.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-6 py-4 whitespace-nowrap">
+                                <td 
+                                    className="px-6 py-4 whitespace-nowrap cursor-pointer"
+                                    onClick={() => handleViewDetail(supplier)}
+                                >
                                     <div className="flex items-center">
                                         <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
                                             {supplier.name.charAt(0)}
@@ -75,12 +110,21 @@ const SupplierCard = ({ filteredSuppliers, handleEdit, handleDelete }) => {
                                         </div>
                                     </div>
                                 </td>
-                                <td className="px-6 py-4">
-                                    <div className="text-sm text-gray-900 max-w-xs truncate">
-                                        {supplier.contact_number || 'No description'}
+                                <td 
+                                    className="px-6 py-4 cursor-pointer"
+                                    onClick={() => handleViewDetail(supplier)}
+                                >
+                                    <div className="text-sm text-gray-900">
+                                        {supplier.contact_number || 'No contact number'}
+                                    </div>
+                                    <div className="text-sm text-gray-500">
+                                        {supplier.email || 'No email provided'}
                                     </div>
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
+                                <td 
+                                    className="px-6 py-4 whitespace-nowrap cursor-pointer"
+                                    onClick={() => handleViewDetail(supplier)}
+                                >
                                     <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${!supplier.deletedAt ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                                         }`}>
                                         {!supplier.deletedAt ? 'Active' : 'Inactive'}
@@ -88,18 +132,29 @@ const SupplierCard = ({ filteredSuppliers, handleEdit, handleDelete }) => {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div className="flex justify-end space-x-3">
-                                        <button
-                                            onClick={() => handleEdit(supplier)}
-                                            className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50 transition-colors"
+                                        <button 
+                                            onClick={() => handleViewDetail(supplier)}
+                                            className="text-gray-600 hover:text-gray-900 p-1 rounded-md hover:bg-gray-50 transition-colors"
+                                            aria-label="View supplier"
                                         >
-                                            <Pencil size={18} />
+                                            <Eye size={16}/>
                                         </button>
-                                        <button
-                                            onClick={() => handleDelete(supplier.id)}
-                                            className="text-red-600 hover:text-red-900 p-1 rounded-md hover:bg-red-50 transition-colors"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
+                                        {canEditDelete && (
+                                            <>
+                                                <button
+                                                    onClick={() => handleEdit(supplier)}
+                                                    className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50 transition-colors"
+                                                >
+                                                    <Pencil size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(supplier.id)}
+                                                    className="text-red-600 hover:text-red-900 p-1 rounded-md hover:bg-red-50 transition-colors"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </td>
                             </tr>
@@ -107,6 +162,16 @@ const SupplierCard = ({ filteredSuppliers, handleEdit, handleDelete }) => {
                     </tbody>
                 </table>
             </div>
+            {isDetailModelOpen && selectSupplier &&(
+                <SupplierDetailModel
+                supplier={selectSupplier}
+                onClose={closeModel}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                canEditDelete={canEditDelete}
+                
+                />
+            )}
         </div>
     )
 }
