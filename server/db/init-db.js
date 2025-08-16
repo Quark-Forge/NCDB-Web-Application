@@ -1,4 +1,21 @@
-import { sequelize } from '../models/index.js';
+import {
+  sequelize,
+  Role,
+  User,
+  Cart,
+  Order,
+  Category,
+  Product,
+  Supplier,
+  Wishlist,
+  WishlistItem,
+  CartItem,
+  OrderItem,
+  Payment,
+  SupplierItem,
+  ShippingCost,
+  Address
+} from '../models/index.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
@@ -14,7 +31,7 @@ async function initializeData() {
   try {
     // Create roles if they don't exist
     for (const role of DEFAULT_ROLES) {
-      await sequelize.models.Role.findOrCreate({
+      await Role.findOrCreate({
         where: { name: role.name },
         defaults: role,
         transaction
@@ -23,7 +40,7 @@ async function initializeData() {
 
     // Create admin user if doesn't exist
     const adminEmail = process.env.INITIAL_ADMIN_EMAIL || 'admin@ncdbmart.com';
-    const adminExists = await sequelize.models.User.findOne({
+    const adminExists = await User.findOne({
       where: { email: adminEmail },
       transaction
     });
@@ -31,12 +48,16 @@ async function initializeData() {
     if (!adminExists) {
       const tempPassword = process.env.INITIAL_ADMIN_PASSWORD || crypto.randomBytes(12).toString('hex');
       const hashedPassword = await bcrypt.hash(tempPassword, 12);
-      const adminRole = await sequelize.models.Role.findOne({
+      const adminRole = await Role.findOne({
         where: { name: 'Admin' },
         transaction
       });
 
-      await sequelize.models.User.create({
+      if (!adminRole) {
+        throw new Error('Admin role not found in database');
+      }
+
+      await User.create({
         name: 'System Admin',
         email: adminEmail,
         password: hashedPassword,
@@ -56,64 +77,127 @@ async function initializeData() {
     console.log('Database initialized with default data');
   } catch (error) {
     await transaction.rollback();
+    console.error('Initialization failed:', error);
     throw error;
   }
 }
 
 async function syncModels() {
-  // Sync models in correct order
-  await sequelize.models.Role.sync({ force: false });
-  await sequelize.models.User.sync({ force: false });
+  try {
+    // Temporary disable foreign key checks
+    await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
 
-  // Now sync models that depend on User
-  await sequelize.models.Cart.sync({ force: false });
-  await sequelize.models.Order.sync({ force: false });
+    // Verify essential models are registered
+    if (!Role || !User) {
+      throw new Error('Essential models not registered');
+    }
 
-  // Then sync remaining models
-  await sequelize.models.Category.sync({ force: false });
-  await sequelize.models.Product.sync({ force: false });
-  await sequelize.models.Supplier.sync({ force: false });
-  await sequelize.models.CartItem.sync({ force: false });
-  await sequelize.models.OrderItem.sync({ force: false });
-  await sequelize.models.Payment.sync({ force: false });
-  await sequelize.models.SupplierItem.sync({ force: false });
+    // Sync in proper hierarchical order
+    await Role.sync({ force: false });
+    await User.sync({ force: false });
+
+    // Sync independent models
+    await Category.sync({ force: false });
+    await Product.sync({ force: false });
+    await Supplier.sync({ force: false });
+
+    // Sync models that depend only on User
+    await ShippingCost.sync({ force: false });
+    await Address.sync({ force: false });
+    await Cart.sync({ force: false });
+    await Wishlist.sync({ force: false });
+
+    // First create Order table without payment_id constraint
+    await Order.sync({ force: false });
+
+    // Then create Payment table
+    await Payment.sync({ force: false });
+
+    // Now add the payment_id foreign key to Order
+    const queryInterface = sequelize.getQueryInterface();
+    await queryInterface.addConstraint('orders', {
+      fields: ['payment_id'],
+      type: 'foreign key',
+      references: {
+        table: 'payments',
+        field: 'id'
+      },
+      onDelete: 'SET NULL',
+      onUpdate: 'CASCADE'
+    });
+
+    // Sync junction/association models last
+    await WishlistItem.sync({ force: false });
+    await CartItem.sync({ force: false });
+    await OrderItem.sync({ force: false });
+    await SupplierItem.sync({ force: false });
+
+    // Re-enable foreign key checks
+    await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
+
+    console.log('All models synchronized successfully');
+  } catch (error) {
+    console.error('Model synchronization failed:', error);
+    throw error;
+  }
 }
 
 async function setupDatabase() {
+  let connection;
   try {
-    // First sync all models in correct order
-    await syncModels();
-    console.log('Tables synchronized successfully in correct order');
+    // Verify database connection
+    connection = await sequelize.authenticate();
+    console.log('Database connection established');
 
-    // Then initialize data
+    // Sync models in correct order
+    await syncModels();
+
+    // Initialize default data
     await initializeData();
 
-    // Verify the data
-    const roles = await sequelize.models.Role.findAll();
-    const admin = await sequelize.models.User.findOne({
+    // Verification
+    const roles = await Role.findAll();
+    const admin = await User.findOne({
       where: { email: process.env.INITIAL_ADMIN_EMAIL || 'admin@ncdbmart.com' },
-      include: [{ model: sequelize.models.Role }]
+      include: [{ model: Role }]
     });
 
     console.log('\nCurrent roles:');
     console.table(roles.map(r => r.toJSON()));
 
-    console.log('\nAdmin user:');
     if (admin) {
+      console.log('\nAdmin user:');
       console.table([{
         name: admin.name,
         email: admin.email,
         role: admin.Role.name,
         verified: admin.is_verified
       }]);
+    } else {
+      console.warn('\nAdmin user not found');
     }
+
+    return true;
   } catch (error) {
     console.error('Database setup failed:', error);
-    process.exit(1);
+    throw error;
   } finally {
-    await sequelize.close();
+    if (connection) {
+      await sequelize.close();
+      console.log('Database connection closed');
+    }
   }
 }
 
-// Run the complete setup
-setupDatabase();
+// Run the complete setup with proper error handling
+setupDatabase()
+  .then(success => {
+    if (success) {
+      console.log('Database setup completed successfully');
+      process.exit(0);
+    }
+  })
+  .catch(error => {
+    console.error('Database setup failed:', error);
+    process.exit(1);
+  });

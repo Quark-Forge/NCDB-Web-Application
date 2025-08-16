@@ -1,6 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import Badges from '../../components/common/Badges';
 import { toast } from 'react-toastify';
 import {
     ChevronLeft,
@@ -17,7 +16,8 @@ import {
     Package,
     CreditCard,
 } from 'lucide-react';
-import { useGetOrderDetailsQuery, useUpdateOrderStatusMutation } from '../../slices/ordersApiSlice';
+import Badges from '../../../components/common/Badges';
+import { useGetOrderDetailsQuery, useUpdateOrderStatusMutation } from '../../../slices/ordersApiSlice';
 
 const OrderDetails = () => {
 
@@ -43,7 +43,7 @@ const OrderDetails = () => {
     } = useGetOrderDetailsQuery(orderId);
 
     const order = data?.data || [];
-
+    
     // Update order status
     const [updateOrder, { isLoading: isUpdating }] = useUpdateOrderStatusMutation();
 
@@ -162,7 +162,7 @@ const OrderDetails = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {order.OrderItems.map((item) => (
+                                    {order.items.map((item) => (
                                         <tr key={item.id}>
                                             <td className="px-4 py-3 whitespace-nowrap">
                                                 <div className="flex items-center gap-2">

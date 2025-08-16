@@ -1,61 +1,72 @@
 import { DataTypes } from "sequelize";
-import sequelize from "../config/db.js";
-import Order from "./orders.js";
-import Product from "./product.js";
-import Supplier from "./suppliers.js";
 
-const OrderItem = sequelize.define('OrderItem', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-  },
-  order_id: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: Order,
-      key: 'id',
+export default (sequelize) => {
+  const OrderItem = sequelize.define('OrderItem', {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
     },
-  },
-  product_id: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: Product,
-      key: 'id',
+    order_id: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: 'orders',
+        key: 'id',
+      },
     },
-  },
-  supplier_id: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: Supplier,
-      key: 'id',
+    product_id: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: 'products',
+        key: 'id',
+      },
     },
-  },
-  quantity: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 1,
-    validate: {
-      min: 1,
+    supplier_id: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: 'suppliers',
+        key: 'id',
+      },
     },
-  },
-  price: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-    validate: {
-      min: 0,
+    quantity: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 1,
+      validate: {
+        min: 1,
+      },
     },
-  },
-}, {
-  tableName: 'order_items',
-  timestamps: true,
-  underscored: true,
-  paranoid: true,
-});
+    price: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      validate: {
+        min: 0.01,
+      },
+    },
+  }, {
+    tableName: 'order_items',
+    timestamps: true,
+    underscored: true,
+    paranoid: true,
+  });
 
+  OrderItem.associate = (models) => {
+    OrderItem.belongsTo(models.Order, {
+      foreignKey: 'order_id',
+    });
 
+    OrderItem.belongsTo(models.Product, {
+      foreignKey: 'product_id',
+      onDelete: 'RESTRICT'
+    });
 
-export default OrderItem;
+    OrderItem.belongsTo(models.Supplier, {
+      foreignKey: 'supplier_id',
+    });
+  };
+
+  return OrderItem;
+}
