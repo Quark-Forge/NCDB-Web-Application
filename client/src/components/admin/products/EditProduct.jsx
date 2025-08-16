@@ -1,5 +1,5 @@
 import { X, Loader2 } from "lucide-react";
-import { useUpdateProductMutation } from "../../../slices/productsApiSlice";
+import { useUpdateProductMutation } from "../../../slices/ProductsApiSlice";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 
@@ -24,7 +24,6 @@ const EditProduct = ({
 
   const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
 
-  // Initialize form data
   useEffect(() => {
     if (initialProduct && initialSupplierItem) {
       setFormData({
@@ -53,7 +52,7 @@ const EditProduct = ({
     try {
       const updatedData = {
         id: initialProduct.id,
-        supplier_id: initialSupplierItem.supplier_id, // Directly use the supplier_id from initialSupplierItem
+        supplier_id: initialSupplierItem.supplier_id,
         name: formData.name.trim(),
         description: formData.description.trim(),
         price: parseFloat(formData.price),
@@ -64,7 +63,6 @@ const EditProduct = ({
         image_url: formData.image_url.trim() || null
       };
 
-      // Validate numeric fields
       if (isNaN(updatedData.price) || isNaN(updatedData.quantity_per_unit) ||
         (updatedData.discount_price !== null && isNaN(updatedData.discount_price))) {
         throw new Error('Please enter valid numbers for price and quantity');
@@ -101,7 +99,6 @@ const EditProduct = ({
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Display supplier ID as read-only */}
             <div className="bg-gray-50 p-3 rounded-lg">
               <label className="block text-sm font-medium text-gray-500 mb-1">Supplier ID</label>
               <div className="text-sm text-gray-900">
@@ -213,7 +210,6 @@ const EditProduct = ({
               />
             </div>
 
-            {/* Display readonly SKU information */}
             <div className="bg-gray-50 p-3 rounded-lg">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>

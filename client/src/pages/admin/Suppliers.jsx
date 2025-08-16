@@ -10,6 +10,7 @@ import { useState } from 'react';
 import SuppliersList from "../../components/admin/suppliers/SuppliersList";
 import AddSupplier from "../../components/admin/suppliers/AddSupplier";
 import EditSupplier from "../../components/admin/suppliers/EditSupplier";
+import DeleteConfirmation from "../../components/common/DeleteConfirmation";
 
 const Suppliers = () => {
   const { data: suppliersData, isLoading, error, refetch } = useGetAllSuppliersQuery();
@@ -19,6 +20,8 @@ const Suppliers = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [supplierToDelete, setSupplierToDelete] = useState(null);
   const [editingSupplier, setEditingSupplier] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -87,14 +90,19 @@ const Suppliers = () => {
   };
 
   const handleDelete = async (supplierId) => {
-    if (window.confirm('Are you sure you want to delete this supplier?')) {
-      try {
-        await deleteSupplier(supplierId).unwrap();
-        toast.success('Supplier deleted successfully!');
-        refetch();
-      } catch (err) {
-        toast.error(err?.data?.message || 'Error deleting supplier');
-      }
+    setSupplierToDelete(supplierId);
+    setShowDeleteModal(true);
+  };
+
+  const onConfirmDelete = async () => {
+    try {
+      await deleteSupplier(supplierToDelete).unwrap();
+      toast.success('Supplier deleted successfully!');
+      setShowDeleteModal(false);
+      setSupplierToDelete(null);
+      refetch();
+    } catch (err) {
+      toast.error(err?.data?.message || 'Error deleting supplier');
     }
   };
 
@@ -170,6 +178,7 @@ const Suppliers = () => {
             handleInputChange={handleInputChange}
             formData={formData}
             refetch={refetch}
+            resetForm={resetForm}
           />
         )}
 
@@ -182,6 +191,17 @@ const Suppliers = () => {
           handleUpdate={handleUpdate}
           isUpdating={isUpdating}
         />
+
+        {showDeleteModal && (
+          <DeleteConfirmation
+            isOpen={showDeleteModal}
+            onClose={() => setShowDeleteModal(false)}
+            onConfirm={onConfirmDelete}
+            title="Delete Supplier"
+            description="Are you sure you want to delete this supplier? This action cannot be undone."
+            confirmText="Delete Supplier"
+          />
+        )}
       </div>
     </div>
   );
