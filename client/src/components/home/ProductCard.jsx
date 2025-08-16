@@ -44,7 +44,7 @@ const ProductCard = ({ product, supplierItem }) => {
           supplier_name: supplierItem?.Supplier?.name
         }
       }).unwrap();
-      toast.success('Product added to cart!');
+      // toast.success('Product added to cart!');
     } catch (err) {
       toast.error(err?.data?.message || 'Error adding to cart');
     }
@@ -64,17 +64,18 @@ const ProductCard = ({ product, supplierItem }) => {
       <div className="flex flex-col items-center text-left justify-between gap-2 mb-2">
         <div className="flex flex-row w-full items-center gap-2">
           <span className="w-full text-xl font-bold text-gray-800">
-            Rs {hasDiscount ? discountPrice.toFixed(2) : price.toFixed(2)}
+            Rs {hasDiscount ? (price-discountPrice).toFixed(2) : price.toFixed(2)}
+            
           </span>
           {hasDiscount && (
             <span className="w-full text-sm text-gray-500 line-through">
-              Rs {price.toFixed(2)}
+              Rs {(price).toFixed(2)}
             </span>
           )}
         </div>
         {hasDiscount && (
           <span className="w-full text-sm text-green-600 font-semibold">
-            Save Rs {(price - discountPrice).toFixed(2)}
+            Save Rs {(discountPrice).toFixed(2)}
           </span>
         )}
         <span className="w-full text-xs text-gray-500">
@@ -113,24 +114,27 @@ const ProductCard = ({ product, supplierItem }) => {
           )}
         </div>
 
-        {/* Product Info */}
-        <div className="p-4 flex flex-row">
-          <div className='flex w-full flex-col'>
-            <h3 className="text-lg font-semibold text-gray-800 mb-1 line-clamp-2 hover:text-blue-600 transition-colors">
-              {product.name}
-            </h3>
-            {supplierItem?.supplier_sku && (
-              <p className="text-xs text-gray-500 mb-1">
-                SKU: {supplierItem.supplier_sku}
-              </p>
-            )}
-            {renderPrice()}
-            <div className="mb-4">
-              <span className="text-sm text-green-600 font-medium">
-                ✓ In Stock ({supplierItem?.stock_level || 0} available)
-              </span>
-            </div>
+      {/* Product Info */}
+      <div className="p-4 flex flex-row">
+        <div className='flex w-full flex-col'>
+          {/* Name */}
+          <h3 className="text-lg font-semibold text-gray-800 mb-1 line-clamp-2 hover:text-blue-600 transition-colors">
+            {product.name}
+          </h3>
+
+          {/* Quantity */}
+          {/* { <p className="text-sm text-gray-500 mb-1">
+          Quantity: {product.quantity_per_unit} {product.unit_symbol}
+          </p> } */}
+
+          {/* Price */}
+          {renderPrice()}
+
+          {/* Stock */}
+          <div className="mb-4">
+            <span className="text-sm text-green-600 font-medium">✓ In Stock</span>
           </div>
+        </div>
 
           <div className='flex w-1/2 justify-end'>
             <button

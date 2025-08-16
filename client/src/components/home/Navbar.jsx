@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import AdminProfile from '../../pages/admin/AdminProfile';
 import UserProfile from '../user/UserProfile';
+import { useGetCartQuery } from '../../slices/cartApiSlice';
 
 // Constants
 const ALLOWED_ROLES = ['Admin', 'Order Manager', 'Inventory Manager'];
@@ -73,12 +74,30 @@ const ProfileButton = memo(({ onClick, userInfo }) => (
   </button>
 ));
 
-const Navbar = ({ cartCount = 0, search, setSearch }) => {
+const Navbar = ({search, setSearch }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const navigate = useNavigate();
   const { userInfo } = useSelector((state) => state.auth);
 
-  // Memoized handlers
+  const { data, isLoading } = useGetCartQuery(undefined, {
+    skip: !userInfo, // only fetch if logged in
+  });
+
+  // Count only number of distinct cart items
+  const cartCount = data?.data?.CartItems?.length || 0;
+
+  // const handleCartClick = (() => {
+  //   // setIsCardOpen(true);
+  //   // localStorage.setItem('cart', JSON.stringify(cartItems));
+  //   navigate('/user/cart');
+  // }, [navigate]);
+
+  // Calculate total quantity in cart
+  // const cartCount = data?.data?.CartItems?.reduce(
+  //   (total, item) => total + (item.quantity || 0),
+  //   0
+  // ) || 0;
+
   const handleCartClick = useCallback(() => {
     navigate('/user/cart');
   }, [navigate]);
