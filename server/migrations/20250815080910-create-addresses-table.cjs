@@ -45,7 +45,7 @@ module.exports = {
       },
       shipping_cost_id: {
         type: Sequelize.UUID,
-        allowNull: true,
+        allowNull: false,
         references: {
           model: 'shipping_costs',
           key: 'id',

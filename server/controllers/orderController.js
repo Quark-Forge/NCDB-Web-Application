@@ -1,5 +1,5 @@
 import asyncHandler from 'express-async-handler';
-import { Op } from 'sequelize';
+import { Op, or, where } from 'sequelize';
 import { generateOrderNumber } from '../utils/orderUtils.js';
 import sequelize from '../config/db.js';
 import {
@@ -10,7 +10,9 @@ import {
     Order,
     CartItem,
     Cart,
-    Role
+    Role,
+    Address,
+    ShippingCost
 } from '../models/index.js';
 
 // Valid order status transitions
@@ -25,28 +27,12 @@ const STATUS_TRANSITIONS = {
 // checkout (create order)
 export const checkoutCart = asyncHandler(async (req, res) => {
     const user_id = req.user.id;
-    const {
-        shipping_name,
-        shipping_address_line1,
-        shipping_address_line2,
-        billing_address_same,
-        billing_address,
-        shipping_city,
-        shipping_phone,
-        payment_method
-    } = req.body;
+    const { address_id } = req.body;
 
     // Validate shipping details
-    if (!shipping_name || !shipping_address_line1 ||
-        !shipping_city || !shipping_phone) {
+    if (!address_id) {
         res.status(400);
-        throw new Error('Missing required shipping details (name, address_line1, city, phone)');
-    }
-
-    // Validate payment method if provided
-    if (payment_method && !['cash', 'card', 'bank_transfer'].includes(payment_method)) {
-        res.status(400);
-        throw new Error('Invalid payment method');
+        throw new Error('Missing required shipping details (address_id)');
     }
 
     // Get cart with items including supplier info
@@ -113,7 +99,6 @@ export const checkoutCart = asyncHandler(async (req, res) => {
                 supplier_id: cartItem.supplier_id,
                 quantity: cartItem.quantity,
                 price: cartItem.price,
-                purchase_price: cartItem.purchase_price,
                 product_data: { // Store snapshot of product details
                     name: cartItem.Product.name,
                     sku: cartItem.Product.sku,
@@ -141,18 +126,10 @@ export const checkoutCart = asyncHandler(async (req, res) => {
         // Create order
         const order = await Order.create({
             order_number: generateOrderNumber(),
-            shipping_name,
-            shipping_address_line1,
-            shipping_address_line2,
-            billing_address_same,
-            billing_address,
-            shipping_city,
-            shipping_phone,
-            payment_method,
+            address_id,
             total_amount: totalAmount,
             user_id,
             status: 'pending',
-            payment_method,
             notes: 'Order created from cart checkout'
         }, { transaction });
 
@@ -186,18 +163,50 @@ export const checkoutCart = asyncHandler(async (req, res) => {
         await transaction.commit();
 
         // Return complete order details
-        const completeOrder = await Order.findByPk(order.id, {
-            include: [{
-                model: OrderItem,
-                include: [Product, Supplier]
-            }]
-        });
+        try {
+            const orderDetail = await Order.findByPk(order.id, {
+                include: [
+                    {
+                        model: OrderItem,
+                        include: [Product, Supplier]
+                    },
+                    {
+                        model: Address,
+                        where: { id: address_id },
+                    }
+                ]
+            });
+            const shippingCost = await ShippingCost.findOne({
+                where: { city: orderDetail.Address.city }
+            });
+            const responseData = {
+                id: orderDetail.id, order_number: orderDetail.order_number,
+                status: orderDetail.status, total_amount: orderDetail.total_amount,
+                items: orderDetail.OrderItems.map(item => ({
 
-        res.status(201).json({
-            success: true,
-            message: 'Order created successfully',
-            data: completeOrder
-        });
+                    id: item.id, quantity: item.quantity,
+                    product_id: item.Product.id, product_name: item.Product.name,
+                    supplier_id: item.Supplier.id, supplier_name: item.Supplier.name,
+                })),
+                address_id: orderDetail.Address.id,
+                city: orderDetail.Address.city,
+                shipping_cost: shippingCost ? shippingCost.cost : 0
+            };
+
+            res.status(201).json({
+                success: true,
+                message: 'Order created successfully',
+                data: responseData
+
+            });
+        } catch (fetchError) {
+            console.error('Error fetching order details:', fetchError);
+            res.status(201).json({
+                success: true,
+                message: 'Order created successfully but could not fetch complete details',
+                data: { id: order.id } // At least return the order ID
+            });
+        }
 
     } catch (error) {
         await transaction.rollback();
@@ -213,7 +222,7 @@ export const checkoutCart = asyncHandler(async (req, res) => {
 
 // GET all orders (Admin)
 export const getAllOrders = asyncHandler(async (req, res) => {
-    const { status, startDate, endDate, product_id, supplier_id, page = 1, limit = 20 } = req.query;
+    const { status, startDate, endDate, product_id, supplier_id, page = 1, limit = 10 } = req.query;
 
     const where = {};
     const include = [{
@@ -316,10 +325,23 @@ export const getOrderDetails = asyncHandler(async (req, res) => {
         });
         return;
     }
+    const address = await Address.findByPk(order.address_id);
+    const shippingCost = await ShippingCost.findOne({
+        where: { city: address.city }
+    });
+    const orderDetail = {
+        id:order.id, order_number:order.order_number, status:order.status,
+        total:order.total_amount, createdAt:order.createdAt, updatedAt:order.updatedAt,
+        items: order.OrderItems,
+        address_id: address.id,
+        shipping_name: address.shipping_name, shipping_phone: address.shipping_phone,
+        address_line1: address.address_line1, address_line2:address.address_line2, city: address.city,
+        shipping_cost: shippingCost.shipping_cost, estimated_delivery_date: shippingCost.estimated_delivery_date
+    }
 
     res.json({
         success: true,
-        data: order
+        data: orderDetail
     });
 });
 

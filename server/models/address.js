@@ -47,7 +47,7 @@ export default (sequelize) => {
         },
         shipping_cost_id: {
             type: DataTypes.UUID,
-            allowNull: true,
+            allowNull: false,
             references: {
                 model: 'shipping_costs',
                 key: 'id',
@@ -65,6 +65,10 @@ export default (sequelize) => {
 
         Address.belongsTo(models.ShippingCost, {
             foreignKey: 'shipping_cost_id',
+        });
+
+        Address.hasMany(models.Order, {
+            foreignKey: 'address_id',
         });
 
     }
