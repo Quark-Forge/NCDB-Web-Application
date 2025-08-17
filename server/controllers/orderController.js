@@ -1,5 +1,5 @@
 import asyncHandler from 'express-async-handler';
-import { Op, or, where } from 'sequelize';
+import { Op } from 'sequelize';
 import { generateOrderNumber } from '../utils/orderUtils.js';
 import sequelize from '../config/db.js';
 import {
@@ -190,7 +190,8 @@ export const checkoutCart = asyncHandler(async (req, res) => {
                 })),
                 address_id: orderDetail.Address.id,
                 city: orderDetail.Address.city,
-                shipping_cost: shippingCost ? shippingCost.cost : 0
+                shipping_cost: shippingCost ? shippingCost.cost : 0,
+                payment_status: 'pending',
             };
 
             res.status(201).json({
@@ -222,7 +223,7 @@ export const checkoutCart = asyncHandler(async (req, res) => {
 
 // GET all orders (Admin)
 export const getAllOrders = asyncHandler(async (req, res) => {
-    const { status, startDate, endDate, product_id, supplier_id, page = 1, limit = 10 } = req.query;
+    const { search, status, startDate, endDate, product_id, supplier_id, page = 1, limit = 10 } = req.query;
 
     const where = {};
     const include = [{
@@ -240,12 +241,19 @@ export const getAllOrders = asyncHandler(async (req, res) => {
         };
     }
 
+    if (search) {
+        where[Op.or] = [
+            { order_id: { [Op.like]: `%${search}%` } },
+            { '$Orders.id$': { [Op.like]: `%${search}%` } },
+            { '$Orders.Users.name$': { [Op.like]: `%${search}%` } }
+        ];
+        include[0].include.push(Product, Supplier);
+    }
     // Product filter
     if (product_id) {
         include[0].where = include[0].where || {};
         include[0].where.product_id = product_id;
     }
-
     // Supplier filter
     if (supplier_id) {
         include[0].include.push({
@@ -291,6 +299,7 @@ export const getUserOrders = asyncHandler(async (req, res) => {
         order: [['createdAt', 'DESC']]
     });
 
+
     res.json({
         success: true,
         data: orders
@@ -329,14 +338,21 @@ export const getOrderDetails = asyncHandler(async (req, res) => {
     const shippingCost = await ShippingCost.findOne({
         where: { city: address.city }
     });
+
+    const total = (
+        (parseFloat(order?.total_amount) || 0) +
+        (parseFloat(shippingCost?.cost) || 0)
+    ).toFixed(2);
+
     const orderDetail = {
-        id:order.id, order_number:order.order_number, status:order.status,
-        total:order.total_amount, createdAt:order.createdAt, updatedAt:order.updatedAt,
+        id: order.id, order_number: order.order_number, status: order.status,
+        total_amount: order.total_amount, createdAt: order.createdAt, updatedAt: order.updatedAt,
         items: order.OrderItems,
         address_id: address.id,
         shipping_name: address.shipping_name, shipping_phone: address.shipping_phone,
-        address_line1: address.address_line1, address_line2:address.address_line2, city: address.city,
-        shipping_cost: shippingCost.shipping_cost, estimated_delivery_date: shippingCost.estimated_delivery_date
+        address_line1: address.address_line1, address_line2: address.address_line2, city: address.city,
+        shipping_cost: shippingCost.cost, estimated_delivery_date: shippingCost.estimated_delivery_date,
+        total: total
     }
 
     res.json({

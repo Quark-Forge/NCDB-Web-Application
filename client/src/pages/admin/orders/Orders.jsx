@@ -26,6 +26,7 @@ const Order = () => {
     ...filters,
     ...pagination,
   });
+  
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
@@ -59,7 +60,7 @@ const Order = () => {
           <div className="overflow-x-auto">
             <OrderTable
               orders={orders?.data || []}
-              totalOrders={orders?.total || 0}
+              totalOrders={orders?.meta.total || 0}
             />
           </div>
           <Pagination

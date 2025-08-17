@@ -4,13 +4,12 @@ import ProductWithSuppliers from '../../components/home/ProductWithSuppliers';
 import { useGetProductsQuery } from '../../slices/productsApiSlice';
 import { ChevronLeft, ChevronRight, CircleAlert } from 'lucide-react';
 import FilterBar from '../../components/home/FilterBar';
-import Pagination from '../../components/common/Pagination';
 
 const Home = () => {
   const [cartCount, setCartCount] = useState(0);
   const [cartItems, setCartItems] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 5;
+  const productsPerPage = 10;
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [sort, setSort] = useState('created_at_desc');
@@ -50,7 +49,7 @@ const Home = () => {
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-white">
       <Navbar cartCount={cartCount} search={search} setSearch={setSearch} cartItems={cartItems} />
 
       <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -105,8 +104,8 @@ const Home = () => {
                   key={number}
                   onClick={() => handlePageChange(number)}
                   className={`px-3 py-1 rounded-3xl font-semibold transition-colors duration-200 ${currentPage === number
-                      ? 'text-gray-700'
-                      : 'bg-gray-200 text-gray-700 hover:bg-blue-100'
+                      ? 'text-white bg-blue-600'
+                      : 'bg-white text-gray-600 hover:bg-gray-100'
                     }`}
                 >
                   {number}

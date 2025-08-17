@@ -64,7 +64,7 @@ const ProductCard = ({ product, supplierItem }) => {
       <div className="flex flex-col items-center text-left justify-between gap-2 mb-2">
         <div className="flex flex-row w-full items-center gap-2">
           <span className="w-full text-xl font-bold text-gray-800">
-            Rs {hasDiscount ? (price-discountPrice).toFixed(2) : price.toFixed(2)}
+            Rs {hasDiscount ? (discountPrice).toFixed(2) : price.toFixed(2)}
             
           </span>
           {hasDiscount && (
@@ -75,7 +75,7 @@ const ProductCard = ({ product, supplierItem }) => {
         </div>
         {hasDiscount && (
           <span className="w-full text-sm text-green-600 font-semibold">
-            Save Rs {(discountPrice).toFixed(2)}
+            Save Rs {(price-discountPrice).toFixed(2)}
           </span>
         )}
         <span className="w-full text-xs text-gray-500">
@@ -89,7 +89,7 @@ const ProductCard = ({ product, supplierItem }) => {
     <>
       <div
         onClick={handleCardClick}
-        className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group cursor-pointer transform hover:-translate-y-1"
+        className="bg-white rounded-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group cursor-pointer transform hover:-translate-y-1"
       >
         {/* Product Image */}
         <div className="relative flex justify-center overflow-hidden">
@@ -132,7 +132,11 @@ const ProductCard = ({ product, supplierItem }) => {
 
           {/* Stock */}
           <div className="mb-4">
-            <span className="text-sm text-green-600 font-medium">✓ In Stock</span>
+            {
+              supplierItem && supplierItem.stock_level <= 0
+              ? <span className="text-sm text-red-500 font-medium">Out of Stock</span>
+              : <span className="text-sm text-green-600 font-medium">In Stock <span className='text-[12px]'>({supplierItem.stock_level})</span></span>
+            }
           </div>
         </div>
 
