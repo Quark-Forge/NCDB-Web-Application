@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Search, ChevronDown, ChevronUp, X, Check, Calendar } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, ChevronDown, ChevronUp, X, Check, Calendar, Trash, EditIcon, Pencil } from 'lucide-react';
 
 import Button from '../../../components/common/Button';
 import Table from '../../../components/common/Table';
@@ -33,7 +33,7 @@ const Shipping = () => {
     const [currentItem, setCurrentItem] = useState({
         city: '',
         cost: '',
-        estimated_delivery_date: '',
+        estimated_delivery_days: '',
     });
     const [errors, setErrors] = useState({});
 
@@ -92,7 +92,7 @@ const Shipping = () => {
         setCurrentItem({
             city: '',
             cost: '',
-            estimated_delivery_date: '',
+            estimated_delivery_days: '',
         });
         setErrors({});
         setIsModalOpen(true);
@@ -102,8 +102,7 @@ const Shipping = () => {
         setEditMode(true);
         setCurrentItem({
             ...item,
-            estimated_delivery_date: item.estimated_delivery_date ?
-                new Date(item.estimated_delivery_date).toISOString().split('T')[0] : ''
+            estimated_delivery_days: item.estimated_delivery_days
         });
         setErrors({});
         setIsModalOpen(true);
@@ -118,11 +117,8 @@ const Shipping = () => {
         const newErrors = {};
         if (!currentItem.city) newErrors.city = 'City is required';
         if (!currentItem.cost || isNaN(currentItem.cost)) newErrors.cost = 'Valid cost is required';
-        if (currentItem.estimated_delivery_date) {
-            const deliveryDate = new Date(currentItem.estimated_delivery_date);
-            if (deliveryDate < new Date()) {
-                newErrors.estimated_delivery_date = 'Delivery date cannot be in the past';
-            }
+        if (currentItem.estimated_delivery_days && isNaN(currentItem.estimated_delivery_days)) {
+            newErrors.estimated_delivery_days = 'Delivery days must be a number';
         }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -136,7 +132,8 @@ const Shipping = () => {
             const shippingCostData = {
                 city: currentItem.city,
                 cost: parseFloat(currentItem.cost),
-                estimated_delivery_date: currentItem.estimated_delivery_date || null
+                estimated_delivery_days: currentItem.estimated_delivery_days ?
+                    parseInt(currentItem.estimated_delivery_days) : null
             };
 
             await addShippingCost(shippingCostData).unwrap();
@@ -156,14 +153,9 @@ const Shipping = () => {
         }));
     };
 
-    const formatDate = (dateString) => {
-        if (!dateString) return 'Not specified';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
+    const formatDeliveryDays = (days) => {
+        if (!days) return 'Not specified';
+        return `${days} day${days !== 1 ? 's' : ''}`;
     };
 
     const SortIcon = ({ column }) => {
@@ -221,45 +213,46 @@ const Shipping = () => {
                     <button
                         key="delivery"
                         className="flex items-center group"
-                        onClick={() => handleSort('estimated_delivery_date')}
+                        onClick={() => handleSort('estimated_delivery_days')}
                     >
                         Estimated Delivery
-                        <SortIcon column="estimated_delivery_date" />
+                        <SortIcon column="estimated_delivery_days" />
                     </button>,
                     'Actions'
                 ]}>
                     {currentItems.length > 0 ? (
                         currentItems.map((item) => (
-                            <tr key={item.id}>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {item.city}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                    LKR{item.cost}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                    {formatDate(item.estimated_delivery_date)}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-right">
-                                    <div className="flex items-center justify-end space-x-2">
-                                        <Button
-                                            variant="secondary"
-                                            size="sm"
-                                            onClick={() => openEditModal(item)}
-                                        >
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="danger"
-                                            size="sm"
-                                            onClick={() => openDeleteModal(item)}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))
+                            item && (
+                                <tr key={item.id}>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        {item.city}
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                        LKR {item.cost}
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                        {formatDeliveryDays(item.estimated_delivery_days)}
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-right">
+                                        <div className="flex items-center justify-end space-x-2">
+                                            <Button
+                                                variant="secondary"
+                                                size="sm"
+                                                onClick={() => openEditModal(item)}
+                                            >
+                                                <Pencil size={16} />
+                                            </Button>
+                                            <Button
+                                                variant="danger"
+                                                size="sm"
+                                                onClick={() => openDeleteModal(item)}
+                                            >
+                                                <Trash size={16} />
+                                            </Button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )))
                     ) : (
                         <tr>
                             <td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-500">
@@ -281,7 +274,7 @@ const Shipping = () => {
 
             {/* Add/Edit Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-50 bg-black/50 backdrop-brightness-60 flex items-center justify-center p-4">
                     <Card className="w-full max-w-md animate-in fade-in-90 zoom-in-90">
                         <div className="flex items-center justify-between p-4 border-b border-gray-200">
                             <h3 className="text-lg font-medium text-gray-900">
@@ -313,7 +306,7 @@ const Shipping = () => {
                                     name="city"
                                     value={currentItem.city}
                                     onChange={handleInputChange}
-                                    className={`block w-full rounded-lg border ${errors.city ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'} shadow-sm sm:text-sm`}
+                                    className={`block w-full rounded-lg p-2 border ${errors.city ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'} shadow-sm sm:text-sm`}
                                 />
                                 {errors.city && (
                                     <p className="mt-1 text-sm text-red-600">{errors.city}</p>
@@ -322,7 +315,7 @@ const Shipping = () => {
 
                             <div>
                                 <label htmlFor="cost" className="block text-sm font-medium text-gray-700 mb-1">
-                                    Cost ($) *
+                                    Cost (LKR) *
                                 </label>
                                 <input
                                     type="number"
@@ -332,7 +325,7 @@ const Shipping = () => {
                                     step="0.01"
                                     value={currentItem.cost}
                                     onChange={handleInputChange}
-                                    className={`block w-full rounded-lg border ${errors.cost ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'} shadow-sm sm:text-sm`}
+                                    className={`block w-full rounded-lg p-2 border ${errors.cost ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'} shadow-sm sm:text-sm`}
                                 />
                                 {errors.cost && (
                                     <p className="mt-1 text-sm text-red-600">{errors.cost}</p>
@@ -340,25 +333,21 @@ const Shipping = () => {
                             </div>
 
                             <div>
-                                <label htmlFor="estimated_delivery_date" className="block text-sm font-medium text-gray-700 mb-1">
-                                    Estimated Delivery Date
+                                <label htmlFor="estimated_delivery_days" className="block text-sm font-medium text-gray-700 mb-1">
+                                    Estimated Delivery Days
                                 </label>
-                                <div className="relative">
-                                    <input
-                                        type="date"
-                                        id="estimated_delivery_date"
-                                        name="estimated_delivery_date"
-                                        value={currentItem.estimated_delivery_date}
-                                        onChange={handleInputChange}
-                                        min={new Date().toISOString().split('T')[0]}
-                                        className={`block w-full rounded-lg border ${errors.estimated_delivery_date ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'} shadow-sm sm:text-sm`}
-                                    />
-                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                        <Calendar className="h-5 w-5 text-gray-400" />
-                                    </div>
-                                </div>
-                                {errors.estimated_delivery_date && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.estimated_delivery_date}</p>
+                                <input
+                                    type="number"
+                                    id="estimated_delivery_days"
+                                    name="estimated_delivery_days"
+                                    min="1"
+                                    value={currentItem.estimated_delivery_days}
+                                    onChange={handleInputChange}
+                                    className={`block w-full rounded-lg p-2 border ${errors.estimated_delivery_days ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'} shadow-sm sm:text-sm`}
+                                    placeholder="Enter number of days"
+                                />
+                                {errors.estimated_delivery_days && (
+                                    <p className="mt-1 text-sm text-red-600">{errors.estimated_delivery_days}</p>
                                 )}
                             </div>
 

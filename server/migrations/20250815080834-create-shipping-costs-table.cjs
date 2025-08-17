@@ -17,9 +17,9 @@ module.exports = {
         type: Sequelize.DECIMAL(10, 2),
         allowNull: false,
       },
-      estimated_delivery_date: {
-        type: Sequelize.DATE,
-        allowNull: true,
+      estimated_delivery_days: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
       },
       created_at: { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
       updated_at: { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
