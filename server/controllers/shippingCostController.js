@@ -3,16 +3,16 @@ import asyncHandler from "express-async-handler";
 
 export const createShippingCost = asyncHandler(async (req, res) => {
     try {
-        const { city, cost, estimated_delivery_date } = req.body;
+        const { city, cost, estimated_delivery_days } = req.body;
 
         if (!city || !cost) {
-            return res.status(400).json({ message: 'Name and cost are required.' });
+            return res.status(400).json({ message: 'Name and cost and estimated delivery days are required.' });
         }
 
         const shippingCost = await ShippingCost.create({
             city,
             cost,
-            estimated_delivery_date
+            estimated_delivery_days: estimated_delivery_days || 1 // Default to 1 day if not provided
         });
 
         if (!shippingCost) {

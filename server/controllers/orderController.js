@@ -14,6 +14,7 @@ import {
     Address,
     ShippingCost
 } from '../models/index.js';
+import shippingCost from '../models/shippingCost.js';
 
 // Valid order status transitions
 const STATUS_TRANSITIONS = {
@@ -226,10 +227,15 @@ export const getAllOrders = asyncHandler(async (req, res) => {
     const { search, status, startDate, endDate, product_id, supplier_id, page = 1, limit = 10 } = req.query;
 
     const where = {};
-    const include = [{
-        model: OrderItem,
-        include: []
-    }];
+    const include = [
+        {
+            model: OrderItem,
+            include: []
+        },
+        {
+            model: Address,
+        }
+    ];
 
     // Status filter
     if (status) where.status = status;
@@ -271,9 +277,36 @@ export const getAllOrders = asyncHandler(async (req, res) => {
         distinct: true
     });
 
+    const cities = [...new Set(orders.rows.map(order => order.Address?.city).filter(city => city))];
+
+    // Fetch shipping costs for all cities in one query
+    const shippingCosts = await ShippingCost.findAll({
+        where: { city: cities }
+    });
+
+    // Create a map of city to shipping cost for quick lookup
+    const shippingCostMap = {};
+    shippingCosts.forEach(cost => {
+        shippingCostMap[cost.city] = cost;
+    });
+
+    // Add shipping cost details to each order
+    const ordersWithShipping = orders.rows.map(order => {
+        const orderData = order.get({ plain: true });
+        const city = order.Address?.city;
+        
+        if (city && shippingCostMap[city]) {
+            orderData.shippingCost = shippingCostMap[city];
+        } else {
+            orderData.shippingCost = null; // or default shipping cost if you prefer
+        }
+        
+        return orderData;
+    });
+
     res.json({
         success: true,
-        data: orders.rows,
+        data: ordersWithShipping,
         meta: {
             total: orders.count,
             page: parseInt(page),

@@ -18,16 +18,11 @@ export default (sequelize) => {
                 min: 0.01 // More realistic than 0
             },
         },
-        estimated_delivery_date: {
-            type: DataTypes.DATE,
-            allowNull: true,
+        estimated_delivery_days: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
             validate: {
-                isDate: true,
-                isValidDate(value) {
-                    if (value && value < new Date()) {
-                        throw new Error('Estimated delivery date cannot be in the past');
-                    }
-                }
+                min: 1 // At least one day for delivery
             }
         }
     }, {
