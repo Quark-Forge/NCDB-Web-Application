@@ -9,7 +9,7 @@ import Pagination from "../../components/common/Pagination";
 
 const Users = () => {
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(2); // Number of users per page
+  const [limit, setLimit] = useState(10); // Number of users per page
   const { data: usersData, isLoading, error, refetch } = useGetAllUsersQuery({ page, limit });
   const [deleteUser] = useDeleteUserMutation();
 

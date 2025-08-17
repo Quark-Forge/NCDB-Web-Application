@@ -299,6 +299,7 @@ export const getUserOrders = asyncHandler(async (req, res) => {
         order: [['createdAt', 'DESC']]
     });
 
+
     res.json({
         success: true,
         data: orders
@@ -337,14 +338,21 @@ export const getOrderDetails = asyncHandler(async (req, res) => {
     const shippingCost = await ShippingCost.findOne({
         where: { city: address.city }
     });
+
+    const total = (
+        (parseFloat(order?.total_amount) || 0) +
+        (parseFloat(shippingCost?.cost) || 0)
+    ).toFixed(2);
+
     const orderDetail = {
-        id:order.id, order_number:order.order_number, status:order.status,
-        total:order.total_amount, createdAt:order.createdAt, updatedAt:order.updatedAt,
+        id: order.id, order_number: order.order_number, status: order.status,
+        total_amount: order.total_amount, createdAt: order.createdAt, updatedAt: order.updatedAt,
         items: order.OrderItems,
         address_id: address.id,
         shipping_name: address.shipping_name, shipping_phone: address.shipping_phone,
-        address_line1: address.address_line1, address_line2:address.address_line2, city: address.city,
-        shipping_cost: shippingCost.shipping_cost, estimated_delivery_date: shippingCost.estimated_delivery_date
+        address_line1: address.address_line1, address_line2: address.address_line2, city: address.city,
+        shipping_cost: shippingCost.cost, estimated_delivery_date: shippingCost.estimated_delivery_date,
+        total: total
     }
 
     res.json({

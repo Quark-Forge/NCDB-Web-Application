@@ -9,6 +9,7 @@ import Dashboard from '../pages/admin/Dashboard';
 import Settings from '../pages/admin/Settings';
 import AdminProfile from '../pages/admin/AdminProfile';
 import OrderDetails from '../pages/admin/orders/OrderDetails';
+import Shipping from '../pages/admin/shipping/Shipping';
 
 export const adminChildren = (
   <>
@@ -20,10 +21,11 @@ export const adminChildren = (
     <Route element={<ProtectedRoute allowedRoles={['Admin', 'Order Manager']} />}>
       <Route path='orders' element={<Orders />}></Route>
       <Route path='orders/:orderId' element={<OrderDetails />}></Route>
+      <Route path='shipping' element={<Shipping />}></Route>
     </Route>
 
     <Route element={<ProtectedRoute allowedRoles={['Admin', 'Inventory Manager']} />}>
-      
+
     </Route>
 
     <Route element={<ProtectedRoute allowedRoles={['Admin', 'Order Manager', 'Inventory Manager']} />}>
@@ -32,7 +34,7 @@ export const adminChildren = (
       <Route path='suppliers' element={<Suppliers />}></Route>
       <Route path='dashboard' element={<Dashboard />}></Route>
       <Route path='settings' element={<Settings />}></Route>
-    <Route path='profile' element={<AdminProfile/>}></Route>
+      <Route path='profile' element={<AdminProfile />}></Route>
       <Route path='profile' element={<AdminProfile />}></Route>
     </Route>
 

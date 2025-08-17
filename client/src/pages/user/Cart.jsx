@@ -237,12 +237,9 @@ const Cart = () => {
                     {/* Image */}
                     <div className="flex-shrink-0">
                       <img
-                        src={item.Product?.base_image_url || 'https://via.placeholder.com/100'}
+                        // src={item.Product?.base_image_url || 'https://via.placeholder.com/100'}
                         alt={item.Product?.name || 'Product'}
                         className="w-24 h-24 object-cover rounded-lg border"
-                        onError={(e) => {
-                          e.target.src = 'https://via.placeholder.com/100';
-                        }}
                       />
                     </div>
 

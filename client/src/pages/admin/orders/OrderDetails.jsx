@@ -131,16 +131,16 @@ const OrderDetails = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <h4 className="text-sm font-medium text-gray-700">Contact</h4>
-                                <p>{order.shipping_name}</p>
-                                <p>{order.email}</p>
-                                <p>{order.shipping_phone}</p>
+                                <p className="text-sm font-medium text-gray-600">{order.shipping_name}</p>
+                                <p className="text-sm font-medium text-gray-600">{order.email}</p>
+                                <p className="text-sm font-medium text-gray-600">{order.shipping_phone}</p>
                             </div>
                             <div>
                                 <h4 className="text-sm font-medium text-gray-700">Shipping Address</h4>
-                                <p>{order.shipping_address_line1}</p>
-                                <p>{order.shipping_address_line2}</p>
-                                <p>
-                                    {order.shipping_city}
+                                <p className="text-sm font-medium text-gray-600">{order.address_line1}</p>
+                                <p className="text-sm font-medium text-gray-600">{order.address_line2}</p>
+                                <p className="text-sm font-medium text-gray-600">
+                                    {order.city}
                                 </p>
                             </div>
                         </div>
@@ -227,17 +227,17 @@ const OrderDetails = () => {
                                 <span className="text-gray-600">Subtotal</span>
                                 <span>LKR{order.total_amount}</span>
                             </div>
-                            {/* <div className="flex justify-between">
+                            <div className="flex justify-between">
                                 <span className="text-gray-600">Shipping</span>
-                                <span>${order.shippingPrice}</span>
-                            </div> */}
+                                <span>LKR{order.shipping_cost}</span>
+                            </div>
                             {/* <div className="flex justify-between">
                                 <span className="text-gray-600">Tax</span>
                                 <span>${order.taxPrice}</span>
                             </div> */}
                             <div className="flex justify-between font-medium border-t pt-2 mt-2">
                                 <span>Total</span>
-                                <span>LKR{order.total_amount}</span>
+                                <span>LKR{order.total}</span>
                             </div>
                         </div>
                     </div>
