@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Search, ChevronDown, ChevronUp, X, Check, Calendar, Trash, EditIcon, Pencil } from 'lucide-react';
+import { Plus, Search, ChevronDown, ChevronUp, X, Check, Trash, Pencil } from 'lucide-react';
 
 import Button from '../../../components/common/Button';
 import Table from '../../../components/common/Table';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import DeleteConfirmation from '../../../components/common/DeleteConfirmation';
-import { useAddShippingCostMutation, useGetShippingCostQuery } from '../../../slices/shippingCostApiSlice';
+import { useAddShippingCostMutation, useDeleteShippingCostMutation, useGetShippingCostQuery, useUpdateShippingCostMutation } from '../../../slices/shippingCostApiSlice';
 import Card from '../../../components/common/Card';
+import { toast } from 'react-toastify';
 
 const Shipping = () => {
     // RTK Query hooks
@@ -17,6 +18,8 @@ const Shipping = () => {
         refetch
     } = useGetShippingCostQuery();
     const [addShippingCost, { isLoading: isAdding }] = useAddShippingCostMutation();
+    const [deleteShippingCost] = useDeleteShippingCostMutation();
+    const [updateShippingCost] = useUpdateShippingCostMutation();
 
     const shippingData = data?.data || [];
 
@@ -129,19 +132,34 @@ const Shipping = () => {
         if (!validateForm()) return;
 
         try {
-            const shippingCostData = {
+            const payload = {
                 city: currentItem.city,
                 cost: parseFloat(currentItem.cost),
-                estimated_delivery_days: currentItem.estimated_delivery_days ?
-                    parseInt(currentItem.estimated_delivery_days) : null
+                estimated_delivery_days: currentItem.estimated_delivery_days
+                    ? parseInt(currentItem.estimated_delivery_days)
+                    : null
             };
 
-            await addShippingCost(shippingCostData).unwrap();
+            if (editMode) {
+                await updateShippingCost({
+                    id: currentItem.id,
+                    ...payload
+                }).unwrap();
+                toast.success('Shipping cost updated');
+            } else {
+                await addShippingCost(payload).unwrap();
+                toast.success('Shipping cost added');
+            }
+
             setIsModalOpen(false);
             refetch();
         } catch (error) {
-            console.error('Failed to save shipping cost:', error);
-            setErrors({ submit: error.message || 'Failed to save shipping cost' });
+            console.error('Submission error:', error);
+            toast.error(error.data?.message || 'Operation failed');
+            setErrors({
+                submit: error.data?.message || 'Failed to save shipping cost',
+                ...error.data?.errors
+            });
         }
     };
 
@@ -152,6 +170,20 @@ const Shipping = () => {
             [name]: value
         }));
     };
+
+    const deleteHandle = async () => {
+        try {
+            if (itemToDelete) {
+                await deleteShippingCost(itemToDelete.id).unwrap();
+                toast.success('Shipping Cost Deleted.');
+                refetch();
+            }
+        } catch (err) {
+            toast.error('error deleting Shipping Cost');
+        }
+    }
+
+
 
     const formatDeliveryDays = (days) => {
         if (!days) return 'Not specified';
@@ -387,7 +419,7 @@ const Shipping = () => {
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}
                 onConfirm={() => {
-                    // TODO: Implement delete functionality
+                    deleteHandle();
                     setIsDeleteModalOpen(false);
                 }}
                 itemName={itemToDelete?.city}
