@@ -19,6 +19,21 @@ const shippingCostApiSlice = apiSlice.injectEndpoints({
             }),
             invalidatesTags: ['ShippingCost'],
         }),
+        updateShippingCost: builder.mutation({
+            query: ({ id, ...shippingCost }) => ({
+                url: `${SHIPPING_COST_URL}/${id}`,
+                method: 'PUT',
+                body: shippingCost,
+            }),
+            invalidatesTags: ['ShippingCost'],
+        }),
+        deleteShippingCost: builder.mutation({
+            query: (id) => ({
+                url: `${SHIPPING_COST_URL}/${id}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: ['ShippingCost'],
+        }),
 
     }),
 });
@@ -26,4 +41,6 @@ const shippingCostApiSlice = apiSlice.injectEndpoints({
 export const {
     useGetShippingCostQuery,
     useAddShippingCostMutation,
+    useUpdateShippingCostMutation,
+    useDeleteShippingCostMutation,
 } = shippingCostApiSlice;
