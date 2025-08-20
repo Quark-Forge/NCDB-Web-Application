@@ -14,7 +14,6 @@ import {
     Address,
     ShippingCost
 } from '../models/index.js';
-import shippingCost from '../models/shippingCost.js';
 
 // Valid order status transitions
 const STATUS_TRANSITIONS = {
@@ -294,13 +293,13 @@ export const getAllOrders = asyncHandler(async (req, res) => {
     const ordersWithShipping = orders.rows.map(order => {
         const orderData = order.get({ plain: true });
         const city = order.Address?.city;
-        
+
         if (city && shippingCostMap[city]) {
             orderData.shippingCost = shippingCostMap[city];
         } else {
             orderData.shippingCost = null; // or default shipping cost if you prefer
         }
-        
+
         return orderData;
     });
 
@@ -477,11 +476,30 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 // GET order statistics
 export const getOrderStats = asyncHandler(async (req, res) => {
     try {
-        // Date calculations
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        thirtyDaysAgo.setHours(0, 0, 0, 0);
+        const { range = '30d' } = req.query; // '7d', '30d', '90d', 'all'
 
+        // Calculate date range
+        const now = new Date();
+        let startDate = new Date();
+
+        switch (range) {
+            case '7d':
+                startDate.setDate(now.getDate() - 7);
+                break;
+            case '30d':
+                startDate.setDate(now.getDate() - 30);
+                break;
+            case '90d':
+                startDate.setDate(now.getDate() - 90);
+                break;
+            case 'all':
+                startDate = new Date(0); // Beginning of time
+                break;
+            default:
+                startDate.setDate(now.getDate() - 30);
+        }
+
+        startDate.setHours(0, 0, 0, 0);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -496,9 +514,10 @@ export const getOrderStats = asyncHandler(async (req, res) => {
             pendingOrders,
             todayOrders,
             highValueOrders,
-            recentCancellations
+            recentCancellations,
+            topSellingProducts
         ] = await Promise.all([
-            // Last 30 days sales data
+            // Last X days sales data
             Order.findAll({
                 attributes: [
                     [sequelize.fn('DATE', sequelize.col('created_at')), 'date'],
@@ -506,7 +525,7 @@ export const getOrderStats = asyncHandler(async (req, res) => {
                     [sequelize.fn('COUNT', sequelize.col('id')), 'order_count']
                 ],
                 where: {
-                    createdAt: { [Op.gte]: thirtyDaysAgo },
+                    createdAt: { [Op.gte]: startDate },
                     status: { [Op.notIn]: ['cancelled'] },
                 },
                 group: [sequelize.fn('DATE', sequelize.col('created_at'))],
@@ -520,13 +539,19 @@ export const getOrderStats = asyncHandler(async (req, res) => {
                     'status',
                     [sequelize.fn('COUNT', sequelize.col('id')), 'count']
                 ],
+                where: {
+                    createdAt: { [Op.gte]: startDate }
+                },
                 group: ['status'],
                 raw: true
             }),
 
             // Total revenue (only delivered orders)
             Order.sum('total_amount', {
-                where: { status: 'delivered' }
+                where: {
+                    status: 'delivered',
+                    createdAt: { [Op.gte]: startDate }
+                }
             }),
 
             // Average order value
@@ -534,22 +559,34 @@ export const getOrderStats = asyncHandler(async (req, res) => {
                 attributes: [
                     [sequelize.fn('AVG', sequelize.col('total_amount')), 'avg']
                 ],
-                where: { status: 'delivered' },
+                where: {
+                    status: 'delivered',
+                    createdAt: { [Op.gte]: startDate }
+                },
                 raw: true
             }),
 
             // Total orders count (excluding cancelled)
-            Order.count(),
+            Order.count({
+                where: {
+                    createdAt: { [Op.gte]: startDate },
+                    status: { [Op.not]: 'cancelled' }
+                }
+            }),
 
             // Completed orders count (status = 'delivered')
             Order.count({
-                where: { status: 'delivered' }
+                where: {
+                    status: 'delivered',
+                    createdAt: { [Op.gte]: startDate }
+                }
             }),
 
             // Pending orders count (status = 'pending' or 'processing')
             Order.count({
                 where: {
-                    status: { [Op.in]: ['pending', 'processing'] }
+                    status: { [Op.in]: ['pending', 'processing'] },
+                    createdAt: { [Op.gte]: startDate }
                 }
             }),
 
@@ -564,7 +601,10 @@ export const getOrderStats = asyncHandler(async (req, res) => {
             // High value orders (top 5 orders by amount)
             Order.findAll({
                 attributes: ['id', 'total_amount', 'created_at', 'status'],
-                where: { status: { [Op.not]: 'cancelled' } },
+                where: {
+                    status: { [Op.not]: 'cancelled' },
+                    createdAt: { [Op.gte]: startDate }
+                },
                 order: [['total_amount', 'DESC']],
                 limit: 5,
                 raw: true
@@ -573,10 +613,40 @@ export const getOrderStats = asyncHandler(async (req, res) => {
             // Recent cancellations (last 10)
             Order.findAll({
                 attributes: ['id', 'total_amount', 'created_at'],
-                where: { status: 'cancelled' },
+                where: {
+                    status: 'cancelled',
+                    createdAt: { [Op.gte]: startDate }
+                },
                 order: [['created_at', 'DESC']],
                 limit: 10,
                 raw: true
+            }),
+
+            // Top 5 selling products
+            OrderItem.findAll({
+                attributes: [
+                    'product_id',
+                    [sequelize.fn('SUM', sequelize.col('OrderItem.quantity')), 'total_quantity'],
+                    [sequelize.fn('SUM', sequelize.col('OrderItem.price')), 'total_revenue'],
+                    [sequelize.fn('COUNT', sequelize.col('OrderItem.id')), 'order_count']
+                ],
+                include: [{
+                    model: Order,
+                    where: {
+                        status: { [Op.not]: 'cancelled' },
+                        createdAt: { [Op.gte]: startDate }
+                    },
+                    attributes: []
+                }, {
+                    model: Product,
+                    attributes: ['name', 'sku', 'base_image_url'],
+                    required: true
+                }],
+                group: ['OrderItem.product_id', 'Product.id'],
+                order: [[sequelize.literal('total_quantity'), 'DESC']],
+                limit: 5,
+                raw: true,
+                nest: true
             })
         ]);
 
@@ -585,6 +655,17 @@ export const getOrderStats = asyncHandler(async (req, res) => {
             ? (completedOrders / totalOrders) * 100
             : 0;
 
+        // Format top selling products
+        const formattedTopProducts = topSellingProducts.map(product => ({
+            product_id: product.product_id,
+            name: product.Product?.name,
+            sku: product.Product?.sku,
+            image_url: product.Product?.base_image_url,
+            total_quantity: parseInt(product.total_quantity) || 0,
+            total_revenue: parseFloat(product.total_revenue) || 0,
+            order_count: parseInt(product.order_count) || 0
+        }));
+
         res.json({
             success: true,
             data: {
@@ -592,6 +673,7 @@ export const getOrderStats = asyncHandler(async (req, res) => {
                 sales_trend: salesData,
                 today_orders: todayOrders,
                 recent_cancellations: recentCancellations,
+                date_range: range,
 
                 // Status metrics
                 status_distribution: statusCounts,
@@ -601,13 +683,20 @@ export const getOrderStats = asyncHandler(async (req, res) => {
                 conversion_rate: parseFloat(conversionRate.toFixed(2)),
 
                 // Financial metrics
-                total_revenue: totalRevenue || 0,
-                average_order_value: avgOrderValue?.avg || 0,
+                total_revenue: parseFloat(totalRevenue || 0).toFixed(2),
+                average_order_value: avgOrderValue?.avg ? parseFloat(avgOrderValue.avg).toFixed(2) : 0,
                 high_value_orders: highValueOrders,
 
+                // Product metrics
+                top_selling_products: formattedTopProducts,
+
                 // Performance metrics
-                orders_last_30_days: salesData.reduce((sum, day) => sum + day.order_count, 0),
-                revenue_last_30_days: salesData.reduce((sum, day) => sum + parseFloat(day.total_sales || 0), 0)
+                orders_last_period: salesData.reduce((sum, day) => sum + (parseInt(day.order_count) || 0), 0),
+                revenue_last_period: salesData.reduce((sum, day) => sum + parseFloat(day.total_sales || 0), 0).toFixed(2),
+
+                // Date info
+                period_start: startDate.toISOString(),
+                period_end: now.toISOString()
             }
         });
     } catch (error) {
