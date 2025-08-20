@@ -248,6 +248,12 @@ const updateUserProfile = asyncHandler(async (req, res) => {
         throw new Error('User not found');
     }
 
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser && existingUser.id !== req.user.id) {
+        res.status(400);
+        throw new Error('Email is already in use');
+    }
+
     const role = await Role.findByPk(user.role_id);
     const user_role = role ? role.name : 'Unknown';
 
@@ -333,7 +339,7 @@ const deleteUser = asyncHandler(async (req, res) => {
     const requestingUser = await User.findByPk(req.user.id, {
         include: [{ model: Role }]
     });
-    
+
     if (!requestingUser?.Role || requestingUser.Role.name !== 'Admin') {
         res.status(403);
         throw new Error('Not authorized as admin');

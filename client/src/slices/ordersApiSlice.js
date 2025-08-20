@@ -66,10 +66,15 @@ const ordersApiSlice = apiSlice.injectEndpoints({
 
         // GET ${ORDER_URL}/stats
         getOrderStats: builder.query({
-            query: () => ({
-                url: `${ORDER_URL}/stats`,
-                method: "GET",
-            }),
+            query: ({ range }) => {
+                const params = new URLSearchParams();
+
+                if (range) params.append("range", range);
+                return {
+                    url: `${ORDER_URL}/stats?${params.toString()}`,
+                    method: "GET",
+                };
+            },
             providesTags: ["order"],
         }),
     }),

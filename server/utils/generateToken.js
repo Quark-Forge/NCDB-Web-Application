@@ -1,8 +1,9 @@
 import jwt from 'jsonwebtoken';
 
 export const generateToken = (res, userID) => {
-    const token = jwt.sign({ userID }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ userID }, process.env.JWT_ACCESS_SECRET, {
         expiresIn: '7d',
+        algorithm: 'HS256',
     });
 
     res.cookie('jwt', token, {
@@ -14,7 +15,8 @@ export const generateToken = (res, userID) => {
 }
 
 export const generateVerificationToken = (userID) => {
-    return jwt.sign({ userID }, process.env.JWT_SECRET, {
+    return jwt.sign({ userID }, process.env.JWT_VERIFICATION_SECRET, {
         expiresIn: '24h',
+        algorithm: 'HS256',
     });
 }
