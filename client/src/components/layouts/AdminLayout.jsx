@@ -76,6 +76,7 @@ const adminNavConfig = {
       label: 'Categories',
       icon: <Tag size={16} />
     },
+   
   ]
 };
 
@@ -280,6 +281,7 @@ const AdminLayout = () => {
                   location.pathname.includes('/admin/categories') ||
                   location.pathname.includes('/admin/suppliers') ||
                   location.pathname.includes('/admin/inventory')
+                 
                   ? 'bg-blue-100 text-blue-700 font-medium'
                   : 'text-gray-700 hover:bg-gray-100'
                   }`}

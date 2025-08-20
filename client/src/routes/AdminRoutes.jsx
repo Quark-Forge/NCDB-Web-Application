@@ -9,6 +9,8 @@ import Dashboard from '../pages/admin/Dashboard';
 import Settings from '../pages/admin/Settings';
 import AdminProfile from '../pages/admin/AdminProfile';
 import OrderDetails from '../pages/admin/OrderDetails';
+import Inventory from '../pages/admin/Inventory';
+
 
 export const adminChildren = (
   <>
@@ -23,6 +25,8 @@ export const adminChildren = (
     </Route>
 
     <Route element={<ProtectedRoute allowedRoles={['Admin', 'Inventory Manager']} />}>
+      <Route path='inventory' element={<Inventory />}></Route>
+     
       
     </Route>
 
@@ -33,6 +37,8 @@ export const adminChildren = (
       <Route path='dashboard' element={<Dashboard />}></Route>
       <Route path='settings' element={<Settings />}></Route>
       <Route path='profile' element={<AdminProfile />}></Route>
+    
+
     </Route>
 
 
