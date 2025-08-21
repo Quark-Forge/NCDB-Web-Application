@@ -1,56 +1,70 @@
+import { useState } from 'react';
 import InventoryStats from "../../components/admin/inventory/InventoryStats";
 import { useGetSupplierItemsQuery } from '../../../src/slices/supplierItemsApiSlice';
-import Card from '../../../src/components/common/Card';
-
 import InventoryFilter from "../../components/admin/inventory/InventoryFilter";
 import InventoryTable from "../../components/admin/inventory/InventoryTable";
-import { useState } from 'react';
-
+import LoadingSpinner from '../../../src/components/common/LoadingSpinner';
+import Card from '../../../src/components/common/Card';
 
 const Inventory = () => {
+  const [filters, setFilters] = useState({
+    searchTerm: "",
+    inStock: false,
+    lowStock: false,
+    outOfStock: false,
+    criticalStock: false,
+  });
 
-const [filters,setFilters]=useState({
+  const { data, isLoading, error } = useGetSupplierItemsQuery();
 
-  searchTerm: "",
- 
-  inStock: false,
-  lowStock: false,
-  outOfStock: false,
-  criticalStock: false,
-})
+  if (isLoading) return (
+    <div className="flex justify-center items-center min-h-96">
+      <div className="text-center">
+        <LoadingSpinner size="lg" />
+        <p className="mt-4 text-gray-500">Loading inventory data...</p>
+      </div>
+    </div>
+  );
 
-  const {data, isLoading} =useGetSupplierItemsQuery();
+  if (error) return (
+    <Card className="p-8 text-center">
+      <div className="bg-gradient-to-r from-red-50 to-pink-50 p-6 rounded-xl">
+        <div className="text-red-600 text-lg font-medium mb-2">Error loading inventory data</div>
+        <p className="text-gray-600">Please try again later or contact support</p>
+      </div>
+    </Card>
+  );
 
-    const products = (data?.data?.supplierItems || []).filter(
+  const products = (data?.data?.supplierItems || []).filter(
     p => !p.deletedAt && !p.Product?.deletedAt && !p.Supplier?.deletedAt
   );
-  console.log(data?.data);
 
-  
-
-  if (isLoading) return <Card className="p-4">Loading stats...</Card>;
-   const stock = products.map((p) => ({
+  const stock = products.map((p) => ({
     productId: p.Product?.id,
     productName: p.Product?.name,
     stockLevel: p.stock_level,
-   supplierId: p.Supplier.id,
-   supplierSku:p.supplier_sku
-   
-   
+    supplierId: p.Supplier.id,
+    supplierSku: p.supplier_sku,
+    supplierName: p.Supplier?.name || 'Unknown Supplier'
   }));
-  
 
-
- 
-      return (
-        <div  >
-         <InventoryStats stock={stock} />
-         <InventoryFilter filters={filters} setFilters={setFilters} />
-         <InventoryTable stock={stock} filters={filters} />
-
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Inventory Management</h1>
+          <p className="text-gray-500 mt-1">Monitor and manage your product inventory</p>
         </div>
-      )
+        <button className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2.5 rounded-lg font-medium hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg">
+          Export Report
+        </button>
+      </div>
 
+      <InventoryStats stock={stock} />
+      <InventoryFilter filters={filters} setFilters={setFilters} />
+      <InventoryTable stock={stock} filters={filters} />
+    </div>
+  );
 };
 
 export default Inventory;
