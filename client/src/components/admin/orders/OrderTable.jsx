@@ -6,6 +6,7 @@ import Badges from '../../common/Badges';
 import Dropdown from '../../common/Dropdown';
 import { useUpdateOrderStatusMutation } from '../../../slices/ordersApiSlice';
 import { toast } from 'react-toastify';
+import { FiEye, FiPrinter } from 'react-icons/fi';
 
 const OrderTable = ({ orders = [], totalOrders = 0, onStatusUpdate }) => {
   const [updateOrderStatus, { isLoading: isUpdating }] = useUpdateOrderStatusMutation();
@@ -19,14 +20,6 @@ const OrderTable = ({ orders = [], totalOrders = 0, onStatusUpdate }) => {
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
-
-  const formatCurrency = (amount) => {
-    if (typeof amount !== 'number' || isNaN(amount)) return '$0.00';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
   };
 
   const statusOptions = [
@@ -54,7 +47,6 @@ const OrderTable = ({ orders = [], totalOrders = 0, onStatusUpdate }) => {
 
   const headers = [
     'Order ID',
-    'Customer',
     'Date',
     'Status',
     'Payment',
@@ -81,6 +73,7 @@ const OrderTable = ({ orders = [], totalOrders = 0, onStatusUpdate }) => {
       setUpdatingOrderId(null);
     }
   };
+  
 
   return (
     <Card className="p-0">
@@ -108,14 +101,11 @@ const OrderTable = ({ orders = [], totalOrders = 0, onStatusUpdate }) => {
             <tr key={order.id} className="hover:bg-gray-50">
               <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-blue-600">
                 <Link
-                  to={`/orders/${order._id}`}
+                  to={`/admin/orders/${order.id}`}
                   className="hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
                 >
                   #{order.order_number}
                 </Link>
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                {order.shipping_name || 'Guest'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                 {formatDate(order.createdAt)}
@@ -148,7 +138,7 @@ const OrderTable = ({ orders = [], totalOrders = 0, onStatusUpdate }) => {
                 </Badges>
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                {formatCurrency(order.total_amount)}
+                Rs{order.total_amount}
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
                 <div className="flex space-x-3">
@@ -157,13 +147,13 @@ const OrderTable = ({ orders = [], totalOrders = 0, onStatusUpdate }) => {
                     className="text-blue-600 hover:text-blue-800 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-1"
                     aria-label={`View order ${order.order_number}`}
                   >
-                    View
+                    <FiEye size={16} />
                   </Link>
                   <button
                     className="text-gray-600 hover:text-gray-800 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 rounded px-1"
                     aria-label={`Print order ${order.order_number}`}
                   >
-                    Print
+                    <FiPrinter size={16}/>
                   </button>
                 </div>
               </td>

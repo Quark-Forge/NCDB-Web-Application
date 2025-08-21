@@ -10,7 +10,9 @@ import {
     Order,
     CartItem,
     Cart,
-    Role
+    Role,
+    Address,
+    ShippingCost
 } from '../models/index.js';
 
 // Valid order status transitions
@@ -25,28 +27,12 @@ const STATUS_TRANSITIONS = {
 // checkout (create order)
 export const checkoutCart = asyncHandler(async (req, res) => {
     const user_id = req.user.id;
-    const {
-        shipping_name,
-        shipping_address_line1,
-        shipping_address_line2,
-        billing_address_same,
-        billing_address,
-        shipping_city,
-        shipping_phone,
-        payment_method
-    } = req.body;
+    const { address_id } = req.body;
 
     // Validate shipping details
-    if (!shipping_name || !shipping_address_line1 ||
-        !shipping_city || !shipping_phone) {
+    if (!address_id) {
         res.status(400);
-        throw new Error('Missing required shipping details (name, address_line1, city, phone)');
-    }
-
-    // Validate payment method if provided
-    if (payment_method && !['cash', 'card', 'bank_transfer'].includes(payment_method)) {
-        res.status(400);
-        throw new Error('Invalid payment method');
+        throw new Error('Missing required shipping details (address_id)');
     }
 
     // Get cart with items including supplier info
@@ -113,7 +99,6 @@ export const checkoutCart = asyncHandler(async (req, res) => {
                 supplier_id: cartItem.supplier_id,
                 quantity: cartItem.quantity,
                 price: cartItem.price,
-                purchase_price: cartItem.purchase_price,
                 product_data: { // Store snapshot of product details
                     name: cartItem.Product.name,
                     sku: cartItem.Product.sku,
@@ -141,18 +126,10 @@ export const checkoutCart = asyncHandler(async (req, res) => {
         // Create order
         const order = await Order.create({
             order_number: generateOrderNumber(),
-            shipping_name,
-            shipping_address_line1,
-            shipping_address_line2,
-            billing_address_same,
-            billing_address,
-            shipping_city,
-            shipping_phone,
-            payment_method,
+            address_id,
             total_amount: totalAmount,
             user_id,
             status: 'pending',
-            payment_method,
             notes: 'Order created from cart checkout'
         }, { transaction });
 
@@ -186,18 +163,51 @@ export const checkoutCart = asyncHandler(async (req, res) => {
         await transaction.commit();
 
         // Return complete order details
-        const completeOrder = await Order.findByPk(order.id, {
-            include: [{
-                model: OrderItem,
-                include: [Product, Supplier]
-            }]
-        });
+        try {
+            const orderDetail = await Order.findByPk(order.id, {
+                include: [
+                    {
+                        model: OrderItem,
+                        include: [Product, Supplier]
+                    },
+                    {
+                        model: Address,
+                        where: { id: address_id },
+                    }
+                ]
+            });
+            const shippingCost = await ShippingCost.findOne({
+                where: { city: orderDetail.Address.city }
+            });
+            const responseData = {
+                id: orderDetail.id, order_number: orderDetail.order_number,
+                status: orderDetail.status, total_amount: orderDetail.total_amount,
+                items: orderDetail.OrderItems.map(item => ({
 
-        res.status(201).json({
-            success: true,
-            message: 'Order created successfully',
-            data: completeOrder
-        });
+                    id: item.id, quantity: item.quantity,
+                    product_id: item.Product.id, product_name: item.Product.name,
+                    supplier_id: item.Supplier.id, supplier_name: item.Supplier.name,
+                })),
+                address_id: orderDetail.Address.id,
+                city: orderDetail.Address.city,
+                shipping_cost: shippingCost ? shippingCost.cost : 0,
+                payment_status: 'pending',
+            };
+
+            res.status(201).json({
+                success: true,
+                message: 'Order created successfully',
+                data: responseData
+
+            });
+        } catch (fetchError) {
+            console.error('Error fetching order details:', fetchError);
+            res.status(201).json({
+                success: true,
+                message: 'Order created successfully but could not fetch complete details',
+                data: { id: order.id } // At least return the order ID
+            });
+        }
 
     } catch (error) {
         await transaction.rollback();
@@ -213,13 +223,18 @@ export const checkoutCart = asyncHandler(async (req, res) => {
 
 // GET all orders (Admin)
 export const getAllOrders = asyncHandler(async (req, res) => {
-    const { status, startDate, endDate, product_id, supplier_id, page = 1, limit = 20 } = req.query;
+    const { search, status, startDate, endDate, product_id, supplier_id, page = 1, limit = 10 } = req.query;
 
     const where = {};
-    const include = [{
-        model: OrderItem,
-        include: []
-    }];
+    const include = [
+        {
+            model: OrderItem,
+            include: []
+        },
+        {
+            model: Address,
+        }
+    ];
 
     // Status filter
     if (status) where.status = status;
@@ -231,12 +246,19 @@ export const getAllOrders = asyncHandler(async (req, res) => {
         };
     }
 
+    if (search) {
+        where[Op.or] = [
+            { order_id: { [Op.like]: `%${search}%` } },
+            { '$Orders.id$': { [Op.like]: `%${search}%` } },
+            { '$Orders.Users.name$': { [Op.like]: `%${search}%` } }
+        ];
+        include[0].include.push(Product, Supplier);
+    }
     // Product filter
     if (product_id) {
         include[0].where = include[0].where || {};
         include[0].where.product_id = product_id;
     }
-
     // Supplier filter
     if (supplier_id) {
         include[0].include.push({
@@ -254,9 +276,36 @@ export const getAllOrders = asyncHandler(async (req, res) => {
         distinct: true
     });
 
+    const cities = [...new Set(orders.rows.map(order => order.Address?.city).filter(city => city))];
+
+    // Fetch shipping costs for all cities in one query
+    const shippingCosts = await ShippingCost.findAll({
+        where: { city: cities }
+    });
+
+    // Create a map of city to shipping cost for quick lookup
+    const shippingCostMap = {};
+    shippingCosts.forEach(cost => {
+        shippingCostMap[cost.city] = cost;
+    });
+
+    // Add shipping cost details to each order
+    const ordersWithShipping = orders.rows.map(order => {
+        const orderData = order.get({ plain: true });
+        const city = order.Address?.city;
+
+        if (city && shippingCostMap[city]) {
+            orderData.shippingCost = shippingCostMap[city];
+        } else {
+            orderData.shippingCost = null; // or default shipping cost if you prefer
+        }
+
+        return orderData;
+    });
+
     res.json({
         success: true,
-        data: orders.rows,
+        data: ordersWithShipping,
         meta: {
             total: orders.count,
             page: parseInt(page),
@@ -281,6 +330,7 @@ export const getUserOrders = asyncHandler(async (req, res) => {
         }],
         order: [['createdAt', 'DESC']]
     });
+
 
     res.json({
         success: true,
@@ -316,10 +366,30 @@ export const getOrderDetails = asyncHandler(async (req, res) => {
         });
         return;
     }
+    const address = await Address.findByPk(order.address_id);
+    const shippingCost = await ShippingCost.findOne({
+        where: { city: address.city }
+    });
+
+    const total = (
+        (parseFloat(order?.total_amount) || 0) +
+        (parseFloat(shippingCost?.cost) || 0)
+    ).toFixed(2);
+
+    const orderDetail = {
+        id: order.id, order_number: order.order_number, status: order.status,
+        total_amount: order.total_amount, createdAt: order.createdAt, updatedAt: order.updatedAt,
+        items: order.OrderItems,
+        address_id: address.id,
+        shipping_name: address.shipping_name, shipping_phone: address.shipping_phone,
+        address_line1: address.address_line1, address_line2: address.address_line2, city: address.city,
+        shipping_cost: shippingCost.cost, estimated_delivery_date: shippingCost.estimated_delivery_date,
+        total: total
+    }
 
     res.json({
         success: true,
-        data: order
+        data: orderDetail
     });
 });
 
@@ -406,11 +476,30 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 // GET order statistics
 export const getOrderStats = asyncHandler(async (req, res) => {
     try {
-        // Date calculations
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        thirtyDaysAgo.setHours(0, 0, 0, 0);
+        const { range = '30d' } = req.query; // '7d', '30d', '90d', 'all'
 
+        // Calculate date range
+        const now = new Date();
+        let startDate = new Date();
+
+        switch (range) {
+            case '7d':
+                startDate.setDate(now.getDate() - 7);
+                break;
+            case '30d':
+                startDate.setDate(now.getDate() - 30);
+                break;
+            case '90d':
+                startDate.setDate(now.getDate() - 90);
+                break;
+            case 'all':
+                startDate = new Date(0); // Beginning of time
+                break;
+            default:
+                startDate.setDate(now.getDate() - 30);
+        }
+
+        startDate.setHours(0, 0, 0, 0);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -425,9 +514,10 @@ export const getOrderStats = asyncHandler(async (req, res) => {
             pendingOrders,
             todayOrders,
             highValueOrders,
-            recentCancellations
+            recentCancellations,
+            topSellingProducts
         ] = await Promise.all([
-            // Last 30 days sales data
+            // Last X days sales data
             Order.findAll({
                 attributes: [
                     [sequelize.fn('DATE', sequelize.col('created_at')), 'date'],
@@ -435,8 +525,8 @@ export const getOrderStats = asyncHandler(async (req, res) => {
                     [sequelize.fn('COUNT', sequelize.col('id')), 'order_count']
                 ],
                 where: {
-                    createdAt: { [Op.gte]: thirtyDaysAgo },
-                    status: { [Op.notIn]: ['cancelled'] }
+                    createdAt: { [Op.gte]: startDate },
+                    status: { [Op.notIn]: ['cancelled'] },
                 },
                 group: [sequelize.fn('DATE', sequelize.col('created_at'))],
                 order: [[sequelize.fn('DATE', sequelize.col('created_at')), 'ASC']],
@@ -449,13 +539,19 @@ export const getOrderStats = asyncHandler(async (req, res) => {
                     'status',
                     [sequelize.fn('COUNT', sequelize.col('id')), 'count']
                 ],
+                where: {
+                    createdAt: { [Op.gte]: startDate }
+                },
                 group: ['status'],
                 raw: true
             }),
 
             // Total revenue (only delivered orders)
             Order.sum('total_amount', {
-                where: { status: 'delivered' }
+                where: {
+                    status: 'delivered',
+                    createdAt: { [Op.gte]: startDate }
+                }
             }),
 
             // Average order value
@@ -463,24 +559,34 @@ export const getOrderStats = asyncHandler(async (req, res) => {
                 attributes: [
                     [sequelize.fn('AVG', sequelize.col('total_amount')), 'avg']
                 ],
-                where: { status: 'delivered' },
+                where: {
+                    status: 'delivered',
+                    createdAt: { [Op.gte]: startDate }
+                },
                 raw: true
             }),
 
             // Total orders count (excluding cancelled)
             Order.count({
-                where: { status: { [Op.not]: 'cancelled' } }
+                where: {
+                    createdAt: { [Op.gte]: startDate },
+                    status: { [Op.not]: 'cancelled' }
+                }
             }),
 
             // Completed orders count (status = 'delivered')
             Order.count({
-                where: { status: 'delivered' }
+                where: {
+                    status: 'delivered',
+                    createdAt: { [Op.gte]: startDate }
+                }
             }),
 
             // Pending orders count (status = 'pending' or 'processing')
             Order.count({
                 where: {
-                    status: { [Op.in]: ['pending', 'processing'] }
+                    status: { [Op.in]: ['pending', 'processing'] },
+                    createdAt: { [Op.gte]: startDate }
                 }
             }),
 
@@ -495,7 +601,10 @@ export const getOrderStats = asyncHandler(async (req, res) => {
             // High value orders (top 5 orders by amount)
             Order.findAll({
                 attributes: ['id', 'total_amount', 'created_at', 'status'],
-                where: { status: { [Op.not]: 'cancelled' } },
+                where: {
+                    status: { [Op.not]: 'cancelled' },
+                    createdAt: { [Op.gte]: startDate }
+                },
                 order: [['total_amount', 'DESC']],
                 limit: 5,
                 raw: true
@@ -504,10 +613,40 @@ export const getOrderStats = asyncHandler(async (req, res) => {
             // Recent cancellations (last 10)
             Order.findAll({
                 attributes: ['id', 'total_amount', 'created_at'],
-                where: { status: 'cancelled' },
+                where: {
+                    status: 'cancelled',
+                    createdAt: { [Op.gte]: startDate }
+                },
                 order: [['created_at', 'DESC']],
                 limit: 10,
                 raw: true
+            }),
+
+            // Top 5 selling products
+            OrderItem.findAll({
+                attributes: [
+                    'product_id',
+                    [sequelize.fn('SUM', sequelize.col('OrderItem.quantity')), 'total_quantity'],
+                    [sequelize.fn('SUM', sequelize.col('OrderItem.price')), 'total_revenue'],
+                    [sequelize.fn('COUNT', sequelize.col('OrderItem.id')), 'order_count']
+                ],
+                include: [{
+                    model: Order,
+                    where: {
+                        status: { [Op.not]: 'cancelled' },
+                        createdAt: { [Op.gte]: startDate }
+                    },
+                    attributes: []
+                }, {
+                    model: Product,
+                    attributes: ['name', 'sku', 'base_image_url'],
+                    required: true
+                }],
+                group: ['OrderItem.product_id', 'Product.id'],
+                order: [[sequelize.literal('total_quantity'), 'DESC']],
+                limit: 5,
+                raw: true,
+                nest: true
             })
         ]);
 
@@ -516,6 +655,17 @@ export const getOrderStats = asyncHandler(async (req, res) => {
             ? (completedOrders / totalOrders) * 100
             : 0;
 
+        // Format top selling products
+        const formattedTopProducts = topSellingProducts.map(product => ({
+            product_id: product.product_id,
+            name: product.Product?.name,
+            sku: product.Product?.sku,
+            image_url: product.Product?.base_image_url,
+            total_quantity: parseInt(product.total_quantity) || 0,
+            total_revenue: parseFloat(product.total_revenue) || 0,
+            order_count: parseInt(product.order_count) || 0
+        }));
+
         res.json({
             success: true,
             data: {
@@ -523,6 +673,7 @@ export const getOrderStats = asyncHandler(async (req, res) => {
                 sales_trend: salesData,
                 today_orders: todayOrders,
                 recent_cancellations: recentCancellations,
+                date_range: range,
 
                 // Status metrics
                 status_distribution: statusCounts,
@@ -532,13 +683,20 @@ export const getOrderStats = asyncHandler(async (req, res) => {
                 conversion_rate: parseFloat(conversionRate.toFixed(2)),
 
                 // Financial metrics
-                total_revenue: totalRevenue || 0,
-                average_order_value: avgOrderValue?.avg || 0,
+                total_revenue: parseFloat(totalRevenue || 0).toFixed(2),
+                average_order_value: avgOrderValue?.avg ? parseFloat(avgOrderValue.avg).toFixed(2) : 0,
                 high_value_orders: highValueOrders,
 
+                // Product metrics
+                top_selling_products: formattedTopProducts,
+
                 // Performance metrics
-                orders_last_30_days: salesData.reduce((sum, day) => sum + day.order_count, 0),
-                revenue_last_30_days: salesData.reduce((sum, day) => sum + parseFloat(day.total_sales || 0), 0)
+                orders_last_period: salesData.reduce((sum, day) => sum + (parseInt(day.order_count) || 0), 0),
+                revenue_last_period: salesData.reduce((sum, day) => sum + parseFloat(day.total_sales || 0), 0).toFixed(2),
+
+                // Date info
+                period_start: startDate.toISOString(),
+                period_end: now.toISOString()
             }
         });
     } catch (error) {

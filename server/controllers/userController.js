@@ -1,11 +1,10 @@
-import asyncHandler from 'express-async-handler';
-import User from '../models/users.js';
+import asyncHandler from 'express-async-handler';;
 import { hashPassword, matchPassword } from '../utils/hash.js';
 import { generateToken, generateVerificationToken } from '../utils/generateToken.js';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { sendUserCredentials } from '../utils/sendEmail.js';
-import { Role } from '../models/index.js';
+import { Role, User } from '../models/index.js';
 
 
 // Get all users
@@ -249,6 +248,12 @@ const updateUserProfile = asyncHandler(async (req, res) => {
         throw new Error('User not found');
     }
 
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser && existingUser.id !== req.user.id) {
+        res.status(400);
+        throw new Error('Email is already in use');
+    }
+
     const role = await Role.findByPk(user.role_id);
     const user_role = role ? role.name : 'Unknown';
 
@@ -340,7 +345,7 @@ const deleteUser = asyncHandler(async (req, res) => {
         throw new Error('Not authorized as admin');
     }
 
-    if (requestingUser.id === parseInt(id)) {
+    if (requestingUser.id === id) {
         res.status(403);
         throw new Error('Admins cannot delete themselves');
     }

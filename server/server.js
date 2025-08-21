@@ -13,6 +13,8 @@ import cartRoutes from './routes/cartRoutes.js';
 
 
 import orderRoutes from './routes/orderRoutes.js';
+import addressRoutes from './routes/AddressRoutes.js';
+import shippingCostRoutes from './routes/shippingCostRoutes.js';
 
 
 dotenv.config();
@@ -32,6 +34,8 @@ app.use('/api/products', productRoute);
 app.use('/api/supplier-items', supplierItemRoutes);
 app.use('/api/carts', cartRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/shipping-addresses', addressRoutes);
+app.use('/api/shipping-costs', shippingCostRoutes);
 
 
 app.get('/', (req, res) => res.send('server is ready'));

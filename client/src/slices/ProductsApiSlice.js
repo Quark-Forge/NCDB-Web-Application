@@ -50,14 +50,16 @@ export const productsApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['product'],
     }),
-
+    
     // PUT /api/products/:id
     updateProduct: builder.mutation({
-      query: ({ id, ...data }) => ({
+      query: ({ id, ...data }) => (
+        {
         url: `${PRODUCTS_URL}/${id}`,
         method: 'PUT',
         body: data,
       }),
+      
       invalidatesTags: ['product'],
     }),
 
@@ -70,20 +72,13 @@ export const productsApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: ['product'],
     }),
 
-     // GET ${ORDER_URL}/update product stock
-        getStockUpdate: builder.query({
-            query: ({id}) => ({
-                url: `${PRODUCTS_URL}/${id}/stock`,
-                method: "GET",
-            }),
-            providesTags: ["product"],
-        }),
+    
   }),
 });
 
 export const {
   useGetProductsQuery,
-  useGetStockUpdateQuery,
+
   useGetProductsWithInactiveQuery,
   useGetProductByIdQuery,
   useCreateProductMutation,

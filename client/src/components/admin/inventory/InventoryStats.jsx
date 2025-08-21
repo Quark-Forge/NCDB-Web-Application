@@ -1,78 +1,87 @@
+import Card from "../../common/Card";
 
+const InventoryStats = ({ stock }) => {
+  if (!stock || stock.length === 0) {
+    return <Card className="p-4">No stock data available</Card>;
+  }
 
-import { useGetSupplierItemsQuery } from '../../../slices/supplierItemsApiSlice';
-import Card from '../../common/Card';
+  // Total number of products
+  const total = stock.length;
 
-const InventoryStats = () => {
-    const { data, isLoading } = useGetSupplierItemsQuery();
-    const products = data?.data || [];
+  // Count stock categories
+  const outOfStock = stock.filter((item) => item.stockLevel === 0).length;
+  const lowStock = stock.filter(
+      (item) => item.stockLevel > 0 && item.stockLevel < 10
+    ).length;
 
-  console.log(products);
-  
+  const criticalStock = stock.filter(
+      (item) => item.stockLevel > 0 && item.stockLevel < 5
+    ).length;
+  const inStock = stock.filter((item) => item.stockLevel >= 10).length;
 
-    if (isLoading) return <Card className="p-4">Loading stats...</Card>;
+  // Calculate percentages
+  const outOfStockPercent = ((outOfStock / total) * 100).toFixed(1);
+  const lowStockPercent = ((lowStock / total) * 100).toFixed(1);
+  const inStockPercent = ((inStock / total) * 100).toFixed(1);
+  const criticalStockPercent = ((criticalStock / total) * 100).toFixed(1);
 
-    return (
-//         <Card className="p-4">
-//             <h3 className="text-sm font-medium mb-4">Inventory Statistics</h3>
-//             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-//                 <StatCard
-//                     title={products.stock_level}
-//                     value={products.}
-//                     trend="up"
-//                     change={products.stock_level? "instock":"outofstock"}
-//                 />
-//                 {/* <StatCard
-//                     title="Low Stock"
-//                     value={lowStock}
-//                     trend="down"
-//                     change={products.length ? `${Math.round((lowStock/products.length)*100)}%` : '0%'}
-//                 />
-//                 <StatCard
-//                     title="Out of Stock"
-//                     value={outOfStock}
-//                     trend="down"
-//                     change={products.length ? `${Math.round((outOfStock/products.length)*100)}%` : '0%'}
-//                 /> */}
-//             </div>
-//         </Card>
-//     );
-// };
+  return (
+    <Card className="p-4">
+      <h3 className="text-sm font-medium mb-4">Inventory Statistics</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <StatCard
+          title="In Stock"
+          value={`${inStock} (${inStockPercent}%)`}
+          trend="up"
+        />
+        <StatCard
+          title="Low Stock"
+          value={`${lowStock} (${lowStockPercent}%)`}
+          trend="down"
+        />
+        <StatCard
+          title="Out of Stock"
+          value={`${outOfStock} (${outOfStockPercent}%)`}
+          trend="down"
+        />
 
-// const StatCard = ({ title, value, trend, change }) => {
-//     const trendColors = {
-//         up: 'text-green-600',
-//         down: 'text-red-600',
-//         neutral: 'text-gray-600'
-//     };
-//     const trendIcons = {
-//         up: '↑',
-//         down: '↓',
-//         neutral: '→'
-//     };
-//     return (
-//         <div className="bg-gray-50 p-3 rounded-lg">
-//             <h4 className="text-xs text-gray-500 font-medium">{title}</h4>
-//             <div className="flex items-end justify-between mt-1">
-//                 <p className="text-lg font-bold">{title}</p>
-//                 {trend && (
-//                     <span className={`text-xs ${trendColors[trend]}`}>
-//                         {trendIcons[trend]} {change}
-//                     </span>
-//                 )}
-//             </div>
-//         </div>
+         <StatCard
+          title="Critical Stock"
+          value={`${criticalStock} (${criticalStockPercent}%)`}
+          trend="down"
+        />
+      </div>
+    </Card>
+  );
+};
 
-<div>
+// Reusable Stat Card
+const StatCard = ({ title, value, trend }) => {
+  const trendColors = {
+    up: "text-green-600",
+    down: "text-red-600",
+    neutral: "text-gray-600",
+  };
 
-   <div>
-  {products.map((p) => (
-    <p key={`${p.supplier_id}-${p.product_id}`}>{p.supplier_id}</p>
-  ))}
-</div>
+  const trendIcons = {
+    up: "↑",
+    down: "↓",
+    neutral: "→",
+  };
 
-</div>
-    );
+  return (
+    <div className="bg-gray-50 p-3 rounded-lg">
+      <h4 className="text-xs text-gray-500 font-medium">{title}</h4>
+      <div className="flex items-end justify-between mt-1">
+        <p className="text-lg font-bold">{value}</p>
+        {trend && (
+          <span className={`text-xs ${trendColors[trend]}`}>
+            {trendIcons[trend]}
+          </span>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default InventoryStats;

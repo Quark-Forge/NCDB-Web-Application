@@ -1,10 +1,11 @@
-import { useGetAllOrdersQuery } from '../../slices/ordersApiSlice';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
-import OrderStats from '../../components/admin/orders/OrderStats';
-import OrderFilters from '../../components/admin/orders/OrderFilters';
-import OrderTable from '../../components/admin/orders/OrderTable';
-import Pagination from '../../components/common/Pagination';
+
 import { useState } from 'react';
+import { useGetAllOrdersQuery } from '../../../slices/ordersApiSlice';
+import LoadingSpinner from '../../../components/common/LoadingSpinner';
+import OrderStats from '../../../components/admin/orders/OrderStats';
+import OrderFilters from '../../../components/admin/orders/OrderFilters';
+import OrderTable from '../../../components/admin/orders/OrderTable';
+import Pagination from '../../../components/common/Pagination';
 
 const Order = () => {
   const [filters, setFilters] = useState({
@@ -25,6 +26,7 @@ const Order = () => {
     ...filters,
     ...pagination,
   });
+  
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
@@ -58,12 +60,12 @@ const Order = () => {
           <div className="overflow-x-auto">
             <OrderTable
               orders={orders?.data || []}
-              totalOrders={orders?.total || 0}
+              totalOrders={orders?.meta.total || 0}
             />
           </div>
           <Pagination
             currentPage={pagination.page}
-            totalPages={Math.ceil(orders?.total / pagination.limit) || 1}
+            totalPages={Math.ceil(orders?.meta.total / pagination.limit) || 1}
             onPageChange={(page) => setPagination(prev => ({ ...prev, page }))}
             onLimitChange={(limit) => setPagination(prev => ({ ...prev, limit }))}
           />
