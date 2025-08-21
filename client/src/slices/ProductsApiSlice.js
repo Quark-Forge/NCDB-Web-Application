@@ -71,11 +71,14 @@ export const productsApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['product'],
     }),
+
+    
   }),
 });
 
 export const {
   useGetProductsQuery,
+
   useGetProductsWithInactiveQuery,
   useGetProductByIdQuery,
   useCreateProductMutation,

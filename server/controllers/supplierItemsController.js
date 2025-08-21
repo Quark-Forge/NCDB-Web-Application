@@ -18,6 +18,8 @@ export const getAllSupplierItems = async (req, res) => {
       data: data,
       message: "Supplier items fetched successfully."
     });
+
+   
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch supplier items." });
   }

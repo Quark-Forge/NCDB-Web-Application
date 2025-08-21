@@ -10,36 +10,30 @@ import Settings from '../pages/admin/Settings';
 import AdminProfile from '../pages/admin/AdminProfile';
 import OrderDetails from '../pages/admin/orders/OrderDetails';
 import Shipping from '../pages/admin/shipping/Shipping';
+import Inventory  from '../pages/admin/Inventory';
 
 export const adminChildren = (
   <>
-
     <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
-      <Route path='users' element={<Users />}></Route>
+      <Route path='users' element={<Users />} />
     </Route>
 
     <Route element={<ProtectedRoute allowedRoles={['Admin', 'Order Manager']} />}>
-      <Route path='orders' element={<Orders />}></Route>
-      <Route path='orders/:orderId' element={<OrderDetails />}></Route>
-      <Route path='shipping' element={<Shipping />}></Route>
+      <Route path='orders' element={<Orders />} />
+      <Route path='orders/:orderId' element={<OrderDetails />} />
+      <Route path='shipping' element={<Shipping />} />
     </Route>
 
-    <Route element={<ProtectedRoute allowedRoles={['Admin', 'Inventory Manager']} />}>
-
-    </Route>
+    {/* Remove empty ProtectedRoute block */}
 
     <Route element={<ProtectedRoute allowedRoles={['Admin', 'Order Manager', 'Inventory Manager']} />}>
-      <Route path='products' element={<Products />}></Route>
-      <Route path='categories' element={<Categories />}></Route>
-      <Route path='suppliers' element={<Suppliers />}></Route>
-      <Route path='dashboard' element={<Dashboard />}></Route>
-      <Route path='settings' element={<Settings />}></Route>
-      <Route path='profile' element={<AdminProfile />}></Route>
-      <Route path='profile' element={<AdminProfile />}></Route>
+      <Route path='products' element={<Products />} />
+      <Route path='categories' element={<Categories />} />
+      <Route path='suppliers' element={<Suppliers />} />
+      <Route path='dashboard' element={<Dashboard />} />
+      <Route path='settings' element={<Settings />} />
+      <Route path='profile' element={<AdminProfile />} />
+      <Route path='inventory' element={<Inventory />} />
     </Route>
-
-
-
-
   </>
 );
