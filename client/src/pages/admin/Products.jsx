@@ -4,12 +4,12 @@ import { useDeleteProductMutation, useGetProductsWithInactiveQuery } from "../..
 import { useGetCategoriesQuery } from "../../slices/categoryApiSlice";
 import { useGetAllActiveSuppliersQuery } from "../../slices/suppliersApiSlice";
 import { Search, RefreshCw, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AddProduct from "../../components/admin/products/AddProduct";
 import ProductsList from "../../components/admin/products/ProductsList";
 import EditProduct from "../../components/admin/products/EditProduct";
 import DeleteConfirmation from "../../components/common/DeleteConfirmation";
-import { useEffect } from "react";
+import Pagination from "../../components/common/Pagination"; // Import your Pagination
 
 const Products = () => {
   const { data: productsData, isLoading, error, refetch } = useGetProductsWithInactiveQuery({});
@@ -25,6 +25,9 @@ const Products = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedSupplierItem, setSelectedSupplierItem] = useState(null);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 3;
+
   const products = productsData?.data || [];
   const categories = categoriesData?.data || [];
   const suppliers = suppliersData?.data || [];
@@ -35,11 +38,25 @@ const Products = () => {
     }
   }, [error]);
 
+  // Filtered products based on search
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.Category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
 
   const handleEdit = (product, supplierItem) => {
     setSelectedProduct(product);
@@ -65,18 +82,13 @@ const Products = () => {
     } catch (err) {
       console.error('Delete error:', err);
       toast.error(
-        err?.data?.message ||
-        'Error deleting product offering. Check console for details.'
+        err?.data?.message || 'Error deleting product offering.'
       );
     }
   };
 
   const handleToggleStatus = async (productId, newStatus) => {
-    try {
-      toast.info('Status toggle feature coming soon!');
-    } catch (err) {
-      toast.error('Error updating product status');
-    }
+    toast.info('Status toggle feature coming soon!');
   };
 
   const closeModals = () => {
@@ -120,7 +132,10 @@ const Products = () => {
                 placeholder="Search products..."
                 className="block w-full pl-10 pr-3 py-2 md:py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm md:text-base"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1); // Reset to first page on search
+                }}
               />
             </div>
             <button
@@ -136,13 +151,23 @@ const Products = () => {
         <div className="bg-white rounded-lg md:rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <ProductsList
             isLoading={isLoading}
-            filteredProducts={filteredProducts}
+            filteredProducts={paginatedProducts} // Use paginated products
             searchTerm={searchTerm}
             handleEdit={handleEdit}
             handleDelete={handleDelete}
             handleToggleStatus={handleToggleStatus}
           />
         </div>
+
+        {/* Pagination */}
+      
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            className="mt-4"
+          />
+       
 
         {showCreateModal && (
           <AddProduct

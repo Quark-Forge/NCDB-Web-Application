@@ -5,12 +5,13 @@ import {
   useUpdateSupplierMutation,
   useDeleteSupplierMutation,
 } from "../../slices/suppliersApiSlice";
-import { Search, RefreshCw, Plus, X } from 'lucide-react';
-import { useState } from 'react';
+import { Search, RefreshCw, Plus } from 'lucide-react';
+import { useState, useMemo } from 'react';
 import SuppliersList from "../../components/admin/suppliers/SuppliersList";
 import AddSupplier from "../../components/admin/suppliers/AddSupplier";
 import EditSupplier from "../../components/admin/suppliers/EditSupplier";
 import DeleteConfirmation from "../../components/common/DeleteConfirmation";
+import Pagination from "../../components/common/Pagination";
 
 const Suppliers = () => {
   const { data: suppliersData, isLoading, error, refetch } = useGetAllSuppliersQuery();
@@ -31,6 +32,9 @@ const Suppliers = () => {
     address: ''
   });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5; // Change this as needed
+
   const resetForm = () => {
     setFormData({
       name: '',
@@ -41,17 +45,25 @@ const Suppliers = () => {
     setEditingSupplier(null);
   };
 
-
   const suppliers = suppliersData?.data || [];
 
   if (error) {
     toast.error(error?.data?.message || error.error);
   }
 
-  const filteredSuppliers = suppliers.filter(supplier =>
-    supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    supplier.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    supplier.contact_number?.includes(searchTerm)
+  const filteredSuppliers = useMemo(() => 
+    suppliers.filter(supplier =>
+      supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      supplier.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      supplier.contact_number?.includes(searchTerm)
+    ), [suppliers, searchTerm]
+  );
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredSuppliers.length / itemsPerPage);
+  const paginatedSuppliers = filteredSuppliers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
   );
 
   const handleInputChange = (e) => {
@@ -112,6 +124,10 @@ const Suppliers = () => {
     resetForm();
   };
 
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <ToastContainer position="top-right" autoClose={3000} />
@@ -146,7 +162,7 @@ const Suppliers = () => {
                 placeholder="Search suppliers..."
                 className="block w-full pl-10 pr-3 py-2 md:py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm md:text-base"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} // reset page to 1 on search
               />
             </div>
             <button
@@ -163,12 +179,22 @@ const Suppliers = () => {
         <div className="bg-white rounded-lg md:rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <SuppliersList
             isLoading={isLoading}
-            filteredSuppliers={filteredSuppliers}
+            filteredSuppliers={paginatedSuppliers} // pass paginated suppliers
             searchTerm={searchTerm}
             handleEdit={handleEdit}
             handleDelete={handleDelete}
           />
         </div>
+
+        {/* Pagination */}
+       
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            className="mt-4"
+          />
+        
 
         {/* Create Supplier Modal */}
         {showCreateModal && (
@@ -192,6 +218,7 @@ const Suppliers = () => {
           isUpdating={isUpdating}
         />
 
+        {/* Delete Confirmation Modal */}
         {showDeleteModal && (
           <DeleteConfirmation
             isOpen={showDeleteModal}

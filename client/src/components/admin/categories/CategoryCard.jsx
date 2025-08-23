@@ -21,6 +21,7 @@ const CategoryCard = ({ filteredCategories, handleEdit, handleDelete }) => {
     };
 
     const canEditDelete = allowedRoles.includes(userInfo?.user_role);
+   
 
     return (
         <div className="bg-white rounded-lg shadow-sm">

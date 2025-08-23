@@ -13,6 +13,7 @@ import AddCategory from "../../components/admin/categories/AddCategory";
 import EditCategory from "../../components/admin/categories/EditCategory";
 import DeleteConfirmation from "../../components/common/DeleteConfirmation";
 import { useSelector } from "react-redux";
+import Pagination from "../../components/common/Pagination";
 
 const allowedRoles = ['Admin', 'Inventory Manager'];
 
@@ -29,6 +30,14 @@ const Categories = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
+
+  const [pagination, setPagination] =useState({
+    page: 1,
+    limit: 3
+  })
+
+  
+
 
   const [formData, setFormData] = useState({
     name: '',
@@ -55,6 +64,17 @@ const Categories = () => {
     category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     category.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+
+
+  const startIndex = (pagination.page - 1) * pagination.limit;
+  const endIndex = startIndex + pagination.limit;
+  const paginatedCategories = filteredCategories.slice(startIndex, endIndex);
+
+
+  const handlePageChange = (newPage) => {
+  setPagination((prev) => ({ ...prev, page: newPage }));
+};
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -113,6 +133,7 @@ const Categories = () => {
     resetForm();
   };
 
+
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <ToastContainer position="top-right" autoClose={3000} />
@@ -167,10 +188,16 @@ const Categories = () => {
         <div className="bg-white rounded-lg md:rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <CategoriesList
             isLoading={isLoading}
-            filteredCategories={filteredCategories}
+           filteredCategories={paginatedCategories}
             searchTerm={searchTerm}
             handleEdit={handleEdit}
             handleDelete={handleDelete}
+
+          />
+          <Pagination
+            currentPage={pagination.page}
+            totalPages={Math.ceil(filteredCategories.length / pagination.limit)}
+            onPageChange={handlePageChange}
           />
         </div>
 
