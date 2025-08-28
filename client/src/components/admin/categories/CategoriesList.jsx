@@ -7,7 +7,8 @@ const CategoriesList = ({
   filteredCategories,
   searchTerm,
   handleEdit,
-  handleDelete
+  handleDelete,
+
 }) => {
   if (isLoading) {
     return (
@@ -34,6 +35,7 @@ const CategoriesList = ({
       filteredCategories={filteredCategories}
       handleEdit={handleEdit}
       handleDelete={handleDelete}
+     
     />
   );
 };
