@@ -1,10 +1,10 @@
+import { useState } from 'react';
 import InventoryStats from "../../components/admin/inventory/InventoryStats";
+import { useGetSupplierItemsQuery } from '../../../src/slices/supplierItemsApiSlice';
 import InventoryFilter from "../../components/admin/inventory/InventoryFilter";
 import InventoryTable from "../../components/admin/inventory/InventoryTable";
-import Pagination from "../../components/common/Pagination";
-import Card from "../../components/common/Card";
-import { useGetSupplierItemsQuery } from "../../slices/supplierItemsApiSlice";
-import { useState, useEffect } from "react";
+import LoadingSpinner from '../../../src/components/common/LoadingSpinner';
+import Card from '../../../src/components/common/Card';
 
 const Inventory = () => {
   const [filters, setFilters] = useState({
@@ -15,77 +15,54 @@ const Inventory = () => {
     criticalStock: false,
   });
 
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 3,
-  });
+  const { data, isLoading, error } = useGetSupplierItemsQuery();
 
-  // Fetch all data (no backend filtering)
-  const { data, isLoading } = useGetSupplierItemsQuery();
-
-  const products = (data?.data?.supplierItems || []).filter(
-    (p) => !p.deletedAt && !p.Product?.deletedAt && !p.Supplier?.deletedAt
+  if (isLoading) return (
+    <div className="flex justify-center items-center min-h-96">
+      <div className="text-center">
+        <LoadingSpinner size="lg" />
+        <p className="mt-4 text-gray-500">Loading inventory data...</p>
+      </div>
+    </div>
   );
 
-  // Map stock data
+  if (error) return (
+    <Card className="p-8 text-center">
+      <div className="bg-gradient-to-r from-red-50 to-pink-50 p-6 rounded-xl">
+        <div className="text-red-600 text-lg font-medium mb-2">Error loading inventory data</div>
+        <p className="text-gray-600">Please try again later or contact support</p>
+      </div>
+    </Card>
+  );
+
+  const products = (data?.data?.supplierItems || []).filter(
+    p => !p.deletedAt && !p.Product?.deletedAt && !p.Supplier?.deletedAt
+  );
+
   const stock = products.map((p) => ({
     productId: p.Product?.id,
     productName: p.Product?.name,
     stockLevel: p.stock_level,
     supplierId: p.Supplier.id,
     supplierSku: p.supplier_sku,
+    supplierName: p.Supplier?.name || 'Unknown Supplier'
   }));
 
-  // Apply frontend filter to calculate total pages
-  const filteredStock = stock.filter((item) => {
-    const searchMatch = item.productName
-      .toLowerCase()
-      .includes(filters.searchTerm.toLowerCase());
-
-    const stockStatusMatch =
-      (!filters.inStock &&
-        !filters.lowStock &&
-        !filters.outOfStock &&
-        !filters.criticalStock) ||
-      (filters.inStock && item.stockLevel > 10) ||
-      (filters.lowStock && item.stockLevel <= 10 && item.stockLevel > 5) ||
-      (filters.outOfStock && item.stockLevel === 0) ||
-      (filters.criticalStock && item.stockLevel <= 5 && item.stockLevel > 0);
-
-    return searchMatch && stockStatusMatch;
-  });
-
-  const totalItems = filteredStock.length;
-  const totalPages = Math.ceil(totalItems / pagination.limit) || 1;
-
-  // Reset page if current page exceeds total pages after filtering
-  useEffect(() => {
-    if (pagination.page > totalPages) {
-      setPagination((prev) => ({ ...prev, page: 1 }));
-    }
-  }, [totalPages]);
-
-  if (isLoading) return <Card className="p-4">Loading...</Card>;
-
   return (
-    <div>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Inventory Management</h1>
+          <p className="text-gray-500 mt-1">Monitor and manage your product inventory</p>
+        </div>
+        <button className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2.5 rounded-lg font-medium hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg">
+          Export Report
+        </button>
+      </div>
+
       <InventoryStats stock={stock} />
       <InventoryFilter filters={filters} setFilters={setFilters} />
-
-      <InventoryTable
-        stock={stock}
-        filters={filters}
-        pagination={pagination}
-        setPagination={setPagination}
-      />
-
-      <Pagination
-        currentPage={pagination.page}
-        totalPages={totalPages}
-        onPageChange={(newPage) =>
-          setPagination((prev) => ({ ...prev, page: newPage }))
-        }
-      />
+      <InventoryTable stock={stock} filters={filters} />
     </div>
   );
 };
