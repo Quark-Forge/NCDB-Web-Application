@@ -3,6 +3,7 @@ import Home from '../pages/home/Home';
 
 export const homeChildren = (
     <>
-        <Route index element={<Home />}></Route>
+        <Route index element={<Home />} />
+
     </>
 );
