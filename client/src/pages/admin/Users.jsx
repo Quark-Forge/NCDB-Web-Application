@@ -1,22 +1,25 @@
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useDeleteUserMutation, useGetAllUsersQuery } from "../../slices/usersApiSlice";
-import { Search, Frown, Loader2, RefreshCw, Plus, } from 'lucide-react';
+import { Search, Frown, Loader2, RefreshCw, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import UserCard from "../../components/admin/users/UserCard";
 import DeleteConfirmation from "../../components/common/DeleteConfirmation";
+import Pagination from "../../components/common/Pagination";
 
 const Users = () => {
-  const { data: usersData, isLoading, error, refetch } = useGetAllUsersQuery();
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10); // Number of users per page
+  const { data: usersData, isLoading, error, refetch } = useGetAllUsersQuery({ page, limit });
   const [deleteUser] = useDeleteUserMutation();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-
-  const users = usersData?.data || [];
-
   const [userId, setUserId] = useState();
 
+  const users = usersData?.data || [];
+  const totalPages = usersData?.totalPages || 1;
+  const totalUsers = usersData?.totalCount || 0;
 
   useEffect(() => {
     if (error) {
@@ -47,6 +50,18 @@ const Users = () => {
     }
   };
 
+  const handlePreviousPage = () => {
+    if (page > 1) {
+      setPage(page - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (page < totalPages) {
+      setPage(page + 1);
+    }
+  };
+
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <ToastContainer position="top-right" autoClose={3000} />
@@ -56,11 +71,16 @@ const Users = () => {
         <div className="flex flex-col space-y-3 md:flex-row md:items-center md:justify-between md:space-y-0">
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-gray-800">User Management</h1>
-            <p className="text-sm md:text-base text-gray-500 mt-1">Manage all registered users</p>
+            <p className="text-sm md:text-base text-gray-500 mt-1">
+              Showing {(page - 1) * limit + 1}-{Math.min(page * limit, totalUsers)} of {totalUsers} users
+            </p>
           </div>
           <div className="flex items-center space-x-2">
             <button
-              onClick={refetch}
+              onClick={() => {
+                refetch();
+                setPage(1);
+              }}
               className="flex items-center px-3 py-1.5 md:px-4 md:py-2 bg-white border border-gray-200 rounded-lg text-xs md:text-sm font-medium hover:bg-gray-50 transition-colors"
             >
               <RefreshCw className="h-3 w-3 md:h-4 md:w-4 mr-1" />
@@ -108,9 +128,18 @@ const Users = () => {
                 refetch={refetch}
                 deleteHandle={deleteHandle}
               />
+
+              {/* Pagination Controls */}
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                handlePreviousPage={handlePreviousPage}
+                handleNextPage={handleNextPage}
+              />
             </>
           )}
         </div>
+
         {/* Edit User Modal */}
         {showDeleteModal && (
           <DeleteConfirmation

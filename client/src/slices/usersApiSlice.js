@@ -31,10 +31,12 @@ export const usersApiSlice = apiSlice.injectEndpoints({
             })
         }),
         getAllUsers: builder.query({
-            query: () => ({
+            query: ({ page = 1, limit = 10 }) => ({
                 url: `${USERS_URL}`,
                 method: 'GET',
-            })
+                params: { page, limit }}
+            ),
+            providesTags: ['user']
         }),
         updateUserRole: builder.mutation({
             query: ({ userId, roleId }) => ({
@@ -42,33 +44,62 @@ export const usersApiSlice = apiSlice.injectEndpoints({
                 method: 'PUT',
                 body: { role_id: roleId },
             }),
-            invalidatesTags: ['User']
+            invalidatesTags: ['user']
         }),
         deleteUser: builder.mutation({
-            query: ( userId ) => ({
+            query: (userId) => ({
                 url: `${USERS_URL}/${userId}`,
                 method: 'DELETE',
             }),
-            invalidatesTags: ['User']
+            invalidatesTags: ['user']
         }),
         restoreUser: builder.mutation({
-            query: ( userId ) => ({
+            query: (userId) => ({
                 url: `${USERS_URL}/${userId}`,
                 method: 'PATCH',
             }),
-            invalidatesTags: ['User']
+            invalidatesTags: ['user'],
+            providesTags: ['user']
         }),
+        updateUserRole: builder.mutation({
+            query: ({ userId, roleId }) => ({
+                url: `${USERS_URL}/${userId}/role`,
+                method: 'PUT',
+                body: { role_id: roleId },
+            }),
+            invalidatesTags: ['user']
+        }),
+        deleteUser: builder.mutation({
+            query: (userId) => ({
+                url: `${USERS_URL}/${userId}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: ['user']
+        }),
+        restoreUser: builder.mutation({
+            query: (userId) => ({
+                url: `${USERS_URL}/${userId}`,
+                method: 'PATCH',
+            }),
+            invalidatesTags: ['user']
+        }),
+
 
     })
 });
 
-export const { 
-    useLoginMutation, 
-    useLogoutMutation, 
-    useRegisterMutation, 
-    useUpdateUserMutation, 
+export const {
+   
+    useLoginMutation,
+   
+    useLogoutMutation,
+   
+    useRegisterMutation,
+   
+    useUpdateUserMutation,
+   
     useGetAllUsersQuery,
     useDeleteUserMutation,
     useRestoreUserMutation,
-    useUpdateUserRoleMutation
+     useUpdateUserRoleMutation
 } = usersApiSlice;

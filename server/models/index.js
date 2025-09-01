@@ -1,104 +1,40 @@
 import sequelize from "../config/db.js";
+import RoleModel from "./roles.js";
+import UserModel from "./users.js";
+import CartModel from "./cart.js";
+import CartItemModel from "./cartItems.js";
+import ProductModel from "./product.js";
+import CategoryModel from "./category.js";
+import SupplierModel from "./suppliers.js";
+import ShippingCostModel from "./shippingCost.js";
+import AddressModel from "./address.js";
+import OrderModel from "./orders.js";
+import OrderItemModel from "./orderItems.js";
+import PaymentModel from "./payment.js";
+import SupplierItemModel from "./suplierItem.js";
+import WishlistModel from "./wishlist.js";
+import WishlistItemModel from "./wishlistItem.js";
 
-import Role from "./roles.js";
-import User from "./users.js";
-import Cart from "./cart.js";
-import CartItem from "./cartItems.js";
-import Product from "./product.js";
-import Category from "./category.js";
-import Supplier from "./suppliers.js";
-import SupplierItem from "./suplierItem.js"
-import Order from "./orders.js";
-import OrderItem from "./orderItems.js";
-import Payment from "./payment.js";
-
-// User <-> Role
-User.belongsTo(Role, {
-  foreignKey: 'role_id',
-  onUpdate: 'CASCADE',
-  onDelete: 'RESTRICT',
-});
-Role.hasMany(User, {
-  foreignKey: 'role_id',
-  onUpdate: 'CASCADE',
-  onDelete: 'RESTRICT',
-});
-
-// Product<-> Category
-Product.belongsTo(Category, {
-  foreignKey: 'category_id'
-});
-Category.hasMany(Product, {
-  foreignKey: 'category_id'
-});
-
-// Cart <-> User
-Cart.belongsTo(User, {
-  foreignKey: 'user_id',
-});
-User.hasOne(Cart, {
-  foreignKey: 'user_id',
-});
-
-// Cart <-> CartItem <-> Product
-Cart.hasMany(CartItem, {
-  foreignKey: 'cart_id',
-  onDelete: 'CASCADE'
-});
-CartItem.belongsTo(Cart, {
-  foreignKey: 'cart_id',
-});
-
-CartItem.belongsTo(Product, {
-  foreignKey: 'product_id',
-});
-Product.hasMany(CartItem, {
-  foreignKey: 'product_id',
-});
-
-// SupplierItem <-> Supplier & Product
-SupplierItem.belongsTo(Supplier, {
-  foreignKey: 'supplier_id'
-});
-Supplier.hasMany(SupplierItem, {
-  foreignKey: 'supplier_id'
-});
-
-SupplierItem.belongsTo(Product, {
-  foreignKey: 'product_id'
-});
-Product.hasMany(SupplierItem, {
-  foreignKey: 'product_id'
-});
-
-// OrderItem <-> Order & User
-Order.belongsTo(User, {
-  foreignKey: 'user_id'
-});
-Order.hasMany(OrderItem, {
-  foreignKey: 'order_id'
-});
+export const Role = RoleModel(sequelize);
+export const User = UserModel(sequelize);
+export const Product = ProductModel(sequelize);
+export const Category = CategoryModel(sequelize);
+export const Supplier = SupplierModel(sequelize);
+export const Wishlist = WishlistModel(sequelize);
+export const WishlistItem = WishlistItemModel(sequelize);
+export const Cart = CartModel(sequelize);
+export const CartItem = CartItemModel(sequelize);
+export const ShippingCost = ShippingCostModel(sequelize);
+export const Address = AddressModel(sequelize);
+export const Order = OrderModel(sequelize);
+export const OrderItem = OrderItemModel(sequelize);
+export const Payment = PaymentModel(sequelize);
+export const SupplierItem = SupplierItemModel(sequelize);
 
 
-OrderItem.belongsTo(Order, {
-  foreignKey: 'order_id'
-});
-OrderItem.belongsTo(Product, {
-  foreignKey: 'product_id'
-});
-
-// Payment <-> Order
-Order.hasOne(Payment, {
-  foreignKey: 'order_id'
-});
-
-Payment.belongsTo(Order, { 
-  foreignKey: 'order_id' 
-});
 
 
-export {
-  sequelize,
+const models = {
   Role,
   User,
   Cart,
@@ -107,6 +43,22 @@ export {
   Category,
   Supplier,
   SupplierItem,
+  ShippingCost,
+  Address,
   Order,
   OrderItem,
+  Payment,
+  Wishlist,
+  WishlistItem,
 };
+
+// Initialize associations if they exist
+Object.values(models).forEach(model => {
+  if (model.associate) {
+    model.associate(models);
+  }
+});
+
+// Export all models AND sequelize instance
+export { sequelize };
+export default models;

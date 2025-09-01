@@ -1,67 +1,100 @@
 import { DataTypes } from "sequelize";
-import sequelize from "../config/db.js";
-import Category from "./category.js";
 
-const Product = sequelize.define('Product', {
-    id: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        primaryKey: true,
-    },
-    name: {
-        type: DataTypes.STRING(100),
-        allowNull: false,
-        unique: false,
-    },
-    description: {
-        type: DataTypes.TEXT,
-        unique: false,
-    },
-    price: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
-        unique: false,
-    },
-    discount_price: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: true,
-        unique: false,
-    },
-    quantity_per_unit: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
-        unique: false,
-    },
-    unit_symbol: {
-        type: DataTypes.STRING(20),
-        allowNull: false,
-        unique: false,
-    },
-    sku: {
-        type: DataTypes.STRING(50),
-        allowNull: false,
-        unique: false,
-    },
-    image_url: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-        unique: false,
-    }, 
-    category_id: {
-        type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Category,
-            key: 'id'
-        }
-    },
+export default (sequelize) => {
+    const Product = sequelize.define('Product', {
+        id: {
+            type: DataTypes.UUID,
+            defaultValue: DataTypes.UUIDV4,
+            primaryKey: true,
+        },
+        name: {
+            type: DataTypes.STRING(100),
+            allowNull: false,
+            validate: {
+                notEmpty: {
+                    msg: "Product name cannot be empty"
+                },
+                len: {
+                    args: [2, 100],
+                    msg: "Product name must be 2-100 characters"
+                }
+            }
+        },
+        sku: {
+            type: DataTypes.STRING(50),
+            allowNull: false,
+            unique: true,
+            validate: {
+                notEmpty: {
+                    msg: "SKU cannot be empty"
+                },
+                isAlphanumeric: {
+                    msg: "SKU should contain only letters and numbers"
+                }
+            }
+        },
+        description: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+            validate: {
+                len: [0, 2000]
+            }
+        },
+        base_image_url: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+            validate: {
+                isUrl: {
+                    msg: "Invalid image URL format",
+                    protocols: ['http', 'https'],
+                    require_protocol: true
+                }
+            }
+        },
+        category_id: {
+            type: DataTypes.UUID,
+            allowNull: false,
+            references: {
+                model: 'categories',
+                key: 'id'
+            }
+        },
 
-}, {
-    tableName: 'products',
-    timestamps: true,
-    underscored: true,
-    paranoid: true,
-});
+    }, {
+        tableName: 'products',
+        timestamps: true,
+        underscored: true,
+        paranoid: true,
+    });
 
+    Product.associate = (models) => {
+        Product.belongsTo(models.Category, {
+            foreignKey: 'category_id',
+            onDelete: 'RESTRICT'
+        });
 
-export default Product;
+        Product.hasMany(models.CartItem, {
+            foreignKey: 'product_id',
+        });
+
+        Product.hasMany(models.WishlistItem, {
+            foreignKey: 'product_id',
+        });
+
+        Product.hasMany(models.OrderItem, {
+            foreignKey: 'product_id',
+            onDelete: 'RESTRICT'
+        });
+
+        Product.belongsToMany(models.Supplier, {
+            through: models.SupplierItem,
+            foreignKey: 'product_id',
+        });
+
+        Product.hasMany(models.SupplierItem, {
+            foreignKey: 'product_id',
+        });
+    };
+
+    return Product;
+}

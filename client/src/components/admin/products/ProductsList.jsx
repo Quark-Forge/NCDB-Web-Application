@@ -6,7 +6,8 @@ const ProductsList = ({
   filteredProducts,
   searchTerm,
   handleEdit,
-  handleDelete
+  handleDelete,
+  handleToggleStatus
 }) => {
   if (isLoading) {
     return (
@@ -33,6 +34,7 @@ const ProductsList = ({
       filteredProducts={filteredProducts}
       handleEdit={handleEdit}
       handleDelete={handleDelete}
+      handleToggleStatus={handleToggleStatus}
     />
   );
 };

@@ -4,6 +4,8 @@ import {
   getSupplierItemsBySupplier,
   deleteSupplierItem,
   updateSupplierItem,
+  getLowStockProducts,
+  getCriticalStockProducts,
 } from '../controllers/supplierItemsController.js';
 import { authorize, protect } from '../middleware/authMiddleware.js';
 
@@ -14,8 +16,10 @@ router.use(protect);
 router.use(authorize('Admin'));
 
 // Routes
-router.get('/', getAllSupplierItems);
-router.get('/:supplier_id/items', getSupplierItemsBySupplier);
+router.get('/', protect, authorize('Admin', 'Inventory Manager'), getAllSupplierItems);
+router.get('/low-stock', protect, authorize('Admin', 'Inventory Manager'), getLowStockProducts);
+router.get('/critical-stock', protect, authorize('Admin', 'Inventory Manager'), getCriticalStockProducts);
+router.get('/:supplier_id/items', protect, authorize('Admin', 'Inventory Manager'), getSupplierItemsBySupplier);
 router.delete('/:supplier_id/items/:product_id', protect, authorize('Admin', 'Inventory Manager'), deleteSupplierItem);
 router.put('/:supplier_id/items/:product_id', protect, authorize('Admin', 'Inventory Manager'), updateSupplierItem);
 

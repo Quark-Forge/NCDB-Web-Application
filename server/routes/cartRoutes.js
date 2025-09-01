@@ -3,14 +3,23 @@ import { authorize, protect } from '../middleware/authMiddleware.js';
 import {
       getCart,
       addToCart,
-      // removeFromCart,
+      updateCartItem,
+      clearCart,
+      removeFromCart,
+      getCartTotal,
 } from '../controllers/cartController.js'
 const router = express.Router();
 
 router.route('/')
       .get(protect,authorize('Customer'), getCart)
-      .post(protect,authorize('Customer'), addToCart);
+      .post(protect,authorize('Customer'), addToCart)
+      .delete(protect,authorize('Customer'), clearCart);
 
-// router.delete('/items/:product_id', protect, removeFromCart);
+router.route('/items/:product_id/:supplier_id')
+      .put(protect,authorize('Customer'), updateCartItem)
+      .delete(protect,authorize('Customer'), removeFromCart);
+
+router.route('/total')
+      .get(protect, getCartTotal);
 
 export default router;

@@ -18,7 +18,8 @@ import {
   Layers,
   CreditCard,
   BarChart2,
-  HelpCircle
+  HelpCircle,
+  ShipIcon
 } from 'lucide-react';
 import { useLogoutMutation } from '../../slices/usersApiSlice';
 import { useDispatch, useSelector } from 'react-redux';
@@ -59,6 +60,12 @@ const adminNavConfig = {
       icon: <Package size={18} />
     },
     {
+      to: '/admin/shipping',
+      label: 'Shipping',
+      allowedRoles: ['Admin', 'Order Manager'],
+      icon: <ShipIcon size={18} />
+    },
+    {
       to: '/admin/reports',
       label: 'Reports',
       allowedRoles: ['Admin'],
@@ -76,11 +83,7 @@ const adminNavConfig = {
       label: 'Categories',
       icon: <Tag size={16} />
     },
-    {
-      to: '/admin/inventory',
-      label: 'Inventory',
-      icon: <Layers size={16} />
-    }
+   
   ]
 };
 
@@ -285,6 +288,7 @@ const AdminLayout = () => {
                   location.pathname.includes('/admin/categories') ||
                   location.pathname.includes('/admin/suppliers') ||
                   location.pathname.includes('/admin/inventory')
+                 
                   ? 'bg-blue-100 text-blue-700 font-medium'
                   : 'text-gray-700 hover:bg-gray-100'
                   }`}

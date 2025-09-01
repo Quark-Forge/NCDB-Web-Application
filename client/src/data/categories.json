@@ -4,23 +4,15 @@
         "description": "All types of rice"
     },
     {
+        "name": "Oil",
+        "description": ""
+    },
+    {
+        "name": "Fruits",
+        "description": "All types of rice"
+    },
+    {
         "name": "Flour",
-        "description": "Various grain flours"
-    },
-    {
-        "name": "Oils",
-        "description": "Edible cooking oils"
-    },
-    {
-        "name": "Beverages",
-        "description": "Juices and cordials"
-    },
-    {
-        "name": "Sweets",
-        "description": "Traditional sweets and snacks"
-    },
-    {
-        "name": "Spices",
-        "description": "Powdered spices and mixes"
+        "description": ""
     }
 ]

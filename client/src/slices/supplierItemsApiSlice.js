@@ -4,23 +4,46 @@ const SUPPLIER_ITEMS_URL = '/api/supplier-items';
 
 export const supplierItemsApiSlice = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
-        
-        // GET /api/supplier-items
+
+        // GET all supplier items
         getSupplierItems: builder.query({
             query: () => `${SUPPLIER_ITEMS_URL}`,
             providesTags: ['supplier-item'],
         }),
 
-        // DELETE /api/supplier-items/:supplier_id/items/:product_id
+        // DELETE supplier item
         deleteSupplierItem: builder.mutation({
-            query: ({supplier_id, product_id}) => {
+            query: ({ supplier_id, product_id }) => ({
+                url: `${SUPPLIER_ITEMS_URL}/${supplier_id}/items/${product_id}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: ['supplier-item'],
+        }),
+
+        // GET low-stock items
+        getLowStockItems: builder.query({
+            query: ({ threshold, page, limit }) => {
+                const params = new URLSearchParams();
+                if (threshold) params.append('threshold', threshold);
+                if (page) params.append('page', page);
+                if (limit) params.append('limit', limit);
 
                 return {
-                    url: `${SUPPLIER_ITEMS_URL}/${supplier_id}/items/${product_id}`,
-                    method: 'DELETE',
+                    url: `${SUPPLIER_ITEMS_URL}/low-stock/?${params.toString()}`,
+                    method: 'GET',
                 };
             },
-            providesTags: ['supplier-item'],
+            providesTags: ['low-stock-items'],
+        }),
+
+        // UPDATE / UPSERT supplier item
+        updateSupplierItem: builder.mutation({
+            query: ({ supplier_id, product_id, stock_level }) => ({
+                url: `${SUPPLIER_ITEMS_URL}/${supplier_id}/items/${product_id}`,
+                method: 'PUT', // or PATCH depending on your backend
+                body: { stock_level },
+            }),
+            invalidatesTags: ['supplier-item'], // Refresh cache after update
         }),
 
     }),
@@ -29,4 +52,6 @@ export const supplierItemsApiSlice = apiSlice.injectEndpoints({
 export const {
     useGetSupplierItemsQuery,
     useDeleteSupplierItemMutation,
+    useGetLowStockItemsQuery,
+    useUpdateSupplierItemMutation,
 } = supplierItemsApiSlice;

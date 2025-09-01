@@ -1,28 +1,32 @@
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useGetProductsQuery } from "../../slices/productsApiSlice";
+import { useDeleteProductMutation, useGetProductsWithInactiveQuery } from "../../slices/ProductsApiSlice";
 import { useGetCategoriesQuery } from "../../slices/categoryApiSlice";
 import { useGetAllActiveSuppliersQuery } from "../../slices/suppliersApiSlice";
 import { Search, RefreshCw, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AddProduct from "../../components/admin/products/AddProduct";
 import ProductsList from "../../components/admin/products/ProductsList";
 import EditProduct from "../../components/admin/products/EditProduct";
-import { useEffect } from "react";
-import { useDeleteSupplierItemMutation } from "../../slices/supplierItemsApiSlice";
+import DeleteConfirmation from "../../components/common/DeleteConfirmation";
+import Pagination from "../../components/common/Pagination"; // Import your Pagination
 
 const Products = () => {
-  const { data: productsData, isLoading, error, refetch } = useGetProductsQuery({});
+  const { data: productsData, isLoading, error, refetch } = useGetProductsWithInactiveQuery({});
   const { data: categoriesData } = useGetCategoriesQuery();
   const { data: suppliersData } = useGetAllActiveSuppliersQuery();
-  const [deleteProduct] = useDeleteSupplierItemMutation();
+  const [deleteSupplierItem] = useDeleteProductMutation();
 
-  // For modals and form data
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
-
   const [showEditModal, setShowEditModal] = useState(false);
-  const [formData, setFormData] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedSupplierItem, setSelectedSupplierItem] = useState(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 3;
 
   const products = productsData?.data || [];
   const categories = categoriesData?.data || [];
@@ -32,36 +36,68 @@ const Products = () => {
     if (error) {
       toast.error(error?.data?.message || error.error);
     }
-  }, [error]); 
+  }, [error]);
 
+  // Filtered products based on search
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    product.Category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleEdit = (product) => {
-    setFormData(product);
-    setShowEditModal(true);
-  };
+  // Pagination logic
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
-  const handleDelete = async ({supplier_id, product_id}) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      try {
-        await deleteProduct({ supplier_id, product_id }).unwrap();
-        toast.success('Product deleted successfully!');
-        refetch();
-      } catch (err) {
-        toast.error(err?.data?.message || 'Error deleting product');
-      }
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
     }
   };
 
-  // Close modals helper
+  const handleEdit = (product, supplierItem) => {
+    setSelectedProduct(product);
+    setSelectedSupplierItem(supplierItem);
+    setShowEditModal(true);
+  };
+
+  const handleDelete = async (product_id, supplier_id) => {
+    setProductToDelete({ product_id, supplier_id });
+    setShowDeleteModal(true);
+  };
+
+  const onConfirmDelete = async () => {
+    try {
+      await deleteSupplierItem({
+        product_id: productToDelete.product_id,
+        supplier_id: productToDelete.supplier_id
+      }).unwrap();
+      toast.success('Product offering deleted successfully!');
+      setShowDeleteModal(false);
+      setProductToDelete(null);
+      refetch();
+    } catch (err) {
+      console.error('Delete error:', err);
+      toast.error(
+        err?.data?.message || 'Error deleting product offering.'
+      );
+    }
+  };
+
+  const handleToggleStatus = async (productId, newStatus) => {
+    toast.info('Status toggle feature coming soon!');
+  };
+
   const closeModals = () => {
     setShowCreateModal(false);
     setShowEditModal(false);
-    setFormData(null);
+    setShowDeleteModal(false);
+    setSelectedProduct(null);
+    setSelectedSupplierItem(null);
+    setProductToDelete(null);
   };
 
   return (
@@ -69,7 +105,6 @@ const Products = () => {
       <ToastContainer position="top-right" autoClose={3000} />
 
       <div className="flex flex-col space-y-4 md:space-y-6">
-        {/* Header Section */}
         <div className="flex flex-col space-y-3 md:flex-row md:items-center md:justify-between md:space-y-0">
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-gray-800">Product Management</h1>
@@ -86,7 +121,6 @@ const Products = () => {
           </div>
         </div>
 
-        {/* Search and Filters */}
         <div className="bg-white p-3 md:p-4 rounded-lg md:rounded-xl shadow-sm border border-gray-100">
           <div className="flex flex-col space-y-3 md:flex-row md:items-center md:space-y-0 md:space-x-4">
             <div className="relative flex-1">
@@ -98,7 +132,10 @@ const Products = () => {
                 placeholder="Search products..."
                 className="block w-full pl-10 pr-3 py-2 md:py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm md:text-base"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1); // Reset to first page on search
+                }}
               />
             </div>
             <button
@@ -111,18 +148,27 @@ const Products = () => {
           </div>
         </div>
 
-        {/* Table Section */}
         <div className="bg-white rounded-lg md:rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <ProductsList
             isLoading={isLoading}
-            filteredProducts={filteredProducts}
+            filteredProducts={paginatedProducts} // Use paginated products
             searchTerm={searchTerm}
             handleEdit={handleEdit}
             handleDelete={handleDelete}
+            handleToggleStatus={handleToggleStatus}
           />
         </div>
 
-        {/* Create Product Modal */}
+        {/* Pagination */}
+      
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            className="mt-4"
+          />
+       
+
         {showCreateModal && (
           <AddProduct
             setShowCreateModal={setShowCreateModal}
@@ -132,16 +178,26 @@ const Products = () => {
           />
         )}
 
-        {/* Edit Product Modal */}
         {showEditModal && (
           <EditProduct
             showEditModal={showEditModal}
             closeModals={closeModals}
-            formData={formData}
-            setFormData={setFormData}
+            product={selectedProduct}
+            supplierItem={selectedSupplierItem}
             categories={categories}
             suppliers={suppliers}
             refetch={refetch}
+          />
+        )}
+
+        {showDeleteModal && (
+          <DeleteConfirmation
+            isOpen={showDeleteModal}
+            onClose={() => setShowDeleteModal(false)}
+            onConfirm={onConfirmDelete}
+            title="Delete Product Offering"
+            description="Are you sure you want to delete this product offering? This action cannot be undone."
+            confirmText="Delete Product"
           />
         )}
       </div>

@@ -11,6 +11,12 @@ import productRoute from './routes/productRoutes.js';
 import supplierItemRoutes from './routes/supplierItemRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
 
+
+import orderRoutes from './routes/orderRoutes.js';
+import addressRoutes from './routes/AddressRoutes.js';
+import shippingCostRoutes from './routes/shippingCostRoutes.js';
+
+
 dotenv.config();
 const port = process.env.PORT || 5000;
 const app = express();
@@ -27,9 +33,13 @@ app.use('/api/categories', categoryRoute);
 app.use('/api/products', productRoute);
 app.use('/api/supplier-items', supplierItemRoutes);
 app.use('/api/carts', cartRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/shipping-addresses', addressRoutes);
+app.use('/api/shipping-costs', shippingCostRoutes);
 
 
 app.get('/', (req, res) => res.send('server is ready'));
+
 
 app.use(notFound);
 app.use(errorHandler);

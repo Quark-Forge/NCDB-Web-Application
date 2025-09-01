@@ -1,6 +1,5 @@
-import SupplierItem from '../models/suplierItem.js';
-import { Supplier, Product } from '../models/index.js';
-
+import { Supplier, Product, SupplierItem } from '../models/index.js';
+import { Op } from 'sequelize';
 
 // Get all supplier-product 
 export const getAllSupplierItems = async (req, res) => {
@@ -8,16 +7,173 @@ export const getAllSupplierItems = async (req, res) => {
     const supplierItems = await SupplierItem.findAll({
       include: [
         { model: Supplier, attributes: ['id', 'name'] },
-        { model: Product, attributes: ['id', 'name', 'price'] }
+        { model: Product, attributes: ['id', 'name'] }
       ],
       paranoid: false,
     });
-    res.status(200).json(supplierItems);
+
+    const data = { supplierItems: supplierItems, count: supplierItems.length };
+    res.status(200).json({
+      success: true,
+      data: data,
+      message: "Supplier items fetched successfully."
+    });
+
+   
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch supplier items." });
   }
 };
 
+// Get low stock products (stock level below threshold)
+export const getLowStockProducts = async (req, res) => {
+  try {
+    const { threshold = 10, page = 1, limit = 20 } = req.query;
+
+    const offset = (page - 1) * limit;
+
+    const { count, rows: lowStockItems } = await SupplierItem.findAndCountAll({
+      where: {
+        stock_level: {
+          [Op.lt]: parseInt(threshold) // Less than threshold
+        }
+      },
+      include: [
+        {
+          model: Supplier,
+          attributes: ['id', 'name', 'contact_number', 'email'],
+          paranoid: false
+        },
+        {
+          model: Product,
+          attributes: ['id', 'name', 'sku'],
+          paranoid: false
+        }
+      ],
+      order: [
+        ['stock_level', 'ASC'], // Show lowest stock first
+        ['updatedAt', 'DESC']
+      ],
+      limit: parseInt(limit),
+      offset: offset,
+      paranoid: false,
+    });
+
+    // Format the response with more useful data
+    const formattedItems = lowStockItems.map(item => ({
+      id: item.id,
+      stock_level: item.stock_level,
+      threshold: parseInt(threshold),
+      supplier: {
+        id: item.Supplier?.id,
+        name: item.Supplier?.name,
+        contact: item.Supplier?.contact_number,
+        email: item.Supplier?.email
+      },
+      product: {
+        id: item.Product?.id,
+        name: item.Product?.name,
+        sku: item.Product?.sku,
+        price: item.Product?.price,
+        image_url: item.Product?.base_image_url
+      },
+      needs_restock: item.stock_level <= 5, // Critical level
+      last_updated: item.updatedAt
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: formattedItems,
+      meta: {
+        total: count,
+        page: parseInt(page),
+        totalPages: Math.ceil(count / limit),
+        threshold: parseInt(threshold),
+        critical_items: formattedItems.filter(item => item.needs_restock).length
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching low stock products:', error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch low stock products."
+    });
+  }
+};
+
+// Get critical stock products (stock level below 5)
+export const getCriticalStockProducts = async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+
+    const offset = (page - 1) * limit;
+
+    const { count, rows: criticalStockItems } = await SupplierItem.findAndCountAll({
+      where: {
+        stock_level: {
+          [Op.lt]: 5 // Critical level: less than 5
+        }
+      },
+      include: [
+        {
+          model: Supplier,
+          attributes: ['id', 'name', 'contact_number', 'email'],
+          paranoid: false
+        },
+        {
+          model: Product,
+          attributes: ['id', 'name', 'sku'],
+          paranoid: false
+        }
+      ],
+      order: [
+        ['stock_level', 'ASC'], // Show lowest stock first
+        ['updatedAt', 'DESC']
+      ],
+      limit: parseInt(limit),
+      offset: offset,
+      paranoid: false,
+    });
+
+    const formattedItems = criticalStockItems.map(item => ({
+      id: item.id,
+      stock_level: item.stock_level,
+      supplier: {
+        id: item.Supplier?.id,
+        name: item.Supplier?.name,
+        contact: item.Supplier?.contact_number,
+        email: item.Supplier?.email
+      },
+      product: {
+        id: item.Product?.id,
+        name: item.Product?.name,
+        sku: item.Product?.sku,
+        price: item.Product?.price,
+        image_url: item.Product?.base_image_url
+      },
+      last_updated: item.updatedAt
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: formattedItems,
+      meta: {
+        total: count,
+        page: parseInt(page),
+        totalPages: Math.ceil(count / limit),
+        critical_threshold: 5
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching critical stock products:', error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch critical stock products."
+    });
+  }
+};
 
 // Get all products for a specific supplier
 export const getSupplierItemsBySupplier = async (req, res) => {
@@ -33,7 +189,6 @@ export const getSupplierItemsBySupplier = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch supplier items." });
   }
 };
-
 
 // Delete a specific product from a supplier
 export const deleteSupplierItem = async (req, res) => {
@@ -55,7 +210,6 @@ export const deleteSupplierItem = async (req, res) => {
     res.status(500).json({ error: "Failed to remove product from supplier." });
   }
 };
-
 
 // Add/Update a product for a supplier
 export const updateSupplierItem = async (req, res) => {
