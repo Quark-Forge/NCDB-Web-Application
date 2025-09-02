@@ -6,7 +6,7 @@ export const productsApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // GET /api/products
     getProducts: builder.query({
-      query: ({ search, category, sort, page, limit }) => {
+      query: ({ search, category, sort, page, limit, minPrice, maxPrice }) => {
         const params = new URLSearchParams();
 
         if (search) params.append('search', search);
@@ -14,6 +14,8 @@ export const productsApiSlice = apiSlice.injectEndpoints({
         if (sort) params.append('sort', sort);
         if (page) params.append('page', page);
         if (limit) params.append('limit', limit);
+        if (minPrice) params.append('minPrice', minPrice);
+        if (maxPrice) params.append('maxPrice', maxPrice);
 
         return {
           url: `${PRODUCTS_URL}?${params.toString()}`,

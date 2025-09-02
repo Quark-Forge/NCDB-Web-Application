@@ -105,7 +105,7 @@ export const addProduct = asyncHandler(async (req, res) => {
 // Get all products with filters
 export const getAllProducts = asyncHandler(async (req, res) => {
     try {
-        const { search, category, supplier, minStock, page = 1, limit = 10, sort } = req.query;
+        const { search, category, supplier, minStock, minPrice, maxPrice, page = 1, limit = 10, sort } = req.query;
 
         const where = {};
         const supplierItemWhere = {};
@@ -113,6 +113,13 @@ export const getAllProducts = asyncHandler(async (req, res) => {
         if (search) where.name = { [Op.like]: `%${search.toLowerCase()}%` };
         if (supplier) supplierItemWhere.supplier_id = supplier;
         if (minStock) supplierItemWhere.stock_level = { [Op.gte]: minStock };
+
+        // Add price range filtering
+        if (minPrice || maxPrice) {
+            supplierItemWhere.price = {};
+            if (minPrice) supplierItemWhere.price[Op.gte] = parseFloat(minPrice);
+            if (maxPrice) supplierItemWhere.price[Op.lte] = parseFloat(maxPrice);
+        }
 
         const include = [
             {
@@ -124,7 +131,7 @@ export const getAllProducts = asyncHandler(async (req, res) => {
             {
                 model: SupplierItem,
                 where: supplierItemWhere,
-                required: !!supplier || !!minStock,
+                required: !!supplier || !!minStock || !!minPrice || !!maxPrice,
                 include: [{
                     model: Supplier,
                     attributes: ['id', 'name']
