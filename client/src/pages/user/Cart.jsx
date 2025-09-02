@@ -1,5 +1,6 @@
 // src/screens/Cart.js
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from "react-router-dom";
 import { ShoppingCart, Plus, Minus, Trash2, Shield } from 'lucide-react';
 import {
   useGetCartQuery,
@@ -10,6 +11,7 @@ import {
 } from '../../slices/cartApiSlice';
 
 const Cart = () => {
+  const navigate = useNavigate();
   const { data, isLoading, isError, refetch } = useGetCartQuery();
   const [addToCart] = useAddToCartMutation();
   const [updateCartItem] = useUpdateCartItemMutation();
@@ -237,7 +239,7 @@ const Cart = () => {
                     {/* Image */}
                     <div className="flex-shrink-0">
                       <img
-                        // src={item.Product?.base_image_url || 'https://via.placeholder.com/100'}
+                        src={item.Product?.base_image_url || 'https://via.placeholder.com/100'}
                         alt={item.Product?.name || 'Product'}
                         className="w-24 h-24 object-cover rounded-lg border"
                       />
@@ -329,6 +331,7 @@ const Cart = () => {
           </div>
 
           <button
+          onClick={() => navigate('/user/checkout')}
             className={`w-full py-3 rounded-lg font-medium transition-colors ${
               selectedItems.length > 0 && !isUpdating
                 ? 'bg-red-500 text-white hover:bg-red-600'
