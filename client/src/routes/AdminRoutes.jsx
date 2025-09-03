@@ -11,6 +11,7 @@ import AdminProfile from '../pages/admin/AdminProfile';
 import OrderDetails from '../pages/admin/orders/OrderDetails';
 import Shipping from '../pages/admin/shipping/Shipping';
 import Inventory  from '../pages/admin/Inventory';
+import Payments from '../pages/admin/payments/payments';
 
 export const adminChildren = (
   <>
@@ -22,6 +23,7 @@ export const adminChildren = (
       <Route path='orders' element={<Orders />} />
       <Route path='orders/:orderId' element={<OrderDetails />} />
       <Route path='shipping' element={<Shipping />} />
+      <Route path='payments' element={<Payments />} />
     </Route>
 
     {/* Remove empty ProtectedRoute block */}

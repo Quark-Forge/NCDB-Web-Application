@@ -6,10 +6,11 @@ const ordersApiSlice = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
         // GET ${ORDER_URL}
         getAllOrders: builder.query({
-            query: ({ search, status, startDate, endDate, product_id, supplier_id, limit, page }) => {
+            query: ({ search, range, status, startDate, endDate, product_id, supplier_id, limit, page }) => {
                 const params = new URLSearchParams();
 
                 if (search) params.append("search", search);
+                if (range) params.append("range", range);
                 if (startDate) params.append("startDate", startDate);
                 if (endDate) params.append("endDate", startDate);
                 if (product_id) params.append("product_id", product_id);
@@ -66,12 +67,14 @@ const ordersApiSlice = apiSlice.injectEndpoints({
 
         // GET ${ORDER_URL}/stats
         getOrderStats: builder.query({
-            query: ({ range }) => {
-                const params = new URLSearchParams();
+            query: (params = {}) => {
+                const { range } = params;
+                const urlParams = new URLSearchParams();
 
-                if (range) params.append("range", range);
+                if (range) urlParams.append("range", range);
+
                 return {
-                    url: `${ORDER_URL}/stats?${params.toString()}`,
+                    url: `${ORDER_URL}/stats?${urlParams.toString()}`,
                     method: "GET",
                 };
             },
@@ -87,5 +90,5 @@ export const {
     useGetMyOrdersQuery,
     useGetOrderDetailsQuery,
     useGetOrderStatsQuery
-    
+
 } = ordersApiSlice;

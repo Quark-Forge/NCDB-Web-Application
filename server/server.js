@@ -10,11 +10,10 @@ import categoryRoute from './routes/categoryRoutes.js';
 import productRoute from './routes/productRoutes.js';
 import supplierItemRoutes from './routes/supplierItemRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
-
-
 import orderRoutes from './routes/orderRoutes.js';
 import addressRoutes from './routes/AddressRoutes.js';
 import shippingCostRoutes from './routes/shippingCostRoutes.js';
+import wishListRoutes from './routes/wishListRoutes.js'
 
 
 dotenv.config();
@@ -36,6 +35,7 @@ app.use('/api/carts', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/shipping-addresses', addressRoutes);
 app.use('/api/shipping-costs', shippingCostRoutes);
+app.use('/api/wishlist', shippingCostRoutes);
 
 
 app.get('/', (req, res) => res.send('server is ready'));

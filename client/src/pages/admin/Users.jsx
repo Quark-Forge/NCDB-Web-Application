@@ -50,16 +50,8 @@ const Users = () => {
     }
   };
 
-  const handlePreviousPage = () => {
-    if (page > 1) {
-      setPage(page - 1);
-    }
-  };
-
-  const handleNextPage = () => {
-    if (page < totalPages) {
-      setPage(page + 1);
-    }
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
   };
 
   return (
@@ -131,10 +123,10 @@ const Users = () => {
 
               {/* Pagination Controls */}
               <Pagination
-                page={page}
+                currentPage={page}
                 totalPages={totalPages}
-                handlePreviousPage={handlePreviousPage}
-                handleNextPage={handleNextPage}
+                onPageChange={handlePageChange}
+                className="mt-4"
               />
             </>
           )}
