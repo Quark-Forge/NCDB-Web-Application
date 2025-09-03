@@ -8,5 +8,4 @@ router.route('/')
     .get(protect, authorize('Customer'), getShippingAddress)
     .post(protect, authorize('Customer'), createShippingAddress);
 
-
 export default router;

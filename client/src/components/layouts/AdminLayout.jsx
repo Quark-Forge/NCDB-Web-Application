@@ -15,11 +15,10 @@ import {
   Tag,
   ChevronLeft,
   Package,
-  Layers,
-  CreditCard,
   BarChart2,
-  HelpCircle,
-  ShipIcon
+  ShipIcon,
+  Currency,
+  ReceiptIcon
 } from 'lucide-react';
 import { useLogoutMutation } from '../../slices/usersApiSlice';
 import { useDispatch, useSelector } from 'react-redux';
@@ -64,6 +63,12 @@ const adminNavConfig = {
       label: 'Shipping',
       allowedRoles: ['Admin', 'Order Manager'],
       icon: <ShipIcon size={18} />
+    },
+    {
+      to: '/admin/payments',
+      label: 'Payments',
+      allowedRoles: ['Admin', 'Order Manager'],
+      icon: <ReceiptIcon size={18} />
     },
     {
       to: '/admin/reports',

@@ -223,7 +223,7 @@ export const checkoutCart = asyncHandler(async (req, res) => {
 
 // GET all orders (Admin)
 export const getAllOrders = asyncHandler(async (req, res) => {
-    const { search, status, startDate, endDate, product_id, supplier_id, page = 1, limit = 10 } = req.query;
+    const { search, range = '30d', status, startDate, endDate, product_id, supplier_id, page = 1, limit = 10 } = req.query;
 
     const where = {};
     const include = [
@@ -239,13 +239,44 @@ export const getAllOrders = asyncHandler(async (req, res) => {
     // Status filter
     if (status) where.status = status;
 
-    // Date range filter
+    // Date range filter - handle both manual dates and range parameter
     if (startDate && endDate) {
+        // Use manually selected dates if provided
         where.createdAt = {
             [Op.between]: [new Date(startDate), new Date(endDate)]
         };
+    } else if (range) {
+        // Use the range parameter if no manual dates are provided
+        const now = new Date();
+        let startDay = new Date();
+
+        switch (range) {
+            case '7d':
+                startDay.setDate(now.getDate() - 7);
+                break;
+            case '30d':
+                startDay.setDate(now.getDate() - 30);
+                break;
+            case '90d':
+                startDay.setDate(now.getDate() - 90);
+                break;
+            case 'all':
+                // For "all time", we don't need to set a date filter
+                break;
+            default:
+                startDay.setDate(now.getDate() - 30);
+        }
+
+        // Only apply date filter if range is not "all"
+        if (range !== 'all') {
+            startDay.setHours(0, 0, 0, 0);
+            where.createdAt = {
+                [Op.gte]: startDay
+            };
+        }
     }
 
+    // Search filter
     if (search) {
         where[Op.or] = [
             { order_id: { [Op.like]: `%${search}%` } },
@@ -254,11 +285,13 @@ export const getAllOrders = asyncHandler(async (req, res) => {
         ];
         include[0].include.push(Product, Supplier);
     }
+
     // Product filter
     if (product_id) {
         include[0].where = include[0].where || {};
         include[0].where.product_id = product_id;
     }
+
     // Supplier filter
     if (supplier_id) {
         include[0].include.push({
@@ -297,7 +330,7 @@ export const getAllOrders = asyncHandler(async (req, res) => {
         if (city && shippingCostMap[city]) {
             orderData.shippingCost = shippingCostMap[city];
         } else {
-            orderData.shippingCost = null; // or default shipping cost if you prefer
+            orderData.shippingCost = null;
         }
 
         return orderData;
