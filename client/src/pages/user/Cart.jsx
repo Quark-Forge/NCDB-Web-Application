@@ -330,7 +330,7 @@ const Cart = () => {
             </div>
           </div>
 
-          <button
+          {/* <button
           onClick={() => navigate('/user/checkout')}
             className={`w-full py-3 rounded-lg font-medium transition-colors ${
               selectedItems.length > 0 && !isUpdating
@@ -340,7 +340,28 @@ const Cart = () => {
             disabled={selectedItems.length === 0 || isUpdating}
           >
             {isUpdating ? 'Updating...' : `Checkout (${selectedItems.length})`}
-          </button>
+          </button> */}
+          <button
+  onClick={() => {
+    // Save selected items in localStorage
+    const selectedCartItems = cartItems.filter(item =>
+      selectedItems.includes(item.id)
+    );
+    localStorage.setItem("checkoutItems", JSON.stringify(selectedCartItems));
+
+    // Navigate to checkout
+    navigate("/user/checkout");
+  }}
+  className={`w-full py-3 rounded-lg font-medium transition-colors ${
+    selectedItems.length > 0 && !isUpdating
+      ? "bg-red-500 text-white hover:bg-red-600"
+      : "bg-gray-300 text-gray-500 cursor-not-allowed"
+  }`}
+  disabled={selectedItems.length === 0 || isUpdating}
+>
+  {isUpdating ? "Updating..." : `Checkout (${selectedItems.length})`}
+</button>
+
 
           <div className="mt-6 pt-6 border-t">
             <h3 className="text-sm font-medium mb-3">Buyer Protection</h3>

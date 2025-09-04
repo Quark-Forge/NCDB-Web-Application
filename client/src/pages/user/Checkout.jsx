@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, MapPin, Edit3, Plus, X, Shield, CreditCard, Banknote } from 'lucide-react';
+import { useGetShippingAddressQuery } from '../../slices/shippingAddressApiSlice';
 import { useGetCartQuery } from '../../slices/cartApiSlice';
 
 const Checkout = () => {
@@ -11,6 +12,14 @@ const Checkout = () => {
 
   // Get selected items from navigation state or default to all cart items
   const selectedItemIds = location.state?.selectedItems || [];
+
+  const {
+    data: addresses = [],
+    isLoading: addressLoading,
+    error: addressError,
+  } = useGetShippingAddressQuery();
+
+  console.log(addresses);
   
   const [cartItems, setCartItems] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
@@ -18,6 +27,27 @@ const Checkout = () => {
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [isProcessing, setIsProcessing] = useState(false);
+
+//   const [checkoutItems, setCheckoutItems] = useState([]);
+
+  useEffect(() => {
+    // 1. Get selected item IDs from localStorage
+    const storedItems = localStorage.getItem("checkoutItems");
+    if (storedItems) {
+      const selectedItems = JSON.parse(storedItems);
+
+      // 2. If API has cart data, match them
+      if (data?.data?.CartItems) {
+        const filtered = data.data.CartItems.filter((item) =>
+          selectedItems.some((sel) => sel.id === item.id)
+        );
+        setSelectedItems(filtered);
+      } else {
+        // fallback if no API yet
+        setSelectedItems(selectedItems);
+      }
+    }
+  }, [data]);
 
   // Mock stored addresses - in real app, fetch from API
   const [storedAddresses, setStoredAddresses] = useState([
@@ -53,21 +83,21 @@ const Checkout = () => {
   });
 
   // Load cart data and filter selected items
-  useEffect(() => {
-    if (data?.data?.CartItems) {
-      const allItems = data.data.CartItems;
-      setCartItems(allItems);
+//   useEffect(() => {
+//     if (data?.data?.CartItems) {
+//       const allItems = data.data.CartItems;
+//       setCartItems(allItems);
       
-      // Filter selected items
-      if (selectedItemIds.length > 0) {
-        const filtered = allItems.filter(item => selectedItemIds.includes(item.id));
-        setSelectedItems(filtered);
-      } else {
-        // If no specific selection, include all items
-        setSelectedItems(allItems);
-      }
-    }
-  }, [data, selectedItemIds]);
+//       // Filter selected items
+//       if (selectedItemIds.length > 0) {
+//         const filtered = allItems.filter(item => selectedItemIds.includes(item.id));
+//         setSelectedItems(filtered);
+//       } else {
+//         // If no specific selection, include all items
+//         setSelectedItems(allItems);
+//       }
+//     }
+//   }, [data, selectedItemIds]);
 
   // Set default address
   useEffect(() => {
