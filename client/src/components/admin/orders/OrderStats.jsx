@@ -1,8 +1,6 @@
-import { useGetOrderStatsQuery } from "../../../slices/ordersApiSlice";
 import Card from '../../common/Card';
 
-const OrderStats = () => {
-    const { data, isLoading } = useGetOrderStatsQuery();
+const OrderStats = ({ data, isLoading }) => {
 
     const stats = data?.data || [];
 

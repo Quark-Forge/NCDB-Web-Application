@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { useGetAllOrdersQuery } from '../../../slices/ordersApiSlice';
+import { useGetAllOrdersQuery, useGetOrderStatsQuery } from '../../../slices/ordersApiSlice';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import OrderStats from '../../../components/admin/orders/OrderStats';
 import OrderFilters from '../../../components/admin/orders/OrderFilters';
@@ -9,6 +9,7 @@ import Pagination from '../../../components/common/Pagination';
 
 const Order = () => {
   const [filters, setFilters] = useState({
+    range: '30d',
     status: '',
     startDate: '',
     endDate: '',
@@ -26,8 +27,9 @@ const Order = () => {
     ...filters,
     ...pagination,
   });
-  
 
+  const { data: stats, isLoading: statsLoading } = useGetOrderStatsQuery({ range: filters.range });
+  
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
     setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page on filter change
@@ -44,7 +46,7 @@ const Order = () => {
       <div className="space-y-4">
         {/* Order Stats at the top */}
         <div className="bg-white rounded-lg shadow p-4">
-          <OrderStats />
+          <OrderStats data={stats} isLoading = {statsLoading}/>
         </div>
 
         {/* Filters section */}
