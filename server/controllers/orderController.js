@@ -404,17 +404,7 @@ export const getOrderDetails = asyncHandler(async (req, res) => {
         });
         return;
     }
-
-    const role = await Role.findByPk(req.user.role_id);
-    // Verify ownership (unless admin)
-    if (order.user_id !== req.user.id && role.name !== 'Admin') {
-        res.status(403).json({
-            success: false,
-            message: 'Not authorized to view this order',
-            code: 'UNAUTHORIZED'
-        });
-        return;
-    }
+    
     const address = await Address.findByPk(order.address_id);
     const shippingCost = await ShippingCost.findOne({
         where: { city: address.city }

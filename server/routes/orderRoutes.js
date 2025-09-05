@@ -15,7 +15,7 @@ router.route('/').get(protect, authorize('Admin', 'Order Manager', 'Inventory Ma
 router.route('/checkout').post(protect, authorize('Customer'), checkoutCart);
 router.route('/stats').get(protect, authorize('Admin', 'Order Manager'), getOrderStats);
 router.route('/my-orders').get(protect, authorize('Customer'), getUserOrders);
-router.route('/:id').get(protect, authorize('Admin', 'Customer'), getOrderDetails);
+router.route('/:id').get(protect, authorize('Admin', 'Order Manager', 'Customer'), getOrderDetails);
 router.route('/:id/status').put(protect, authorize('Admin', 'Order Manager'), updateOrderStatus);
 
 

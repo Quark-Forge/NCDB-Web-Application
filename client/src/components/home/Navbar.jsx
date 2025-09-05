@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import AdminProfile from '../../pages/admin/AdminProfile';
 import UserProfile from '../user/UserProfile';
 import { useGetCartQuery } from '../../slices/cartApiSlice';
+import ProfileDropdown from '../user/ProfileDropdown ';
 
 // Constants
 const ALLOWED_ROLES = ['Admin', 'Order Manager', 'Inventory Manager'];
@@ -86,18 +87,6 @@ const Navbar = ({search, setSearch }) => {
   // Count only number of distinct cart items
   const cartCount = data?.data?.CartItems?.length || 0;
 
-  // const handleCartClick = (() => {
-  //   // setIsCardOpen(true);
-  //   // localStorage.setItem('cart', JSON.stringify(cartItems));
-  //   navigate('/user/cart');
-  // }, [navigate]);
-
-  // Calculate total quantity in cart
-  // const cartCount = data?.data?.CartItems?.reduce(
-  //   (total, item) => total + (item.quantity || 0),
-  //   0
-  // ) || 0;
-
   const handleCartClick = useCallback(() => {
     navigate('/user/cart');
   }, [navigate]);
@@ -105,10 +94,6 @@ const Navbar = ({search, setSearch }) => {
   const handleAdminPanelClick = useCallback(() => {
     navigate('/admin/dashboard');
   }, [navigate]);
-
-  const handleProfileClick = useCallback(() => {
-    setIsProfileOpen(true);
-  }, []);
 
   const handleProfileClose = useCallback(() => {
     setIsProfileOpen(false);
@@ -141,7 +126,8 @@ const Navbar = ({search, setSearch }) => {
                 <>
                   {isAdmin && <AdminButton onClick={handleAdminPanelClick} />}
                   <CartButton cartCount={cartCount} onClick={handleCartClick} />
-                  <ProfileButton onClick={handleProfileClick} userInfo={userInfo} />
+                  {/* Replace the old profile button with the dropdown */}
+                  <ProfileDropdown />
                 </>
               )}
             </div>
@@ -168,7 +154,8 @@ const Navbar = ({search, setSearch }) => {
               <>
                 {isAdmin && <AdminButton onClick={handleAdminPanelClick} />}
                 <CartButton cartCount={cartCount} onClick={handleCartClick} />
-                <ProfileButton onClick={handleProfileClick} userInfo={userInfo} />
+                {/* Replace the old profile button with the dropdown */}
+                <ProfileDropdown />
               </>
             ) : (
               <>
@@ -179,15 +166,6 @@ const Navbar = ({search, setSearch }) => {
           </div>
         </div>
       </nav>
-
-      {/* Profile Modal */}
-      {isProfileOpen && (
-        isAdmin ? (
-          <AdminProfile onClose={handleProfileClose} />
-        ) : (
-          <UserProfile isOpen={true} onClose={handleProfileClose} />
-        )
-      )}
     </>
   );
 };
