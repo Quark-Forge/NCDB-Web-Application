@@ -5,8 +5,8 @@ import { useGetLowStockItemsQuery } from '../../slices/supplierItemsApiSlice';
 import { FiRefreshCw } from 'react-icons/fi';
 import StatsGrid from '../../components/admin/dashboard/StatsGrid';
 import SalesChart from '../../components/admin/dashboard/SalesChart';
-import OrderStatusChart from '../../components/admin/dashboard/OrderStatusChart';
 import RecentOrdersTable from '../../components/admin/dashboard/RecentOrdersTable';
+import OrderStatusChart from '../../components/admin/dashboard/OrderStatusChart';
 import TopProducts from '../../components/admin/dashboard/TopProducts';
 import LowStockAlert from '../../components/admin/dashboard/LowStockAlert';
 

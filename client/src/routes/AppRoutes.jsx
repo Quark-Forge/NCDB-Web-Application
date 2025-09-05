@@ -12,7 +12,6 @@ import ErrorPage from '../pages/ErrorPage';
 import Unauthorized from '../pages/Unauthorized';
 
 
-
 const AppRoutes = () => {
   return (
     <>
