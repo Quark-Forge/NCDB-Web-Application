@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Navbar from '../../components/home/Navbar';
+import { useOutletContext } from 'react-router-dom';
 import ProductWithSuppliers from '../../components/home/ProductWithSuppliers';
 import { useGetProductsQuery } from '../../slices/productsApiSlice';
 import { ChevronLeft, ChevronRight, CircleAlert, Filter, X } from 'lucide-react';
@@ -7,11 +7,11 @@ import FilterBar from '../../components/home/FilterBar';
 import { useGetCategoriesQuery } from '../../slices/categoryApiSlice';
 
 const Home = () => {
-  const [cartCount, setCartCount] = useState(0);
-  const [cartItems, setCartItems] = useState([]);
+  // Get state and functions from layout context
+  const { cartCount, setCartCount, cartItems, setCartItems, search, setSearch } = useOutletContext();
+
   const [currentPage, setCurrentPage] = useState(1);
   const productsPerPage = 10;
-  const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [sort, setSort] = useState('created_at_desc');
   const [priceRange, setPriceRange] = useState([0, 1000]);
@@ -28,20 +28,28 @@ const Home = () => {
     maxPrice: priceRange[1],
   });
 
+  // Updated to match the new response structure
   const products = data?.data || [];
-  const totalCount = data?.pagination?.total || 0;
-  const totalPages = Math.ceil(totalCount / productsPerPage);
+  const pagination = data?.pagination || {};
+  const totalCount = pagination.total || 0;
+  const totalPages = pagination.totalPages || 1;
+  const currentPageFromApi = pagination.page || 1;
+
+  // Sync current page with API response
+  useEffect(() => {
+    if (currentPageFromApi !== currentPage) {
+      setCurrentPage(currentPageFromApi);
+    }
+  }, [currentPageFromApi, currentPage]);
 
   useEffect(() => {
-    console.log("Cart items updated:", cartItems);
+    // Your cart items effect
   }, [cartItems]);
-
 
   const handleAddToCart = (product) => {
     setCartCount(prev => prev + 1);
     setCartItems(prev => [...prev, product]);
     console.log('Added to cart:', product);
-    console.log(cartItems);
   };
 
   const handlePageChange = (page) => {
@@ -51,12 +59,11 @@ const Home = () => {
     }
   };
 
+  // Generate page numbers for pagination
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   return (
-    <div className="min-h-screen bg-white">
-      <Navbar cartCount={cartCount} search={search} setSearch={setSearch} cartItems={cartItems} />
-
+    <>
       <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section */}
         <div className="mb-8">
@@ -150,42 +157,44 @@ const Home = () => {
                 </div>
 
                 {/* Pagination */}
-                <div className="flex justify-center items-center space-x-2 mt-12">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className={`px-1 py-1 rounded-3xl font-semibold transition-colors duration-200 ${currentPage === 1
-                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                      : 'text-gray-700 hover:bg-gray-600'
-                      }`}
-                  >
-                    <ChevronLeft />
-                  </button>
-
-                  {pageNumbers.map((number) => (
+                {totalPages > 1 && (
+                  <div className="flex justify-center items-center space-x-2 mt-12">
                     <button
-                      key={number}
-                      onClick={() => handlePageChange(number)}
-                      className={`px-3 py-1 rounded-3xl font-semibold transition-colors duration-200 ${currentPage === number
-                        ? 'text-white bg-blue-600'
-                        : 'bg-white text-gray-600 hover:bg-gray-100'
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className={`px-1 py-1 rounded-3xl font-semibold transition-colors duration-200 ${currentPage === 1
+                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                        : 'text-gray-700 hover:bg-gray-600'
                         }`}
                     >
-                      {number}
+                      <ChevronLeft />
                     </button>
-                  ))}
 
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className={`px-1 py-1 rounded-3xl font-semibold transition-colors duration-200 ${currentPage === totalPages
-                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                      : 'text-gray-700 hover:bg-gray-600'
-                      }`}
-                  >
-                    <ChevronRight />
-                  </button>
-                </div>
+                    {pageNumbers.map((number) => (
+                      <button
+                        key={number}
+                        onClick={() => handlePageChange(number)}
+                        className={`px-3 py-1 rounded-3xl font-semibold transition-colors duration-200 ${currentPage === number
+                          ? 'text-white bg-blue-600'
+                          : 'bg-white text-gray-600 hover:bg-gray-100'
+                          }`}
+                      >
+                        {number}
+                      </button>
+                    ))}
+
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className={`px-1 py-1 rounded-3xl font-semibold transition-colors duration-200 ${currentPage === totalPages
+                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                        : 'text-gray-700 hover:bg-gray-600'
+                        }`}
+                    >
+                      <ChevronRight />
+                    </button>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -198,11 +207,11 @@ const Home = () => {
           <p className="text-gray-400">Your trusted e-commerce partner</p>
         </div>
       </footer>
-    </div>
+    </>
   );
 };
 
-// Category Tabs Component
+// Category Tabs Component (unchanged)
 const CategoryTabs = ({ category, setCategory, setCurrentPage }) => {
   const { data: categoryData, isLoading, error } = useGetCategoriesQuery();
   const categories = categoryData?.data || [];

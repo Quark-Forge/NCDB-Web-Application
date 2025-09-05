@@ -1,9 +1,20 @@
-import { Outlet } from "react-router-dom";
+import { useState } from 'react';
+import { Outlet } from 'react-router-dom';
+import UserNavbar from '../user/UserNavbar';
 
 const UserLayout = () => {
+    const [cartCount, setCartCount] = useState(0);
+    const [cartItems, setCartItems] = useState([]);
+    
     return (
-        <div>
-            <Outlet />
+        <div className="min-h-screen bg-white">
+            <UserNavbar />
+            <Outlet context={{ 
+                cartCount, 
+                setCartCount, 
+                cartItems, 
+                setCartItems
+            }} />
         </div>
     )
 }

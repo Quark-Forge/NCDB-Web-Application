@@ -38,6 +38,13 @@ export const usersApiSlice = apiSlice.injectEndpoints({
             ),
             providesTags: ['user']
         }),
+        getUserProfile: builder.query({
+            query: () => ({
+                url: `${USERS_URL}/profile`,
+                method: 'GET',
+            }),
+            providesTags: ['user']
+        }),
         updateUserRole: builder.mutation({
             query: ({ userId, roleId }) => ({
                 url: `${USERS_URL}/${userId}/role`,
@@ -92,9 +99,10 @@ export const {
     useLoginMutation,
     useLogoutMutation,
     useRegisterMutation,
+    useGetUserProfileQuery,
     useUpdateUserMutation,
     useGetAllUsersQuery,
     useDeleteUserMutation,
     useRestoreUserMutation,
-     useUpdateUserRoleMutation
+    useUpdateUserRoleMutation
 } = usersApiSlice;
