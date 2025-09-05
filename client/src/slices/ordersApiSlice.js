@@ -34,7 +34,7 @@ const ordersApiSlice = apiSlice.injectEndpoints({
                 method: "POST",
                 body: data,
             }),
-            invalidatesTags: ["order"],
+            invalidatesTags: ["order", "cart"],
         }),
 
         // PUT ${ORDER_URL}/:id

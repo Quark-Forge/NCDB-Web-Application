@@ -11,7 +11,7 @@ import { authorize, protect } from '../middleware/authMiddleware.js';
 const router = express.Router();
 
 router.route('/')
-    .get(protect, authorize('admin' , 'Order Maneger'), getShippingCosts)
+    .get(protect, authorize('admin' , 'Order Maneger', 'Customer'), getShippingCosts)
     .post(protect, authorize('admin'), createShippingCost);
 router.route('/:id')
     .put(protect, authorize('admin'), updateShippingCost)

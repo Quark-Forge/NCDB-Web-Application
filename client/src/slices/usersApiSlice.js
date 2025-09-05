@@ -89,15 +89,10 @@ export const usersApiSlice = apiSlice.injectEndpoints({
 });
 
 export const {
-   
     useLoginMutation,
-   
     useLogoutMutation,
-   
     useRegisterMutation,
-   
     useUpdateUserMutation,
-   
     useGetAllUsersQuery,
     useDeleteUserMutation,
     useRestoreUserMutation,

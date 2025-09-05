@@ -27,12 +27,17 @@ const STATUS_TRANSITIONS = {
 // checkout (create order)
 export const checkoutCart = asyncHandler(async (req, res) => {
     const user_id = req.user.id;
-    const { address_id } = req.body;
+    const { address_id, selected_items } = req.body; // Add selected_items parameter
 
     // Validate shipping details
     if (!address_id) {
         res.status(400);
         throw new Error('Missing required shipping details (address_id)');
+    }
+
+    if (!selected_items || !Array.isArray(selected_items) || selected_items.length === 0) {
+        res.status(400);
+        throw new Error('No items selected for checkout');
     }
 
     // Get cart with items including supplier info
@@ -41,15 +46,18 @@ export const checkoutCart = asyncHandler(async (req, res) => {
         include: [{
             model: CartItem,
             include: [Product, Supplier],
-            where: { quantity: { [Op.gt]: 0 } }
+            where: {
+                quantity: { [Op.gt]: 0 },
+                id: { [Op.in]: selected_items } // Only get selected items
+            }
         }]
     });
 
     if (!cart?.CartItems?.length) {
         res.status(400).json({
             success: false,
-            message: 'Cart is empty',
-            code: 'EMPTY_CART'
+            message: 'No valid items selected for checkout',
+            code: 'NO_SELECTED_ITEMS'
         });
         return;
     }
@@ -99,12 +107,12 @@ export const checkoutCart = asyncHandler(async (req, res) => {
                 supplier_id: cartItem.supplier_id,
                 quantity: cartItem.quantity,
                 price: cartItem.price,
-                product_data: { // Store snapshot of product details
+                product_data: {
                     name: cartItem.Product.name,
                     sku: cartItem.Product.sku,
                     image_url: cartItem.Product.base_image_url
                 },
-                supplier_data: { // Store snapshot of supplier details
+                supplier_data: {
                     name: cartItem.Supplier.name,
                     contact: cartItem.Supplier.contact_number
                 }
@@ -116,7 +124,7 @@ export const checkoutCart = asyncHandler(async (req, res) => {
             await transaction.rollback();
             res.status(400).json({
                 success: false,
-                message: 'Some items are no longer available',
+                message: 'Some selected items are no longer available',
                 issues: stockIssues,
                 code: 'STOCK_ISSUES'
             });
@@ -130,7 +138,7 @@ export const checkoutCart = asyncHandler(async (req, res) => {
             total_amount: totalAmount,
             user_id,
             status: 'pending',
-            notes: 'Order created from cart checkout'
+            notes: 'Order created from selected cart items'
         }, { transaction });
 
         // Create order items
@@ -154,9 +162,12 @@ export const checkoutCart = asyncHandler(async (req, res) => {
             });
         }
 
-        // Clear cart
+        // Remove only the selected items from cart
         await CartItem.destroy({
-            where: { cart_id: cart.id },
+            where: {
+                cart_id: cart.id,
+                id: { [Op.in]: selected_items }
+            },
             transaction
         });
 
@@ -176,17 +187,23 @@ export const checkoutCart = asyncHandler(async (req, res) => {
                     }
                 ]
             });
+
             const shippingCost = await ShippingCost.findOne({
                 where: { city: orderDetail.Address.city }
             });
-            const responseData = {
-                id: orderDetail.id, order_number: orderDetail.order_number,
-                status: orderDetail.status, total_amount: orderDetail.total_amount,
-                items: orderDetail.OrderItems.map(item => ({
 
-                    id: item.id, quantity: item.quantity,
-                    product_id: item.Product.id, product_name: item.Product.name,
-                    supplier_id: item.Supplier.id, supplier_name: item.Supplier.name,
+            const responseData = {
+                id: orderDetail.id,
+                order_number: orderDetail.order_number,
+                status: orderDetail.status,
+                total_amount: orderDetail.total_amount,
+                items: orderDetail.OrderItems.map(item => ({
+                    id: item.id,
+                    quantity: item.quantity,
+                    product_id: item.Product.id,
+                    product_name: item.Product.name,
+                    supplier_id: item.Supplier.id,
+                    supplier_name: item.Supplier.name,
                 })),
                 address_id: orderDetail.Address.id,
                 city: orderDetail.Address.city,
@@ -196,16 +213,15 @@ export const checkoutCart = asyncHandler(async (req, res) => {
 
             res.status(201).json({
                 success: true,
-                message: 'Order created successfully',
+                message: 'Order created successfully with selected items',
                 data: responseData
-
             });
         } catch (fetchError) {
             console.error('Error fetching order details:', fetchError);
             res.status(201).json({
                 success: true,
                 message: 'Order created successfully but could not fetch complete details',
-                data: { id: order.id } // At least return the order ID
+                data: { id: order.id }
             });
         }
 

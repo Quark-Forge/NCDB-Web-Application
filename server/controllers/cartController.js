@@ -1,32 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import asyncHandler from 'express-async-handler';
 import { Cart, CartItem, Product, Supplier, SupplierItem } from '../models/index.js';
 import sequelize from '../config/db.js';
