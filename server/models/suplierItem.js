@@ -137,6 +137,11 @@ export default (sequelize) => {
         SupplierItem.belongsTo(models.Supplier, {
             foreignKey: 'supplier_id',
         });
+
+        SupplierItem.hasMany(models.WishlistItem, {
+            foreignKey: 'supplier_item_id',
+        });
+
     };
 
     return SupplierItem;

@@ -301,10 +301,12 @@ export const getAllProductsWithDeleted = asyncHandler(async (req, res) => {
     }
 });
 
-// Get single product by ID
+// Get single product by ID with specific supplier
 export const getProductById = asyncHandler(async (req, res) => {
     try {
-        const product = await Product.findByPk(req.params.id, {
+        const { id, supplierId } = req.params;
+
+        const product = await Product.findByPk(id, {
             include: [
                 {
                     model: Category,
@@ -312,10 +314,12 @@ export const getProductById = asyncHandler(async (req, res) => {
                 },
                 {
                     model: SupplierItem,
-                    as: 'supplierItems',
+                    as: 'SupplierItems',
+                    where: supplierId ? { id: supplierId } : {},
+                    required: supplierId ? true : false,
                     include: [{
                         model: Supplier,
-                        attributes: ['id', 'name', 'contact_number', 'email']
+                        attributes: ['id', 'name', 'contact_number', 'email', 'delivery_time']
                     }]
                 }
             ]
@@ -328,21 +332,41 @@ export const getProductById = asyncHandler(async (req, res) => {
             });
         }
 
-        const totalStock = product.SupplierItems.reduce(
-            (sum, item) => sum + item.stock_level, 0
-        );
+        // If no supplier items found (invalid supplierId)
+        if (supplierId && (!product.SupplierItems || product.SupplierItems.length === 0)) {
+            return res.status(404).json({
+                success: false,
+                message: 'Supplier item not found for this product'
+            });
+        }
+
+        // Get all suppliers for this product to show alternatives
+        const allSuppliers = await SupplierItem.findAll({
+            where: { product_id: id },
+            include: [{
+                model: Supplier,
+                attributes: ['id', 'name', 'contact_number', 'email', 'delivery_time']
+            }]
+        });
+
+        const selectedSupplier = supplierId ? product.SupplierItems[0] : null;
 
         res.status(200).json({
             success: true,
             data: {
                 ...product.toJSON(),
                 name: toTitleCase(product.name),
-                total_stock: totalStock,
-                suppliers: product.SupplierItems.map(item => ({
-                    ...item.toJSON(),
+                selected_supplier: selectedSupplier,
+                all_suppliers: allSuppliers.map(item => ({
+                    id: item.id,
+                    price: item.price,
+                    discount_price: item.discount_price,
+                    stock_level: item.stock_level,
+                    supplier_id: item.supplier_id,
                     supplier_name: item.Supplier?.name,
                     contact: item.Supplier?.contact_number,
-                    email: item.Supplier?.email
+                    email: item.Supplier?.email,
+                    delivery_time: item.Supplier?.delivery_time
                 }))
             }
         });

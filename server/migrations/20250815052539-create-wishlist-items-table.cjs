@@ -18,11 +18,11 @@ module.exports = {
         },
         onDelete: 'CASCADE'
       },
-      product_id: {
+      supplier_item_id: {
         type: Sequelize.UUID,
         allowNull: false,
         references: {
-          model: 'products',
+          model: 'supplierItem',
           key: 'id'
         }
       },

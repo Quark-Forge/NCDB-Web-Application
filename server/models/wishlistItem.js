@@ -16,11 +16,11 @@ export default (sequelize) => {
             },
             onDelete: 'CASCADE'
         },
-        product_id: {
+        supplier_item_id: {
             type: DataTypes.UUID,
             allowNull: false,
             references: {
-                model: 'products',
+                model: 'supplier_items',
                 key: 'id'
             }
         }
@@ -34,8 +34,8 @@ export default (sequelize) => {
             foreignKey: 'wishlist_id',
         });
 
-        WishlistItem.belongsTo(models.Product, {
-            foreignKey: 'product_id',
+        WishlistItem.belongsTo(models.SupplierItem, {
+            foreignKey: 'supplier_item_id',
         });
     };
 

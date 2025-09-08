@@ -19,9 +19,11 @@ const ProfileDropdown = () => {
     try {
       await logoutApiCall().unwrap();
       dispatch(clearCredentials());
-      navigate('/');
+      // Dispatch storage event to sync across tabs
+      window.dispatchEvent(new Event('storage'));
+      navigate('/auth/login');
     } catch (err) {
-      console.log(err);
+      toast.error(err?.data?.message || 'Logout failed');
     }
   }
 
