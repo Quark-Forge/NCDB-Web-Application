@@ -5,8 +5,9 @@ import { useGetShippingAddressQuery } from '../../slices/shippingAddressApiSlice
 import { useCheckoutOrderMutation } from '../../slices/ordersApiSlice';
 import CheckoutForm from '../../components/checkout/CheckoutForm';
 import OrderSummary from '../../components/checkout/OrderSummary';
+import PaymentMethod from '../../components/checkout/PaymentMethod'; // Import your PaymentMethod component
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import ErrorMessage from '../../components/common/ErrorMessage';
+import AddressModal from '../../components/checkout/AddressModal';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -16,10 +17,12 @@ const Checkout = () => {
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showAddressModal, setShowAddressModal] = useState(false);
 
-  const { data: addressData, isLoading: addressLoading, error: addressError } = useGetShippingAddressQuery();
+  const { data: addressData, isLoading: addressLoading, error: addressError, refetch: refetchAddresses } = useGetShippingAddressQuery();
   const [checkoutOrder] = useCheckoutOrderMutation();
 
+  // Handle empty addresses array (new users)
   const addresses = addressData?.data || addressData || [];
 
   useEffect(() => {
@@ -27,7 +30,12 @@ const Checkout = () => {
     if (storedItems) {
       setSelectedItems(JSON.parse(storedItems));
     }
-  }, []);
+
+    // Automatically show address modal if no addresses exist
+    if (addresses.length === 0 && !addressLoading && !addressError) {
+      setShowAddressModal(true);
+    }
+  }, [addresses.length, addressLoading, addressError]);
 
   const calculateSubtotal = () => {
     return selectedItems.reduce((total, item) => {
@@ -86,16 +94,6 @@ const Checkout = () => {
     return <LoadingSpinner message="Loading checkout..." />;
   }
 
-  if (addressError) {
-    return (
-      <ErrorMessage
-        message="Failed to load addresses"
-        onRetry={() => window.location.reload()}
-        buttonText="Try Again"
-      />
-    );
-  }
-
   if (selectedItems.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -125,11 +123,79 @@ const Checkout = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <CheckoutForm
-              addresses={addresses}
-              selectedAddress={selectedAddress}
+            {/* Shipping Address Section */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">Shipping Address</h2>
+                <button
+                  onClick={() => setShowAddressModal(true)}
+                  className="text-sm text-red-500 hover:text-red-700"
+                >
+                  {selectedAddress ? 'Change Address' : 'Select Address'}
+                </button>
+              </div>
+
+              {addressError ? (
+                <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center">
+                  <p className="text-red-500 mb-2">Failed to load addresses</p>
+                  <div className="flex justify-center space-x-2">
+                    <button
+                      onClick={() => refetchAddresses()}
+                      className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                    >
+                      Try Again
+                    </button>
+                    <button
+                      onClick={() => setShowAddressModal(true)}
+                      className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600"
+                    >
+                      Add New Address
+                    </button>
+                  </div>
+                </div>
+              ) : selectedAddress ? (
+                <div className="p-4 border border-gray-200 rounded-lg">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center mt-1">
+                      <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{selectedAddress.shipping_name || selectedAddress.name}</p>
+                      <p className="text-sm text-gray-600">{selectedAddress.shipping_phone || selectedAddress.phone}</p>
+                      {selectedAddress.email && (
+                        <p className="text-sm text-gray-600">{selectedAddress.email}</p>
+                      )}
+                      <p className="text-sm text-gray-600 mt-2">
+                        {selectedAddress.address_line1 || selectedAddress.address}
+                        {selectedAddress.address_line2 && `, ${selectedAddress.address_line2}`}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {selectedAddress.city}, {selectedAddress.postal_code}
+                      </p>
+                      {shippingCost > 0 && (
+                        <p className="text-sm text-green-600 mt-1">
+                          Shipping: LKR {parseFloat(shippingCost).toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center">
+                  <p className="text-gray-500">No address selected</p>
+                  <button
+                    onClick={() => setShowAddressModal(true)}
+                    className="mt-2 text-sm text-red-500 hover:text-red-700"
+                  >
+                    Select Address
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Use your PaymentMethod component */}
+            <PaymentMethod
               paymentMethod={paymentMethod}
-              onAddressSelect={setSelectedAddress}
               onPaymentMethodChange={setPaymentMethod}
             />
           </div>
@@ -145,6 +211,19 @@ const Checkout = () => {
           />
         </div>
       </div>
+
+      {/* Address Modal */}
+      {showAddressModal && (
+        <AddressModal
+          addresses={addressError ? [] : addresses}
+          selectedAddress={selectedAddress}
+          onClose={() => setShowAddressModal(false)}
+          onSelectAddress={(address) => {
+            setSelectedAddress(address);
+            setShowAddressModal(false);
+          }}
+        />
+      )}
     </div>
   );
 };

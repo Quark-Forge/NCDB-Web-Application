@@ -76,11 +76,7 @@ export default (sequelize) => {
         Product.hasMany(models.CartItem, {
             foreignKey: 'product_id',
         });
-
-        Product.hasMany(models.WishlistItem, {
-            foreignKey: 'product_id',
-        });
-
+        
         Product.hasMany(models.OrderItem, {
             foreignKey: 'product_id',
             onDelete: 'RESTRICT'

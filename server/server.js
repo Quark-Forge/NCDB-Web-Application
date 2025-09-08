@@ -35,7 +35,7 @@ app.use('/api/carts', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/shipping-addresses', addressRoutes);
 app.use('/api/shipping-costs', shippingCostRoutes);
-app.use('/api/wishlist', shippingCostRoutes);
+app.use('/api/wishlist', wishListRoutes);
 
 
 app.get('/', (req, res) => res.send('server is ready'));

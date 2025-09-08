@@ -77,9 +77,9 @@ const Login = () => {
       dispatch(setCredentials({ ...res }));
 
       // Success toast
-      toast.success(`Welcome back, ${res.name || 'User'}!`, {
-        autoClose: 2000,
-      });
+      // toast.success(`Welcome back, ${res.name || 'User'}!`, {
+      //   autoClose: 2000,
+      // });
 
       // Navigate based on role or redirect path
       const redirectPath = location.state?.from?.pathname ||

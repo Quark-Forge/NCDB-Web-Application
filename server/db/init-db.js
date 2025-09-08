@@ -107,24 +107,9 @@ async function syncModels() {
     await Cart.sync({ force: false });
     await Wishlist.sync({ force: false });
 
-    // First create Order table without payment_id constraint
-    await Order.sync({ force: false });
-
-    // Then create Payment table
+    // Sync Payment first, then Order (Sequelize will handle the constraint automatically)
     await Payment.sync({ force: false });
-
-    // Now add the payment_id foreign key to Order
-    const queryInterface = sequelize.getQueryInterface();
-    await queryInterface.addConstraint('orders', {
-      fields: ['payment_id'],
-      type: 'foreign key',
-      references: {
-        table: 'payments',
-        field: 'id'
-      },
-      onDelete: 'SET NULL',
-      onUpdate: 'CASCADE'
-    });
+    await Order.sync({ force: false });
 
     // Sync junction/association models last
     await WishlistItem.sync({ force: false });

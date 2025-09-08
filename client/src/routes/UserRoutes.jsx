@@ -4,6 +4,7 @@ import Cart from "../pages/user/Cart";
 import PastOrders from "../pages/user/PastOrder";
 import Checkout from "../pages/user/Checkout";
 import UserProfile from "../pages/user/userProfile";
+import Wishlist from "../pages/user/Wishlist";
 
 
 export const userChildren = (
@@ -11,6 +12,7 @@ export const userChildren = (
         <Route path='profile' element={<UserProfile />}></Route>
         <Route path='profile/edit' element={<EditProfile />}></Route>
         <Route path='cart' element={<Cart/>}></Route>
+        <Route path='wishlist' element={<Wishlist/>}></Route>
         <Route path='myorders' element={<PastOrders/>}></Route>
         <Route path='checkout' element={<Checkout/>}></Route>
     </>
