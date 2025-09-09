@@ -33,7 +33,7 @@ const Categories = () => {
 
   const [pagination, setPagination] =useState({
     page: 1,
-    limit: 3
+    limit: 10
   })
 
   

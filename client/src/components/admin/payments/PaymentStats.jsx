@@ -9,43 +9,48 @@ const PaymentStats = ({ stats }) => {
         }).format(amount);
     };
 
+    const StatCard = ({ title, value, variant, icon: Icon }) => (
+        <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-start">
+                <div>
+                    <h4 className="text-sm font-medium text-gray-500">{title}</h4>
+                    <p className="text-2xl font-bold text-gray-900 mt-2">{value}</p>
+                </div>
+                <div className={`p-3 rounded-lg bg-gradient-to-br ${variant} text-white`}>
+                    <Icon className="h-6 w-6" />
+                </div>
+            </div>
+            <div className="mt-4">
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                        className={`h-2 rounded-full ${variant.split(' ')[0]}`}
+                        style={{ width: '100%' }}
+                    ></div>
+                </div>
+            </div>
+        </div>
+    );
+
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="p-4">
-                <div className="flex items-center">
-                    <div className="rounded-full bg-blue-100 p-3 mr-4">
-                        <DollarSign className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <div>
-                        <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                        <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalRevenue)}</p>
-                    </div>
-                </div>
-            </Card>
-
-            <Card className="p-4">
-                <div className="flex items-center">
-                    <div className="rounded-full bg-green-100 p-3 mr-4">
-                        <CreditCard className="h-6 w-6 text-green-600" />
-                    </div>
-                    <div>
-                        <p className="text-sm font-medium text-gray-600">Successful Transactions</p>
-                        <p className="text-2xl font-bold text-gray-900">{stats.successfulTransactions}</p>
-                    </div>
-                </div>
-            </Card>
-
-            <Card className="p-4">
-                <div className="flex items-center">
-                    <div className="rounded-full bg-red-100 p-3 mr-4">
-                        <AlertCircle className="h-6 w-6 text-red-600" />
-                    </div>
-                    <div>
-                        <p className="text-sm font-medium text-gray-600">Pending/Issues</p>
-                        <p className="text-2xl font-bold text-gray-900">{stats.pendingIssues}</p>
-                    </div>
-                </div>
-            </Card>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <StatCard
+                title="Total Revenue"
+                value={formatCurrency(stats.totalRevenue)}
+                variant="from-blue-500 to-blue-600"
+                icon={DollarSign}
+            />
+            <StatCard
+                title="Successful Transactions"
+                value={stats.successfulTransactions}
+                variant="from-green-500 to-green-600"
+                icon={CreditCard}
+            />
+            <StatCard
+                title="Pending/Issues"
+                value={stats.pendingIssues}
+                variant="from-red-500 to-red-600"
+                icon={AlertCircle}
+            />
         </div>
     );
 };
