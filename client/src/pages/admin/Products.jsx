@@ -26,7 +26,7 @@ const Products = () => {
   const [selectedSupplierItem, setSelectedSupplierItem] = useState(null);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 3;
+  const itemsPerPage = 10;
 
   const products = productsData?.data || [];
   const categories = categoriesData?.data || [];
