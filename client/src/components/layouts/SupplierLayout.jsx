@@ -1,0 +1,257 @@
+import { useRef, useState, useEffect, useMemo } from 'react';
+import { Outlet, NavLink, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import {
+    Home,
+    Menu,
+    X,
+    UserCircle,
+    LogOut,
+    ChevronLeft,
+    CircleDollarSign,
+    LayoutDashboard
+} from 'lucide-react';
+import { useLogoutMutation } from '../../slices/usersApiSlice';
+import { useDispatch, useSelector } from 'react-redux';
+import { toast } from 'react-toastify';
+import { clearCredentials } from '../../slices/authSlice';
+
+// Navigation configuration
+const adminNavConfig = {
+    mainItems: [
+        {
+            to: '/suppliers/dashboard',
+            label: 'Dashboard',
+            allowedRoles: ['Supplier'],
+            icon: <LayoutDashboard size={18} />
+        },
+        {
+            to: '/suppliers/sales',
+            label: 'Sales',
+            allowedRoles: ['Supplier'],
+            icon: <CircleDollarSign size={18} />
+        },
+        
+
+    ],
+
+};
+
+// Custom hook for authorization
+const useAdminAuth = () => {
+    const { userInfo } = useSelector((state) => state.auth);
+    const location = useLocation();
+
+    const hasAccess = (allowedRoles) => {
+        return allowedRoles ? allowedRoles.includes(userInfo?.user_role) : true;
+    };
+
+    return { userInfo, hasAccess };
+};
+
+
+
+const SupplierLayout = () => {
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const [productsExpanded, setProductsExpanded] = useState(false);
+    const dropdownRef = useRef();
+    const location = useLocation();
+
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const [logoutApiCall, { isLoading }] = useLogoutMutation();
+    const { userInfo, hasAccess } = useAdminAuth();
+
+    const handleLogout = async () => {
+        try {
+            await logoutApiCall().unwrap();
+            dispatch(clearCredentials());
+            navigate('/auth/login');
+            toast.success('Logged out successfully');
+        } catch (err) {
+            toast.error(err?.data?.message || 'Logout failed');
+        }
+    };
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                setDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Filter navigation items based on role
+    const filteredNavItems = useMemo(() => (
+        adminNavConfig.mainItems.filter(item => hasAccess(item.allowedRoles))
+    ), [userInfo]);
+
+    // Early return if unauthorized
+    if (!userInfo) {
+        return <Navigate to="/auth/login" state={{ from: location }} replace />;
+    }
+
+    // Breadcrumb navigation
+    const getBreadcrumbs = () => {
+        const paths = location.pathname.split('/').filter(Boolean);
+        return paths.map((path, index) => {
+            const route = `/${paths.slice(0, index + 1).join('/')}`;
+            const label = path.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+            return {
+                label,
+                route,
+                isLast: index === paths.length - 1
+            };
+        });
+    };
+
+    return (
+        <div className="flex flex-col h-screen bg-gray-50">
+            {/* Top Navbar */}
+            <header className="h-16 w-full bg-white shadow-sm z-20 px-5 flex items-center justify-between fixed top-0 left-0 right-0">
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setSidebarOpen(!sidebarOpen)}
+                        className="text-gray-700 focus:outline-none md:hidden"
+                        aria-label="Toggle sidebar"
+                        aria-expanded={sidebarOpen}
+                    >
+                        {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+                    </button>
+
+                    {/* Home Navigation */}
+                    <button
+                        onClick={() => navigate('/')}
+                        className="text-blue-600 hover:text-blue-800 transition-colors"
+                        aria-label="Go to home page"
+                    >
+                        <Home size={20} />
+                    </button>
+
+                    <span className="text-xl font-bold text-blue-600">{userInfo.user_role} Panel</span>
+                </div>
+
+                {/* Help Navigation */}
+                <div className="hidden md:flex items-center gap-4">
+
+
+                    {/* Profile Dropdown */}
+                    <div className="relative" ref={dropdownRef}>
+                        <button
+                            onClick={() => setDropdownOpen(!dropdownOpen)}
+                            className="flex items-center gap-2 focus:outline-none"
+                            aria-label="User menu"
+                            aria-expanded={dropdownOpen}
+                        >
+                            <img
+                                src={userInfo?.image_url || "../../images/user.png"}
+                                alt="User"
+                                className="w-9 h-9 rounded-full object-cover border-2 border-gray-200"
+                                onError={(e) => {
+                                    e.target.src = "../../images/user.png";
+                                    e.target.onerror = null;
+                                }}
+                            />
+                            <span className="sr-only">User profile</span>
+                        </button>
+
+                        {dropdownOpen && (
+                            <div
+                                className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200 py-1"
+                                role="menu"
+                            >
+                                <NavLink
+                                    to="/suppliers/profile"
+                                    onClick={() => setDropdownOpen(false)}
+                                    className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
+                                    role="menuitem"
+                                >
+                                    <UserCircle className="w-4 h-4 mr-2" />
+                                    Profile
+                                </NavLink>
+                                <button
+                                    onClick={handleLogout}
+                                    disabled={isLoading}
+                                    className="w-full text-left flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                                    role="menuitem"
+                                >
+                                    <LogOut className="w-4 h-4 mr-2" />
+                                    {isLoading ? 'Logging out...' : 'Logout'}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </header>
+
+            {/* Main layout area */}
+            <div className="flex mt-16 h-full">
+                {/* Sidebar */}
+                <aside
+                    className={`fixed md:relative top-16 md:top-0 left-0 h-[calc(100vh-4rem)] md:h-full w-64 bg-white shadow-sm z-30 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+                        } md:translate-x-0`}
+                    aria-label="Sidebar"
+                >
+                    <nav className="p-4 space-y-2">
+                        {filteredNavItems.map(({ to, label, icon }) => (
+                            <NavLink
+                                key={to}
+                                to={to}
+                                onClick={() => setSidebarOpen(false)}
+                                className={({ isActive }) =>
+                                    `flex items-center gap-2 p-2 rounded-md transition ${isActive
+                                        ? 'bg-blue-100 text-blue-700 font-medium'
+                                        : 'text-gray-700 hover:bg-gray-100'
+                                    }`
+                                }
+                                end
+                            >
+                                {icon} {label}
+                            </NavLink>
+                        ))}
+                    </nav>
+                </aside>
+
+                {/* Main Content */}
+                <main className="flex-1 p-4 bg-gray-50 overflow-y-auto md:h-[calc(100vh-4rem)]">
+                    {/* Breadcrumb Navigation */}
+                    <div className="flex items-center gap-2 mb-4 text-sm text-gray-600">
+                        <button
+                            onClick={() => navigate(-1)}
+                            className="p-1 rounded-full hover:bg-gray-200 transition-colors"
+                            aria-label="Go back"
+                        >
+                            <ChevronLeft size={18} />
+                        </button>
+
+                        {getBreadcrumbs().map((crumb, index) => (
+                            <div key={index} className="flex items-center">
+                                {index > 0 && <span className="mx-2">/</span>}
+                                {crumb.isLast ? (
+                                    <span className="text-gray-800 font-medium">{crumb.label}</span>
+                                ) : (
+                                    <button
+                                        onClick={() => navigate(crumb.route)}
+                                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                                    >
+                                        {crumb.label}
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow-sm p-6 min-h-full">
+                        <Outlet />
+                    </div>
+                </main>
+            </div>
+        </div>
+    );
+};
+
+export default SupplierLayout;

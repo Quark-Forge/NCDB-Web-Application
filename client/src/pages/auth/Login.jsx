@@ -26,8 +26,12 @@ const Login = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (userInfo) {
-      const redirectPath = location.state?.from?.pathname ||
-        (allowedRoles.includes(userInfo.user_role) ? '/admin/dashboard' : '/');
+      let redirectPath = location.state?.from?.pathname || '/';
+      if (allowedRoles.includes(userInfo.user_role)) {
+        redirectPath = '/admin/dashboard';
+      } else if (userInfo.user_role === 'Supplier') {
+        redirectPath = '/suppliers/dashboard';
+      }
       navigate(redirectPath);
     }
   }, [userInfo, navigate, location]);

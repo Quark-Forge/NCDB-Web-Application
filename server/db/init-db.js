@@ -23,7 +23,8 @@ const DEFAULT_ROLES = [
   { name: 'Admin' },
   { name: 'Customer' },
   { name: 'Inventory Manager' },
-  { name: 'Order Manager' }
+  { name: 'Order Manager' },
+  { name: 'Supplier' }
 ];
 
 async function initializeData() {

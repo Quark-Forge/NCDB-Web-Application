@@ -2,14 +2,11 @@ import { useState, useCallback, memo } from 'react';
 import { Search, LayoutDashboard, ShoppingBag, User as UserIcon } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import AdminProfile from '../../pages/admin/AdminProfile';
-import UserProfile from '../user/UserProfile';
 import { useGetCartQuery } from '../../slices/cartApiSlice';
 import ProfileDropdown from '../user/ProfileDropdown ';
 
 // Constants
-const ALLOWED_ROLES = ['Admin', 'Order Manager', 'Inventory Manager'];
-const DEFAULT_USER_IMAGE = '../../images/user.png';
+const ALLOWED_ROLES = ['Admin', 'Order Manager', 'Inventory Manager', 'Supplier'];
 
 // Memoized components to prevent unnecessary re-renders
 const CartButton = memo(({ cartCount, onClick }) => (
@@ -81,7 +78,7 @@ const Navbar = ({search, setSearch }) => {
   const { userInfo } = useSelector((state) => state.auth);
 
   const { data, isLoading } = useGetCartQuery(undefined, {
-    skip: !userInfo, // only fetch if logged in
+    skip: !(userInfo && userInfo.user_role === 'Customer'), // only fetch if logged in as Customer
   });
 
   // Count only number of distinct cart items
@@ -92,8 +89,12 @@ const Navbar = ({search, setSearch }) => {
   }, [navigate]);
 
   const handleAdminPanelClick = useCallback(() => {
-    navigate('/admin/dashboard');
-  }, [navigate]);
+    if (userInfo?.user_role === 'Supplier') {
+      navigate('/suppliers/dashboard');
+    } else {
+      navigate('/admin/dashboard');
+    }
+  }, [navigate, userInfo]);
 
   const handleProfileClose = useCallback(() => {
     setIsProfileOpen(false);
@@ -119,14 +120,14 @@ const Navbar = ({search, setSearch }) => {
             <div className="flex items-center space-x-3 md:hidden">
               {!userInfo ? (
                 <>
-                  <CartButton cartCount={cartCount} onClick={handleCartClick} />
                   <AuthButtons navigate={navigate} />
                 </>
               ) : (
                 <>
-                  {isAdmin && <AdminButton onClick={handleAdminPanelClick} />}
-                  <CartButton cartCount={cartCount} onClick={handleCartClick} />
-                  {/* Replace the old profile button with the dropdown */}
+                  {/* Show Admin button for non-Customer users */}
+                  {userInfo.user_role !== 'Customer' && <AdminButton onClick={handleAdminPanelClick} />}
+                  {/* Show Cart button only for Customer users */}
+                  {userInfo.user_role === 'Customer' && <CartButton cartCount={cartCount} onClick={handleCartClick} />}
                   <ProfileDropdown />
                 </>
               )}
@@ -152,14 +153,14 @@ const Navbar = ({search, setSearch }) => {
           <div className="hidden md:flex items-center space-x-4">
             {userInfo ? (
               <>
-                {isAdmin && <AdminButton onClick={handleAdminPanelClick} />}
-                <CartButton cartCount={cartCount} onClick={handleCartClick} />
-                {/* Replace the old profile button with the dropdown */}
+                {/* Show Admin button for non-Customer users */}
+                {userInfo.user_role !== 'Customer' && <AdminButton onClick={handleAdminPanelClick} />}
+                {/* Show Cart button only for Customer users */}
+                {userInfo.user_role === 'Customer' && <CartButton cartCount={cartCount} onClick={handleCartClick} />}
                 <ProfileDropdown />
               </>
             ) : (
               <>
-                <CartButton cartCount={cartCount} onClick={handleCartClick} />
                 <AuthButtons navigate={navigate} />
               </>
             )}

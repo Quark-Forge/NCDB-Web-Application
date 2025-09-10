@@ -23,13 +23,18 @@ import {
 
 
 const Wishlist = () => {
-    const { data: wishlistResponse, isLoading, error, refetch } = useGetWishlistQuery();
+
+    const { userInfo } = useSelector((state) => state.auth);
+    const isCustomer = userInfo?.user_role === 'Customer';
+    const { data: wishlistResponse, isLoading, error, refetch } = useGetWishlistQuery(undefined, {
+        skip: !isCustomer,
+    });
     const [removeFromWishlist] = useRemoveFromWishlistMutation();
     const [clearWishlist] = useClearWishlistMutation();
     const [updateWishlistItem] = useUpdateWishlistItemMutation();
     const [addToCart] = useAddToCartMutation();
 
-    const { userInfo } = useSelector((state) => state.auth);
+
     const navigate = useNavigate();
     const [selectedSupplier, setSelectedSupplier] = useState({});
     const [showSupplierModal, setShowSupplierModal] = useState(false);

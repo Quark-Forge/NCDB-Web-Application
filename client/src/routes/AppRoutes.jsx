@@ -10,6 +10,8 @@ import HomeLayout from '../components/layouts/HomeLayout';
 import ProtectedRoute from './ProtectedRoute';
 import ErrorPage from '../pages/ErrorPage';
 import Unauthorized from '../pages/Unauthorized';
+import { supplierChildren } from './SuppliersRoutes';
+import SupplierLayout from '../components/layouts/SupplierLayout';
 
 
 const AppRoutes = () => {
@@ -29,6 +31,13 @@ const AppRoutes = () => {
         <Route element={<ProtectedRoute allowedRoles={['Admin', 'Order Manager', 'Inventory Manager']} />}>
           <Route path='/admin/*' element={<AdminLayout />}>
             {adminChildren}
+          </Route>
+        </Route>
+
+        {/* Protected route only for suppliers */}
+        <Route element={<ProtectedRoute allowedRoles={['Supplier']} />}>
+          <Route path='/suppliers/*' element={<SupplierLayout />}>
+            {supplierChildren}
           </Route>
         </Route>
 

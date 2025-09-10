@@ -18,7 +18,9 @@ import {
   BarChart2,
   ShipIcon,
   Currency,
-  ReceiptIcon
+  ReceiptIcon,
+  Import,
+  CircleDollarSign
 } from 'lucide-react';
 import { useLogoutMutation } from '../../slices/usersApiSlice';
 import { useDispatch, useSelector } from 'react-redux';
@@ -59,6 +61,12 @@ const adminNavConfig = {
       icon: <Package size={18} />
     },
     {
+      to: '/admin/purchases',
+      label: 'Purchases',
+      allowedRoles: ['Admin', 'Inventory Manager'],
+      icon: <Import size={18} />
+    },
+    {
       to: '/admin/shipping',
       label: 'Shipping',
       allowedRoles: ['Admin', 'Order Manager'],
@@ -76,6 +84,13 @@ const adminNavConfig = {
       allowedRoles: ['Admin'],
       icon: <BarChart2 size={18} />
     },
+    {
+      to: '/supplier/sales',
+      label: 'Sales',
+      allowedRoles: ['Supplier'],
+      icon: <CircleDollarSign size={18} />
+    },
+    
   ],
   productItems: [
     {
