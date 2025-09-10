@@ -12,6 +12,7 @@ import {
 import { toast } from 'react-toastify';
 
 const ProductCard = ({ product, supplierItem }) => {
+    const { userInfo } = useSelector((state) => state.auth);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistItemId, setWishlistItemId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -20,12 +21,13 @@ const ProductCard = ({ product, supplierItem }) => {
   const [addToCart, { isLoading: isAdding }] = useAddToCartMutation();
   const [addToWishlist] = useAddToWishlistMutation();
   const [removeFromWishlist] = useRemoveFromWishlistMutation();
-  const { userInfo } = useSelector((state) => state.auth);
+
 
   // Check if this product is already in the wishlist
+  const shouldFetchWishlist = userInfo?.user_role === 'Customer';
   const { data: wishlistCheck, refetch: refetchWishlistCheck, isError } = useCheckWishlistItemQuery(
     product.id,
-    { skip: !userInfo }
+    { skip: !shouldFetchWishlist }
   );
 
   useEffect(() => {
@@ -161,25 +163,27 @@ const ProductCard = ({ product, supplierItem }) => {
           />
 
           {/* Wishlist Button */}
-          <button
-            onClick={handleWishlist}
-            disabled={isLoading}
-            className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition-all duration-200 hover:scale-110"
-          >
-            {isLoading ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
-            ) : (
-              <Heart
-                className={`h-4 w-4 transition-colors ${isWishlisted
-                  ? 'fill-red-500 text-red-500'
-                  : 'text-gray-400 hover:text-red-400'
+          {userInfo?.user_role === 'Customer' && (
+            <button
+              onClick={handleWishlist}
+              disabled={isLoading}
+              className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition-all duration-200 hover:scale-110"
+            >
+              {isLoading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+              ) : (
+                <Heart
+                  className={`h-4 w-4 transition-colors ${isWishlisted
+                    ? 'fill-red-500 text-red-500'
+                    : 'text-gray-400 hover:text-red-400'
                   }`}
-              />
-            )}
-          </button>
+                />
+              )}
+            </button>
+          )}
         </div>
 
-        {/* Product Info */}
+        {/* Product Details */}
         <div className="p-4 flex flex-row">
           <div className='flex w-full flex-col'>
             {/* Name */}
@@ -202,22 +206,25 @@ const ProductCard = ({ product, supplierItem }) => {
             </div>
           </div>
 
-          <div className='flex w-1/2 justify-end'>
-            <button
-              onClick={handleAddToCart}
-              disabled={isAdding || (supplierItem && supplierItem.stock_level <= 0)}
-              className={`font-semibold w-11 h-11 rounded-3xl transition-all duration-200 flex items-center justify-center space-x-2 ${isAdding || (supplierItem && supplierItem.stock_level <= 0)
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-400 hover:shadow-lg transform hover:scale-105'
-                } text-white`}
-            >
-              {isAdding ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              ) : (
-                <ShoppingCartIcon className='p-1' />
-              )}
-            </button>
-          </div>
+          {/* Show Add to Cart only for Customer users */}
+          {userInfo?.user_role === 'Customer' && (
+            <div className='flex w-1/2 justify-end'>
+              <button
+                onClick={handleAddToCart}
+                disabled={isAdding || (supplierItem && supplierItem.stock_level <= 0)}
+                className={`font-semibold w-11 h-11 rounded-3xl transition-all duration-200 flex items-center justify-center space-x-2 ${isAdding || (supplierItem && supplierItem.stock_level <= 0)
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-400 hover:shadow-lg transform hover:scale-105'
+                  } text-white`}
+              >
+                {isAdding ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                ) : (
+                  <ShoppingCartIcon className='p-1' />
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

@@ -62,6 +62,15 @@ const Home = () => {
   // Generate page numbers for pagination
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
 
+  if (error) {
+    return (
+      <div className="mb-6 text-red-500 flex items-center p-10 gap-2">
+        <CircleAlert className="h-5 w-5" />
+        Failed to load Products
+      </div>
+    );
+  }
+
   return (
     <>
       <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
