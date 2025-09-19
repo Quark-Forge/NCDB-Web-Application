@@ -28,9 +28,6 @@ export default (sequelize) => {
                 notEmpty: {
                     msg: "SKU cannot be empty"
                 },
-                isAlphanumeric: {
-                    msg: "SKU should contain only letters and numbers"
-                }
             }
         },
         description: {

@@ -14,6 +14,8 @@ import PaymentModel from "./payment.js";
 import SupplierItemModel from "./suplierItem.js";
 import WishlistModel from "./wishlist.js";
 import WishlistItemModel from "./wishlistItem.js";
+import SupplierItemRequestModel from "./supplier_item_requests.js";
+
 
 export const Role = RoleModel(sequelize);
 export const User = UserModel(sequelize);
@@ -30,6 +32,8 @@ export const Order = OrderModel(sequelize);
 export const OrderItem = OrderItemModel(sequelize);
 export const Payment = PaymentModel(sequelize);
 export const SupplierItem = SupplierItemModel(sequelize);
+export const SupplierItemRequest = SupplierItemRequestModel(sequelize);
+
 
 
 
@@ -50,6 +54,7 @@ const models = {
   Payment,
   Wishlist,
   WishlistItem,
+  SupplierItemRequest,
 };
 
 // Initialize associations if they exist

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useGetProductByIdQuery } from '../../slices/productsApiSlice';
 import { useOutletContext } from 'react-router-dom';
 import {
     ArrowLeft,
@@ -16,30 +15,48 @@ import {
     Minus,
     CircleAlert
 } from 'lucide-react';
+import { useGetSupplierItemByIdQuery } from '../../slices/supplierItemsApiSlice'; // Import the correct hook
 
 const ProductDetail = () => {
-    const { id, supplierId } = useParams(); // Now gets both product ID and supplier ID
+    const { supplierItemId } = useParams(); // Now gets only supplierItem ID
     const navigate = useNavigate();
     const { cartCount, setCartCount, cartItems, setCartItems } = useOutletContext();
 
     const [selectedImage, setSelectedImage] = useState(0);
     const [quantity, setQuantity] = useState(1);
 
-    // Fetch product data with specific supplier
-    const { data: productData, isLoading, error } = useGetProductByIdQuery({ id, supplierId });
-    const product = productData?.data || {};
+    // Fetch supplier item data using the correct hook
+    const { data: supplierItemData, isLoading, error } = useGetSupplierItemByIdQuery(supplierItemId);
+    const supplierItem = supplierItemData?.data || {};
 
-    const selectedSupplier = product.selected_supplier;
-    const allSuppliers = product.all_suppliers || [];
+    // Extract product and supplier information from the supplier item
+    const product = {
+        id: supplierItem.product_id,
+        name: supplierItem.Product?.name,
+        description: supplierItem.description || supplierItem.Product?.description,
+        image_url: supplierItem.image_url || supplierItem.Product?.base_image_url,
+        specifications: supplierItem.Product?.specifications,
+        // Add other product fields as needed
+    };
+
+    const selectedSupplier = {
+        id: supplierItem.supplier_id,
+        name: supplierItem.Supplier?.name,
+        price: supplierItem.price,
+        discount_price: supplierItem.discount_price,
+        stock_level: supplierItem.stock_level,
+        image_url: supplierItem.image_url,
+        // Add other supplier fields as needed
+    };
 
     const handleAddToCart = () => {
-        if (!selectedSupplier) return;
+        if (!supplierItem) return;
 
         const itemToAdd = {
             ...product,
             supplier: selectedSupplier,
             quantity,
-            cartId: `${product.id}-${selectedSupplier.id}`
+            cartId: supplierItem.id // Use supplier item ID as cart ID
         };
 
         // Check if item already exists in cart
@@ -62,13 +79,9 @@ const ProductDetail = () => {
 
     const handleQuantityChange = (change) => {
         const newQuantity = quantity + change;
-        if (newQuantity >= 1 && newQuantity <= (selectedSupplier?.stock_level || 10)) {
+        if (newQuantity >= 1 && newQuantity <= (supplierItem?.stock_level || 10)) {
             setQuantity(newQuantity);
         }
-    };
-
-    const handleSupplierChange = (newSupplierId) => {
-        navigate(`/product/${id}/${newSupplierId}`);
     };
 
     if (isLoading) {
@@ -99,7 +112,7 @@ const ProductDetail = () => {
         );
     }
 
-    if (error) {
+    if (error || !supplierItem.id) {
         return (
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="flex flex-col items-center justify-center py-12">
@@ -146,29 +159,11 @@ const ProductDetail = () => {
                 <div>
                     <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
                         <img
-                            src={selectedSupplier?.image_url || product.image_url || '/api/placeholder/500/500'}
+                            src={selectedSupplier?.image_url || product.image_url || '../../images/product.png'}
                             alt={product.name}
                             className="w-full h-96 object-contain rounded-lg"
                         />
                     </div>
-
-                    {product.images && product.images.length > 0 && (
-                        <div className="flex gap-4 overflow-x-auto py-2">
-                            {product.images.map((img, index) => (
-                                <button
-                                    key={index}
-                                    onClick={() => setSelectedImage(index)}
-                                    className={`flex-shrink-0 w-20 h-20 border rounded-lg overflow-hidden ${selectedImage === index ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'}`}
-                                >
-                                    <img
-                                        src={img}
-                                        alt={`${product.name} view ${index + 1}`}
-                                        className="w-full h-full object-cover"
-                                    />
-                                </button>
-                            ))}
-                        </div>
-                    )}
                 </div>
 
                 {/* Product Info */}
@@ -180,11 +175,11 @@ const ProductDetail = () => {
                             {[1, 2, 3, 4, 5].map((star) => (
                                 <Star
                                     key={star}
-                                    className={`h-5 w-5 ${star <= (product.rating || 4) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                                    className={`h-5 w-5 ${star <= 4 ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
                                 />
                             ))}
                         </div>
-                        <span className="ml-2 text-sm text-gray-600">({product.reviewCount || 24} reviews)</span>
+                        <span className="ml-2 text-sm text-gray-600">(24 reviews)</span>
                     </div>
 
                     {selectedSupplier && (
@@ -192,18 +187,18 @@ const ProductDetail = () => {
                             <div className="mb-6">
                                 <div className="flex items-baseline gap-2">
                                     {selectedSupplier.discount_price && selectedSupplier.discount_price < selectedSupplier.price && (
-                                        <span className="text-xl text-gray-500 line-through">Rs {selectedSupplier.price.toFixed(2)}</span>
+                                        <span className="text-xl text-gray-500 line-through">Rs {selectedSupplier.price}</span>
                                     )}
                                     <span className="text-3xl font-bold text-gray-900">
                                         Rs {selectedSupplier.discount_price && selectedSupplier.discount_price < selectedSupplier.price
-                                            ? selectedSupplier.discount_price.toFixed(2)
+                                            ? selectedSupplier.discount_price
                                             : selectedSupplier.price.toFixed(2)}
                                     </span>
                                 </div>
                                 {selectedSupplier.discount_price && selectedSupplier.discount_price < selectedSupplier.price && (
                                     <div className="mt-1">
                                         <span className="inline-block bg-red-100 text-red-800 text-sm font-medium px-2 py-1 rounded">
-                                            Save Rs {(selectedSupplier.price - selectedSupplier.discount_price).toFixed(2)}
+                                            Save Rs {(selectedSupplier.price - selectedSupplier.discount_price)}
                                         </span>
                                     </div>
                                 )}
@@ -213,38 +208,14 @@ const ProductDetail = () => {
                                 <p className="text-gray-700">{product.description || 'No description available.'}</p>
                             </div>
 
-                            {/* Supplier Selection */}
-                            {allSuppliers.length > 1 && (
-                                <div className="mb-6">
-                                    <h3 className="text-lg font-medium text-gray-900 mb-3">Available From</h3>
-                                    <div className="space-y-2">
-                                        {allSuppliers.map(supplier => (
-                                            <div
-                                                key={supplier.id}
-                                                className={`border rounded-lg p-4 cursor-pointer transition-colors ${selectedSupplier.id === supplier.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
-                                                onClick={() => handleSupplierChange(supplier.id)}
-                                            >
-                                                <div className="flex justify-between items-center">
-                                                    <div>
-                                                        <h4 className="font-medium">{supplier.supplier_name}</h4>
-                                                        <p className="text-sm text-gray-600">Delivery: {supplier.delivery_time}</p>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="font-medium">Rs {supplier.price.toFixed(2)}</p>
-                                                        <p className="text-sm text-gray-600">Stock: {supplier.stock_level}</p>
-                                                    </div>
-                                                </div>
-                                                {selectedSupplier.id === supplier.id && (
-                                                    <div className="flex items-center mt-2 text-sm text-green-600">
-                                                        <Check className="h-4 w-4 mr-1" />
-                                                        <span>Selected</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
+                            {/* Supplier Information */}
+                            <div className="mb-6">
+                                <h3 className="text-lg font-medium text-gray-900 mb-3">Sold By</h3>
+                                <div className="border rounded-lg p-4 bg-gray-50">
+                                    <h4 className="font-medium">{selectedSupplier.name}</h4>
+                                    <p className="text-sm text-gray-600 mt-1">Delivery: 3-5 business days</p>
                                 </div>
-                            )}
+                            </div>
 
                             {/* Quantity Selector */}
                             <div className="mb-6">
@@ -295,12 +266,19 @@ const ProductDetail = () => {
                     <div className="border-t border-gray-200 pt-6">
                         <h3 className="text-lg font-medium text-gray-900 mb-4">Product Details</h3>
                         <div className="space-y-2 text-sm text-gray-700">
-                            {product.specifications && Object.entries(product.specifications).map(([key, value]) => (
-                                <div key={key} className="flex">
-                                    <span className="font-medium w-1/3">{key}:</span>
-                                    <span className="w-2/3">{value}</span>
+                            {supplierItem.quantity_per_unit && (
+                                <div className="flex">
+                                    <span className="font-medium w-1/3">Quantity:</span>
+                                    <span className="w-2/3">{supplierItem.quantity_per_unit} {supplierItem.unit_symbol}</span>
                                 </div>
-                            ))}
+                            )}
+                            {supplierItem.expiry_days && (
+                                <div className="flex">
+                                    <span className="font-medium w-1/3">Shelf Life:</span>
+                                    <span className="w-2/3">{supplierItem.expiry_days} days</span>
+                                </div>
+                            )}
+                            {/* Add more product details as needed */}
                         </div>
                     </div>
                 </div>
@@ -327,8 +305,8 @@ const ProductDetail = () => {
                     <div className="flex items-start">
                         <Shield className="h-6 w-6 text-blue-600 mt-1 mr-4" />
                         <div>
-                            <h3 className="font-medium text-gray-900 mb-1">2-Year Warranty</h3>
-                            <p className="text-gray-600">Coverage for any manufacturer defects</p>
+                            <h3 className="font-medium text-gray-900 mb-1">Quality Guarantee</h3>
+                            <p className="text-gray-600">Premium quality products</p>
                         </div>
                     </div>
                 </div>

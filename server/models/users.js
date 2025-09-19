@@ -98,6 +98,12 @@ export default (sequelize) => {
     User.hasMany(models.Wishlist, {
       foreignKey: 'user_id',
     });
+
+    // supplier_item_requests relationship
+    User.hasMany(models.SupplierItemRequest, {
+      foreignKey: 'created_by',
+      onDelete: 'RESTRICT'
+    });
   };
   return User;
 }

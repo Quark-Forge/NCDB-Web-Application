@@ -87,6 +87,12 @@ export default (sequelize) => {
         Supplier.hasMany(models.OrderItem, {
             foreignKey: 'supplier_id',
         });
+
+        // supplier_item_requests relationship
+        Supplier.hasMany(models.SupplierItemRequest, {
+            foreignKey: 'supplier_id',
+            onDelete: 'CASCADE'
+        })
     };
 
     return Supplier;

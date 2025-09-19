@@ -142,6 +142,10 @@ export default (sequelize) => {
             foreignKey: 'supplier_item_id',
         });
 
+        SupplierItem.hasMany(models.SupplierItemRequest, {
+            foreignKey: 'supplier_item_id',
+        });
+
     };
 
     return SupplierItem;
