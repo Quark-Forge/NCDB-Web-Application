@@ -13,6 +13,7 @@ import {
   OrderItem,
   Payment,
   SupplierItem,
+  SupplierItemRequest,
   ShippingCost,
   Address
 } from '../models/index.js';
@@ -108,15 +109,20 @@ async function syncModels() {
     await Cart.sync({ force: false });
     await Wishlist.sync({ force: false });
 
-    // Sync Payment first, then Order (Sequelize will handle the constraint automatically)
+    // Sync Payment first, then Order
     await Payment.sync({ force: false });
     await Order.sync({ force: false });
+
+    // Sync SupplierItem before SupplierItemRequest
+    await SupplierItem.sync({ force: false });
+
+    // Sync SupplierItemRequest after all its dependencies
+    await SupplierItemRequest.sync({ force: false });
 
     // Sync junction/association models last
     await WishlistItem.sync({ force: false });
     await CartItem.sync({ force: false });
     await OrderItem.sync({ force: false });
-    await SupplierItem.sync({ force: false });
 
     // Re-enable foreign key checks
     await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');

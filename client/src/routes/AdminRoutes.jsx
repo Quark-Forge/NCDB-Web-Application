@@ -12,6 +12,7 @@ import OrderDetails from '../pages/admin/orders/OrderDetails';
 import Shipping from '../pages/admin/shipping/Shipping';
 import Inventory  from '../pages/admin/Inventory';
 import Payments from '../pages/admin/payments/payments';
+import Purchases from '../pages/admin/purchase/Purchases';
 
 export const adminChildren = (
   <>
@@ -26,8 +27,6 @@ export const adminChildren = (
       <Route path='payments' element={<Payments />} />
     </Route>
 
-    {/* Remove empty ProtectedRoute block */}
-
     <Route element={<ProtectedRoute allowedRoles={['Admin', 'Order Manager', 'Inventory Manager']} />}>
       <Route path='products' element={<Products />} />
       <Route path='categories' element={<Categories />} />
@@ -37,5 +36,12 @@ export const adminChildren = (
       <Route path='profile' element={<AdminProfile />} />
       <Route path='inventory' element={<Inventory />} />
     </Route>
+
+    <Route element={<ProtectedRoute allowedRoles={['Admin', 'Inventory Manager']} />}>
+      <Route path='purchases' element={<Purchases />} />
+    </Route>
+
   </>
+
+  
 );

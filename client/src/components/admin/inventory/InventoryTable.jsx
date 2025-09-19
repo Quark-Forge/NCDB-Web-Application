@@ -14,7 +14,7 @@ const InventoryTable = ({ stock, filters }) => {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
 
   if (!stock || stock.length === 0) {
     return (
@@ -147,7 +147,7 @@ const InventoryTable = ({ stock, filters }) => {
 
       {formVisible && selectedProduct && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <div className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm" onClick={() => setFormVisible(false)}></div>
+          <div className="absolute inset-0 backdrop-brightness-40 bg-opacity-50" onClick={() => setFormVisible(false)}></div>
 
           <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-md z-10 border border-gray-100">
             <div className="flex justify-between items-center mb-5">

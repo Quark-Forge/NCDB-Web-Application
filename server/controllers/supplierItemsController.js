@@ -1,8 +1,9 @@
+import asyncHandler from 'express-async-handler';
 import { Supplier, Product, SupplierItem } from '../models/index.js';
 import { Op } from 'sequelize';
 
 // Get all supplier-product 
-export const getAllSupplierItems = async (req, res) => {
+export const getAllSupplierItems = asyncHandler(async (req, res) => {
   try {
     const supplierItems = await SupplierItem.findAll({
       include: [
@@ -19,14 +20,50 @@ export const getAllSupplierItems = async (req, res) => {
       message: "Supplier items fetched successfully."
     });
 
-   
+
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch supplier items." });
   }
-};
+});
+
+// Get single supplier item by ID
+export const getSupplierItemById = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const supplierItem = await SupplierItem.findByPk(id, {
+      include: [
+        {
+          model: Supplier,
+          attributes: ['id', 'name']
+        }
+      ],
+      paranoid: false
+    });
+
+    if (!supplierItem) {
+      return res.status(404).json({
+        success: false,
+        message: 'Supplier item not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: supplierItem
+    });
+
+  } catch (error) {
+    console.error('Error fetching supplier item:', error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch supplier item."
+    });
+  }
+});
 
 // Get low stock products (stock level below threshold)
-export const getLowStockProducts = async (req, res) => {
+export const getLowStockProducts = asyncHandler(async (req, res) => {
   try {
     const { threshold = 10, page = 1, limit = 20 } = req.query;
 
@@ -100,10 +137,10 @@ export const getLowStockProducts = async (req, res) => {
       error: "Failed to fetch low stock products."
     });
   }
-};
+});
 
 // Get critical stock products (stock level below 5)
-export const getCriticalStockProducts = async (req, res) => {
+export const getCriticalStockProducts = asyncHandler(async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
 
@@ -173,10 +210,10 @@ export const getCriticalStockProducts = async (req, res) => {
       error: "Failed to fetch critical stock products."
     });
   }
-};
+});
 
 // Get all products for a specific supplier
-export const getSupplierItemsBySupplier = async (req, res) => {
+export const getSupplierItemsBySupplier = asyncHandler(async (req, res) => {
   const { supplier_id } = req.params;
   try {
     const supplierItems = await SupplierItem.findAll({
@@ -188,10 +225,10 @@ export const getSupplierItemsBySupplier = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch supplier items." });
   }
-};
+});
 
 // Delete a specific product from a supplier
-export const deleteSupplierItem = async (req, res) => {
+export const deleteSupplierItem = asyncHandler(async (req, res) => {
   const { supplier_id, product_id } = req.params;
   try {
     // Check if the supplier-product association exists
@@ -209,10 +246,10 @@ export const deleteSupplierItem = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: "Failed to remove product from supplier." });
   }
-};
+});
 
 // Add/Update a product for a supplier
-export const updateSupplierItem = async (req, res) => {
+export const updateSupplierItem = asyncHandler(async (req, res) => {
   const { supplier_id, product_id } = req.params;
   const { stock_level } = req.body;
 
@@ -230,4 +267,4 @@ export const updateSupplierItem = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: "Failed to update supplier item." });
   }
-};
+});

@@ -6,18 +6,16 @@ import {
   updateSupplierItem,
   getLowStockProducts,
   getCriticalStockProducts,
+  getSupplierItemById,
 } from '../controllers/supplierItemsController.js';
 import { authorize, protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Apply auth middleware to all routes
-router.use(protect);
-router.use(authorize('Admin'));
-
 // Routes
-router.get('/', protect, authorize('Admin', 'Inventory Manager'), getAllSupplierItems);
 router.get('/low-stock', protect, authorize('Admin', 'Inventory Manager'), getLowStockProducts);
+router.get('/', protect, authorize('Admin', 'Inventory Manager'), getAllSupplierItems);
+router.get('/:id', getSupplierItemById);
 router.get('/critical-stock', protect, authorize('Admin', 'Inventory Manager'), getCriticalStockProducts);
 router.get('/:supplier_id/items', protect, authorize('Admin', 'Inventory Manager'), getSupplierItemsBySupplier);
 router.delete('/:supplier_id/items/:product_id', protect, authorize('Admin', 'Inventory Manager'), deleteSupplierItem);

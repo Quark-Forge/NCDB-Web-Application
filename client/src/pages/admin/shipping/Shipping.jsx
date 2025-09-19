@@ -65,9 +65,12 @@ const Shipping = () => {
             });
 
             setFilteredData(filtered);
-            setCurrentPage(1); // Reset to first page when filtering/sorting changes
         }
     }, [searchTerm, shippingData, sortConfig]);
+
+    useEffect(() => {
+        setCurrentPage(1); // Reset to first page only when searchTerm or sortConfig changes
+    }, [searchTerm, sortConfig]);
 
     // Pagination
     const indexOfLastItem = currentPage * itemsPerPage;

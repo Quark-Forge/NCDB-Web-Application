@@ -38,11 +38,6 @@ const OrderStats = ({ data, isLoading }) => {
                     <div>
                         <h4 className="text-sm font-medium text-gray-500">{title}</h4>
                         <p className="text-2xl font-bold text-gray-900 mt-2">{value || 0}</p>
-                        {trend && (
-                            <p className={`text-xs ${trendColors[trend]} px-2 py-1 rounded-full inline-block mt-1`}>
-                                {trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→'} {change}
-                            </p>
-                        )}
                     </div>
                     <div className={`p-3 rounded-lg bg-gradient-to-br ${getGradient(title)} text-white`}>
                         {icon}
@@ -90,29 +85,21 @@ const OrderStats = ({ data, isLoading }) => {
                 <StatCard
                     title="Total Orders"
                     value={stats.total_orders}
-                    trend="up"
-                    change="12%"
                     icon={orderIcons.total}
                 />
                 <StatCard
                     title="Pending Orders"
                     value={stats.pending_orders}
-                    trend="down"
-                    change="5%"
                     icon={orderIcons.pending}
                 />
                 <StatCard
                     title="Completed Orders"
                     value={stats.completed_orders}
-                    trend="up"
-                    change="8%"
                     icon={orderIcons.completed}
                 />
                 <StatCard
                     title="Today's Orders"
                     value={stats.today_orders}
-                    trend="up"
-                    change="15%"
                     icon={orderIcons.today}
                 />
             </div>

@@ -12,7 +12,7 @@ import {
 import { toast } from 'react-toastify';
 
 const ProductCard = ({ product, supplierItem }) => {
-    const { userInfo } = useSelector((state) => state.auth);
+  const { userInfo } = useSelector((state) => state.auth);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistItemId, setWishlistItemId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -49,7 +49,8 @@ const ProductCard = ({ product, supplierItem }) => {
   }, [wishlistCheck, supplierItem]);
 
   const handleCardClick = () => {
-    setShowModal(true);
+    // Navigate to product detail page using supplierItem ID
+    navigate(`/product/${supplierItem.id}`);
   };
 
   const handleWishlist = async (e) => {
@@ -176,7 +177,7 @@ const ProductCard = ({ product, supplierItem }) => {
                   className={`h-4 w-4 transition-colors ${isWishlisted
                     ? 'fill-red-500 text-red-500'
                     : 'text-gray-400 hover:text-red-400'
-                  }`}
+                    }`}
                 />
               )}
             </button>
@@ -206,8 +207,8 @@ const ProductCard = ({ product, supplierItem }) => {
             </div>
           </div>
 
-          {/* Show Add to Cart only for Customer users */}
-          {userInfo?.user_role === 'Customer' && (
+          {/* Show Add to Cart button for not logged in users and for logged in customers only */}
+          {(!userInfo || userInfo?.user_role === 'Customer') && (
             <div className='flex w-1/2 justify-end'>
               <button
                 onClick={handleAddToCart}

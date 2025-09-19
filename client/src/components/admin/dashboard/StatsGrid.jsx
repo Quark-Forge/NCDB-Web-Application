@@ -21,9 +21,6 @@ const StatsCard = ({ title, value, change, changeType, icon: Icon }) => {
                 <div>
                     <h4 className="text-sm font-medium text-gray-500">{title}</h4>
                     <p className="text-2xl font-bold text-gray-900 mt-2">{value}</p>
-                    <p className={`text-xs ${changeType === 'increase' ? 'text-green-600' : 'text-red-600'} mt-1`}>
-                        {change}
-                    </p>
                 </div>
                 <div className={`p-3 rounded-lg bg-gradient-to-br ${getGradient(title)} text-white`}>
                     <Icon className="text-xl" />
@@ -46,29 +43,21 @@ const StatsGrid = ({ stats }) => {
         {
             title: 'Total Revenue',
             value: `LKR ${(stats.total_revenue || 0).toLocaleString()}`,
-            change: '+12.3% from last month',
-            changeType: 'increase',
             icon: FiDollarSign
         },
         {
             title: 'Total Orders',
             value: (stats.total_orders || 0).toLocaleString(),
-            change: '+8.1% from last month',
-            changeType: 'increase',
             icon: FiShoppingCart
         },
         {
             title: 'Conversion Rate',
             value: `${stats.conversion_rate || 0}%`,
-            change: '+2.5% from last month',
-            changeType: 'increase',
             icon: FiCheckCircle
         },
         {
             title: 'Avg. Order Value',
             value: `LKR ${(stats.average_order_value || 0).toLocaleString()}`,
-            change: '+4.2% from last month',
-            changeType: 'increase',
             icon: FiPackage
         }
     ];

@@ -22,7 +22,7 @@ const PaymentMethod = ({ paymentMethod, onPaymentMethodChange }) => {
                     </div>
                 </label>
 
-                <label className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                {/* <label className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
                     <input
                         type="radio"
                         name="payment"
@@ -36,7 +36,7 @@ const PaymentMethod = ({ paymentMethod, onPaymentMethodChange }) => {
                         <span className="font-medium">Credit / Debit Card</span>
                         <p className="text-sm text-gray-500">Pay securely with your card</p>
                     </div>
-                </label>
+                </label> */}
             </div>
         </div>
     );
