@@ -90,7 +90,7 @@ const ImageUpload = ({
                     imageFile: file
                 }).unwrap();
             } else if (entityType === 'profile') {
-                // Use profile photo upload
+                // Use profile photo upload - create FormData properly
                 const formData = new FormData();
                 formData.append('photo', file);
 
@@ -98,9 +98,10 @@ const ImageUpload = ({
             }
 
             if (result.success) {
+                // For profile photos, use the image_url from the response which contains the Cloudinary URL
                 const imageUrl = entityType === 'product'
                     ? result.data.image_url
-                    : result.data.profile_photo;
+                    : result.data.image_url || result.data.profile_photo;
 
                 const successMessage = entityType === 'product'
                     ? 'Product image uploaded successfully!'
@@ -108,12 +109,15 @@ const ImageUpload = ({
 
                 toast.success(successMessage);
 
+                // Call onImageChange with the actual Cloudinary URL
                 if (onImageChange) {
                     onImageChange(imageUrl);
                 }
 
                 setPreviewUrl(imageUrl);
                 setSelectedFile(null);
+
+                return imageUrl;
             }
         } catch (error) {
             console.error('Upload error:', error);

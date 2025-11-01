@@ -9,9 +9,7 @@ import {
     Edit3,
     Save,
     X,
-    Camera,
     Shield,
-    CreditCard,
     Heart,
     Package,
     Clock,
@@ -33,7 +31,6 @@ const UserProfile = () => {
 
     const { data: response, refetch, isLoading } = useGetUserProfileQuery();
     const [updateProfile, { isLoading: updating }] = useUpdateUserMutation();
-    const [uploadProfilePhoto, { isLoading: isUploading }] = useUploadProfilePhotoMutation();
     const [deleteProfilePhoto, { isLoading: isDeleting }] = useDeleteProfilePhotoMutation();
 
     const [isEditing, setIsEditing] = useState(false);
@@ -45,6 +42,7 @@ const UserProfile = () => {
     });
     const [profileImage, setProfileImage] = useState(null);
     const [isImageUploading, setIsImageUploading] = useState(false);
+    const [hasImageChanged, setHasImageChanged] = useState(false);
 
     // Extract user data from response
     const userData = response?.user;
@@ -58,7 +56,8 @@ const UserProfile = () => {
                 contact_number: userData.contact_number || '',
                 address: userData.address || ''
             });
-            setProfileImage(userData.profile_photo || null);
+            // Use image_url from backend, fallback to profile_photo for compatibility
+            setProfileImage(userData.image_url || userData.profile_photo || null);
         }
     }, [userData]);
 
@@ -72,12 +71,25 @@ const UserProfile = () => {
 
     const handleSave = async () => {
         try {
-            const res = await updateProfile(formData).unwrap();
+            const payload = {
+                ...formData,
+                ...(hasImageChanged && { image_url: profileImage })
+            };
+
+            const res = await updateProfile(payload).unwrap();
+
             // Update both the userInfo in auth slice and the form data
-            dispatch(setCredentials({ ...userInfo, ...res }));
+            dispatch(setCredentials({
+                ...userInfo,
+                ...res,
+                image_url: profileImage || userInfo.image_url,
+                profile_photo: profileImage || userInfo.profile_photo
+            }));
+
             toast.success('Profile updated successfully');
             setIsEditing(false);
-            refetch();
+            setHasImageChanged(false);
+            await refetch(); // Ensure fresh data from server
         } catch (err) {
             toast.error(err?.data?.message || err.error || 'Failed to update profile');
         }
@@ -90,32 +102,58 @@ const UserProfile = () => {
             contact_number: userData.contact_number || '',
             address: userData.address || ''
         });
-        setProfileImage(userData.profile_photo || null);
+        setProfileImage(userData.image_url || userData.profile_photo || null);
+        setHasImageChanged(false);
         setIsEditing(false);
     };
 
-    const handleImageChange = (imageUrl) => {
+    const handleImageChange = async (imageUrl) => {
         setProfileImage(imageUrl);
+        setHasImageChanged(true);
+
+        // Immediately update Redux store
+        if (userInfo) {
+            dispatch(setCredentials({
+                ...userInfo,
+                image_url: imageUrl,
+                profile_photo: imageUrl
+            }));
+        }
     };
 
     const handleImageUploadStart = () => {
         setIsImageUploading(true);
     };
 
-    const handleImageUploadEnd = () => {
+    const handleImageUploadEnd = async () => {
         setIsImageUploading(false);
-        // Refetch user data to get updated profile photo
-        refetch();
+        setHasImageChanged(false);
+        // Refetch user data to ensure everything is synchronized with database
+        await refetch();
     };
 
     const handleDeleteProfilePhoto = async () => {
         try {
+            setIsImageUploading(true);
             await deleteProfilePhoto().unwrap();
             setProfileImage(null);
+            setHasImageChanged(true);
+
+            // Update Redux store immediately
+            if (userInfo) {
+                dispatch(setCredentials({
+                    ...userInfo,
+                    image_url: null,
+                    profile_photo: null
+                }));
+            }
+
             toast.success('Profile photo deleted successfully');
-            refetch();
+            await refetch(); // Refetch to sync with database
         } catch (err) {
             toast.error(err?.data?.message || 'Failed to delete profile photo');
+        } finally {
+            setIsImageUploading(false);
         }
     };
 

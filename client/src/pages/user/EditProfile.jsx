@@ -21,6 +21,7 @@ const EditProfile = () => {
   const [touched, setTouched] = useState({});
   const [profileImage, setProfileImage] = useState(null);
   const [isImageUploading, setIsImageUploading] = useState(false);
+  const [hasImageChanged, setHasImageChanged] = useState(false);
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -38,7 +39,7 @@ const EditProfile = () => {
         password: "",
         confirmPassword: ""
       });
-      setProfileImage(userInfo.profile_photo || null);
+      setProfileImage(userInfo.image_url || userInfo.profile_photo || null);
     }
   }, [userInfo]);
 
@@ -86,6 +87,16 @@ const EditProfile = () => {
 
   const handleImageChange = (imageUrl) => {
     setProfileImage(imageUrl);
+    setHasImageChanged(true);
+
+    // Immediately update the user info in Redux store with the new image URL
+    if (userInfo && imageUrl) {
+      dispatch(setCredentials({
+        ...userInfo,
+        image_url: imageUrl,
+        profile_photo: imageUrl
+      }));
+    }
   };
 
   const handleImageUploadStart = () => {
@@ -94,15 +105,30 @@ const EditProfile = () => {
 
   const handleImageUploadEnd = () => {
     setIsImageUploading(false);
+    setHasImageChanged(false);
   };
 
   const handleDeleteProfilePhoto = async () => {
     try {
+      setIsImageUploading(true);
       await deleteProfilePhoto().unwrap();
       setProfileImage(null);
+      setHasImageChanged(true);
+
+      // Update Redux store
+      if (userInfo) {
+        dispatch(setCredentials({
+          ...userInfo,
+          image_url: null,
+          profile_photo: null
+        }));
+      }
+
       toast.success('Profile photo deleted successfully');
     } catch (err) {
       toast.error(err?.data?.message || 'Failed to delete profile photo');
+    } finally {
+      setIsImageUploading(false);
     }
   };
 
@@ -144,19 +170,35 @@ const EditProfile = () => {
       return;
     }
 
+    // Don't submit if image is currently uploading
+    if (isImageUploading) {
+      toast.error('Please wait for image upload to complete');
+      return;
+    }
+
     try {
       const { confirmPassword, ...updateData } = formData;
       const payload = {
         id: userInfo.id,
         ...updateData,
         // Only include password if it was changed
-        password: updateData.password || undefined
+        password: updateData.password || undefined,
+        // Include the image_url if it was updated
+        ...(hasImageChanged && { image_url: profileImage })
       };
 
       const res = await updateProfile(payload).unwrap();
-      dispatch(setCredentials({ ...res }));
+
+      // Update Redux store with the complete response
+      dispatch(setCredentials({
+        ...userInfo,
+        ...res,
+        image_url: profileImage || userInfo.image_url,
+        profile_photo: profileImage || userInfo.profile_photo
+      }));
+
       toast.success('Profile updated successfully');
-      navigate('/profile'); // Redirect to profile page after successful update
+      navigate('/profile');
     } catch (err) {
       const errorMessage = err?.data?.message || err?.error || "Update failed. Please try again.";
       toast.error(errorMessage);
@@ -352,7 +394,8 @@ const EditProfile = () => {
             <button
               type="button"
               onClick={() => navigate('/profile')}
-              className="flex-1 py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              disabled={isImageUploading}
+              className="flex-1 py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             >
               Cancel
             </button>
