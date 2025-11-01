@@ -1,19 +1,25 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useGetMyOrdersQuery } from "../../slices/ordersApiSlice";
-import { 
-  Copy, 
-  ShoppingCart, 
-  Trash2, 
-  Calendar, 
-  Package, 
-  Truck, 
-  CheckCircle, 
+import { useAddToCartMutation } from "../../slices/cartApiSlice";
+import {
+  Copy,
+  ShoppingCart,
+  Calendar,
+  Package,
+  Truck,
+  CheckCircle,
   Clock,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  Check,
+  XCircle
 } from "lucide-react";
+import { toast } from "react-toastify";
 
 function OrderCard({ order }) {
+  const [addToCart, { isLoading: isAddingToCart }] = useAddToCartMutation();
+  const [addedItems, setAddedItems] = useState(new Set());
+
   const formatDate = (dateString) => {
     if (!dateString) return "Not available";
     const options = { year: 'numeric', month: 'short', day: 'numeric' };
@@ -28,6 +34,7 @@ function OrderCard({ order }) {
       case 'confirmed': return <Package className="w-4 h-4" />;
       case 'processing': return <Truck className="w-4 h-4" />;
       case 'delivered': return <CheckCircle className="w-4 h-4" />;
+      case 'cancelled': return <XCircle className="w-4 h-4" />;
       default: return <Clock className="w-4 h-4" />;
     }
   };
@@ -41,6 +48,35 @@ function OrderCard({ order }) {
       case 'cancelled': return 'text-red-600 bg-red-50 border-red-200';
       default: return 'text-gray-600 bg-gray-50 border-gray-200';
     }
+  };
+
+  const handleAddToCart = async (item) => {
+    try {
+      const cartData = {
+        product_id: item.product_id,
+        supplier_id: item.supplier_id,
+        quantity: item.quantity || 1
+      };
+
+      await addToCart(cartData).unwrap();
+
+      // Add to added items set
+      setAddedItems(prev => new Set(prev).add(`${item.product_id}-${item.supplier_id}`));
+
+      toast.success(`${item.Product?.name || 'Product'} added to cart!`);
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('Failed to add item to cart');
+    }
+  };
+
+  const isItemAdded = (item) => {
+    return addedItems.has(`${item.product_id}-${item.supplier_id}`);
+  };
+
+  const copyOrderId = () => {
+    navigator.clipboard.writeText(order.order_number);
+    toast.info('Order ID copied to clipboard!');
   };
 
   return (
@@ -60,7 +96,10 @@ function OrderCard({ order }) {
             <span className="text-sm">{formatDate(order.order_date || order.createdAt)}</span>
           </div>
         </div>
-        <button className="flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
+        <button
+          onClick={copyOrderId}
+          className="flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors"
+        >
           <Copy className="w-4 h-4" />
           <span className="text-sm">Copy ID</span>
         </button>
@@ -89,6 +128,28 @@ function OrderCard({ order }) {
               <p className="font-semibold text-gray-900 text-sm">
                 LKR {(parseFloat(item.price) * (item.quantity || 0)).toLocaleString()}
               </p>
+              {/* Only show Add to Cart button for non-cancelled orders */}
+              {order.status !== 'cancelled' && (
+                <button
+                  onClick={() => handleAddToCart(item)}
+                  disabled={isAddingToCart || isItemAdded(item)}
+                  className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs mt-2 transition-colors ${isItemAdded(item)
+                      ? 'bg-green-100 text-green-700 cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                    }`}
+                >
+                  {isAddingToCart ? (
+                    <RefreshCw className="w-3 h-3 animate-spin" />
+                  ) : isItemAdded(item) ? (
+                    <Check className="w-3 h-3" />
+                  ) : (
+                    <ShoppingCart className="w-3 h-3" />
+                  )}
+                  <span>
+                    {isItemAdded(item) ? 'Added' : 'Add to Cart'}
+                  </span>
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -102,16 +163,13 @@ function OrderCard({ order }) {
           </p>
           <p className="text-sm text-gray-500">Order #{order.order_number}</p>
         </div>
-        <div className="flex gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
-            <ShoppingCart className="w-4 h-4" />
-            <span className="text-sm">Add to Cart</span>
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
-            <Trash2 className="w-4 h-4" />
-            <span className="text-sm">Remove</span>
-          </button>
-        </div>
+        {/* Show cancelled badge for cancelled orders */}
+        {order.status === 'cancelled' && (
+          <div className="flex items-center gap-2 px-3 py-1 bg-red-100 text-red-700 rounded-full">
+            <XCircle className="w-4 h-4" />
+            <span className="text-sm font-medium">Order Cancelled</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -124,16 +182,49 @@ function PastOrders() {
 
   const orders = ordersData?.data || [];
 
-  const filteredOrders = activeTab === "all" 
-    ? orders 
-    : orders.filter(order => order.status === activeTab);
+  // Filter orders by time
+  const timeFilteredOrders = useMemo(() => {
+    if (!orders.length) return [];
+
+    const now = new Date();
+    let filterDate = new Date();
+
+    switch (timeFilter) {
+      case "week":
+        filterDate.setDate(now.getDate() - 7);
+        break;
+      case "month":
+        filterDate.setMonth(now.getMonth() - 1);
+        break;
+      case "year":
+        filterDate.setFullYear(now.getFullYear() - 1);
+        break;
+      case "all":
+      default:
+        return orders;
+    }
+
+    return orders.filter(order => {
+      const orderDate = new Date(order.order_date || order.createdAt);
+      return orderDate >= filterDate;
+    });
+  }, [orders, timeFilter]);
+
+  // Filter orders by status tab
+  const filteredOrders = useMemo(() => {
+    if (activeTab === "all") {
+      return timeFilteredOrders;
+    }
+    return timeFilteredOrders.filter(order => order.status === activeTab);
+  }, [timeFilteredOrders, activeTab]);
 
   const tabs = [
     { id: "all", label: "All Orders", icon: <Package className="w-4 h-4" />, count: orders.length },
     { id: "pending", label: "To Pay", icon: <Clock className="w-4 h-4" />, count: orders.filter(o => o.status === "pending").length },
     { id: "confirmed", label: "To Ship", icon: <Package className="w-4 h-4" />, count: orders.filter(o => o.status === "confirmed").length },
-    { id: "Shipped", label: "Shipped", icon: <Truck className="w-4 h-4" />, count: orders.filter(o => o.status === "processing").length },
+    { id: "processing", label: "Shipped", icon: <Truck className="w-4 h-4" />, count: orders.filter(o => o.status === "processing").length },
     { id: "delivered", label: "Completed", icon: <CheckCircle className="w-4 h-4" />, count: orders.filter(o => o.status === "delivered").length },
+    { id: "cancelled", label: "Cancelled", icon: <XCircle className="w-4 h-4" />, count: orders.filter(o => o.status === "cancelled").length },
   ];
 
   const timeFilters = [
@@ -153,10 +244,10 @@ function PastOrders() {
             </h1>
             <p className="text-gray-600 mt-2">Your purchase journey</p>
           </div>
-          
+
           {/* Tabs Skeleton */}
           <div className="flex gap-3 mb-8 overflow-x-auto pb-4">
-            {[...Array(5)].map((_, i) => (
+            {[...Array(6)].map((_, i) => (
               <div key={i} className="flex items-center gap-2 px-6 py-3 bg-white rounded-xl border border-gray-200 animate-pulse min-w-max">
                 <div className="w-5 h-5 bg-gray-200 rounded"></div>
                 <div className="h-5 bg-gray-200 rounded w-20"></div>
@@ -226,20 +317,20 @@ function PastOrders() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl border transition-all duration-200 min-w-max ${
-                activeTab === tab.id
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl border transition-all duration-200 min-w-max ${activeTab === tab.id
                   ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-100"
                   : "bg-white text-gray-700 border-gray-200 hover:border-blue-200 hover:shadow-md"
-              }`}
+                }`}
             >
               {tab.icon}
               <span className="font-medium">{tab.label}</span>
               {tab.count > 0 && (
-                <span className={`inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-full text-xs font-medium ${
-                  activeTab === tab.id
-                    ? "bg-white text-blue-600"
-                    : "bg-blue-100 text-blue-600"
-                }`}>
+                <span
+                  className={`inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-full text-xs font-medium ${activeTab === tab.id
+                      ? "bg-white text-blue-600"
+                      : "bg-blue-100 text-blue-600"
+                    }`}
+                >
                   {tab.count}
                 </span>
               )}
@@ -253,15 +344,21 @@ function PastOrders() {
             <button
               key={filter.id}
               onClick={() => setTimeFilter(filter.id)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                timeFilter === filter.id
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${timeFilter === filter.id
                   ? "bg-blue-600 text-white shadow-lg shadow-blue-100"
                   : "bg-white text-gray-600 border border-gray-200 hover:border-blue-200"
-              }`}
+                }`}
             >
               {filter.label}
             </button>
           ))}
+        </div>
+
+        {/* Results Info */}
+        <div className="mb-6 text-sm text-gray-600">
+          Showing {filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''}
+          {timeFilter !== "all" && ` from ${timeFilters.find(f => f.id === timeFilter)?.label.toLowerCase()}`}
+          {activeTab !== "all" && ` • ${tabs.find(t => t.id === activeTab)?.label}`}
         </div>
 
         {/* Orders Grid */}
@@ -271,12 +368,15 @@ function PastOrders() {
               <Package className="w-8 h-8 text-gray-400" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              {activeTab === "all" ? "No orders yet" : `No ${tabs.find(t => t.id === activeTab)?.label.toLowerCase()}`}
+              {activeTab === "all" ? "No orders found" : `No ${tabs.find(t => t.id === activeTab)?.label.toLowerCase()}`}
             </h3>
             <p className="text-gray-600 mb-6 max-w-md mx-auto">
-              {activeTab === "all" 
-                ? "Start shopping to see your orders here"
-                : `You don't have any ${tabs.find(t => t.id === activeTab)?.label.toLowerCase()} orders at the moment`
+              {activeTab === "all"
+                ? timeFilter === "all"
+                  ? "Start shopping to see your orders here"
+                  : "No orders found for the selected time period"
+                : `You don't have any ${tabs.find(t => t.id === activeTab)?.label.toLowerCase()} orders${timeFilter !== "all" ? ` from ${timeFilters.find(f => f.id === timeFilter)?.label.toLowerCase()}` : ''
+                }`
               }
             </p>
             <button className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors">

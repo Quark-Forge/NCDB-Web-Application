@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Heart, ShoppingCartIcon } from 'lucide-react';
+import { Heart, ShoppingCartIcon, ImageOff } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import ProductModal from '../products/ProductModel';
@@ -16,12 +16,56 @@ const ProductCard = ({ product, supplierItem }) => {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistItemId, setWishlistItemId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
+  const [currentImageUrl, setCurrentImageUrl] = useState(null);
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [addToCart, { isLoading: isAdding }] = useAddToCartMutation();
   const [addToWishlist] = useAddToWishlistMutation();
   const [removeFromWishlist] = useRemoveFromWishlistMutation();
 
+  // Improved image URL handling - return null instead of empty string
+  const getImageUrl = () => {
+    const url = supplierItem?.image_url ||
+      product?.base_image_url;
+
+    // Return null instead of empty string for fallback
+    if (!url) return null;
+
+    // Ensure URL is properly formatted
+    if (url.startsWith('http')) {
+      return url;
+    }
+
+    return url;
+  };
+
+  // Set image URL on component mount and when props change
+  useEffect(() => {
+    const imageUrl = getImageUrl();
+    setCurrentImageUrl(imageUrl);
+    setImageLoading(true);
+    setImageError(false);
+
+    // Preload image to check if it exists
+    if (imageUrl && imageUrl.startsWith('http')) {
+      const img = new Image();
+      img.src = imageUrl;
+      img.onload = () => {
+        setImageLoading(false);
+        setImageError(false);
+      };
+      img.onerror = () => {
+        setImageLoading(false);
+        setImageError(true);
+        setCurrentImageUrl(null);
+      };
+    } else {
+      setImageLoading(false);
+      setCurrentImageUrl(null);
+    }
+  }, [product, supplierItem]);
 
   // Check if this product is already in the wishlist
   const shouldFetchWishlist = userInfo?.user_role === 'Customer';
@@ -49,8 +93,18 @@ const ProductCard = ({ product, supplierItem }) => {
   }, [wishlistCheck, supplierItem]);
 
   const handleCardClick = () => {
-    // Navigate to product detail page using supplierItem ID
     navigate(`/product/${supplierItem.id}`);
+  };
+
+  const handleImageLoad = () => {
+    setImageLoading(false);
+    setImageError(false);
+  };
+
+  const handleImageError = () => {
+    setImageLoading(false);
+    setImageError(true);
+    setCurrentImageUrl(null);
   };
 
   const handleWishlist = async (e) => {
@@ -80,7 +134,6 @@ const ProductCard = ({ product, supplierItem }) => {
         setWishlistItemId(result.data.id);
       }
 
-      // Refetch the wishlist check to ensure state is up to date
       await refetchWishlistCheck();
     } catch (err) {
       toast.error(err?.data?.message || 'Error updating wishlist');
@@ -105,7 +158,7 @@ const ProductCard = ({ product, supplierItem }) => {
           ...product,
           supplierItem,
           price: supplierItem?.price || product.price,
-          image_url: supplierItem?.image_url || product.image_url || product.base_image_url,
+          image_url: currentImageUrl,
           supplier_name: supplierItem?.Supplier?.name
         }
       }).unwrap();
@@ -155,13 +208,29 @@ const ProductCard = ({ product, supplierItem }) => {
         className="bg-white rounded-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group cursor-pointer transform hover:-translate-y-1"
       >
         {/* Product Image */}
-        <div className="relative flex justify-center overflow-hidden">
-          <img
-            src={supplierItem?.image_url || product.image_url || product.base_image_url || '../../images/product.png'}
-            alt={product.name}
-            className="w-fit h-40 object-cover group-hover:scale-110 transition-transform duration-500"
-            loading="lazy"
-          />
+        <div className="relative flex justify-center overflow-hidden bg-gray-100 h-40">
+          {imageLoading && !imageError && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          )}
+
+          {imageError || !currentImageUrl ? (
+            <div className="flex flex-col items-center justify-center h-full text-gray-400">
+              <ImageOff className="h-12 w-12 mb-2" />
+              <span className="text-sm">No Image</span>
+            </div>
+          ) : (
+            <img
+              src={currentImageUrl}
+              alt={product.name}
+              className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ${imageLoading ? 'opacity-0' : 'opacity-100'
+                }`}
+              loading="lazy"
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+            />
+          )}
 
           {/* Wishlist Button */}
           {userInfo?.user_role === 'Customer' && (

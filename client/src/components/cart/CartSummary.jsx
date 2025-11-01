@@ -42,16 +42,6 @@ const CartSummary = ({
             >
                 {isUpdating ? 'Updating...' : `Checkout (${selectedItemsCount})`}
             </button>
-
-            <div className="mt-6 pt-6 border-t">
-                <h3 className="text-sm font-medium mb-3">Buyer Protection</h3>
-                <div className="flex items-start space-x-3">
-                    <Shield className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-gray-700">
-                        Get a full refund if the item is not as described or not delivered.
-                    </p>
-                </div>
-            </div>
         </div>
     );
 };

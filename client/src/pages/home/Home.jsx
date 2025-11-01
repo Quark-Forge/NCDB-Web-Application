@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import ProductWithSuppliers from '../../components/home/ProductWithSuppliers';
-import { useGetProductsQuery } from '../../slices/productsApiSlice';
+import { useGetProductsQuery } from '../../slices/ProductsApiSlice';
 import { ChevronLeft, ChevronRight, CircleAlert, Filter, X } from 'lucide-react';
 import FilterBar from '../../components/home/FilterBar';
 import CategoryTabs from '../../components/home/CategoryTabs';

@@ -10,17 +10,14 @@ import {
   X,
   UserCircle,
   LogOut,
-  ChevronDown,
-  ChevronRight,
-  Tag,
   ChevronLeft,
   Package,
   BarChart2,
   ShipIcon,
-  Currency,
   ReceiptIcon,
   Import,
-  CircleDollarSign
+  CircleDollarSign,
+  Tags
 } from 'lucide-react';
 import { useLogoutMutation } from '../../slices/usersApiSlice';
 import { useDispatch, useSelector } from 'react-redux';
@@ -28,84 +25,80 @@ import { clearCredentials } from '../../slices/authSlice';
 import { toast } from 'react-toastify';
 
 // Navigation configuration
-const adminNavConfig = {
-  mainItems: [
-    {
-      to: '/admin/dashboard',
-      label: 'Dashboard',
-      allowedRoles: ['Admin', 'Order Manager', 'Inventory Manager'],
-      icon: <Home size={18} />
-    },
-    {
-      to: '/admin/users',
-      label: 'Users',
-      allowedRoles: ['Admin'],
-      icon: <Users size={18} />
-    },
-    {
-      to: '/admin/suppliers',
-      label: 'Suppliers',
-      allowedRoles: ['Admin', 'Order Manager', 'Inventory Manager'],
-      icon: <Users size={16} />
-    },
-    {
-      to: '/admin/orders',
-      label: 'Orders',
-      allowedRoles: ['Admin', 'Order Manager'],
-      icon: <ShoppingBag size={18} />
-    },
-    {
-      to: '/admin/inventory',
-      label: 'Inventory',
-      allowedRoles: ['Admin', 'Inventory Manager'],
-      icon: <Package size={18} />
-    },
-    {
-      to: '/admin/purchases',
-      label: 'Purchases',
-      allowedRoles: ['Admin', 'Inventory Manager'],
-      icon: <Import size={18} />
-    },
-    {
-      to: '/admin/shipping',
-      label: 'Shipping',
-      allowedRoles: ['Admin', 'Order Manager'],
-      icon: <ShipIcon size={18} />
-    },
-    {
-      to: '/admin/payments',
-      label: 'Payments',
-      allowedRoles: ['Admin', 'Order Manager'],
-      icon: <ReceiptIcon size={18} />
-    },
-    {
-      to: '/admin/reports',
-      label: 'Reports',
-      allowedRoles: ['Admin'],
-      icon: <BarChart2 size={18} />
-    },
-    {
-      to: '/supplier/sales',
-      label: 'Sales',
-      allowedRoles: ['Supplier'],
-      icon: <CircleDollarSign size={18} />
-    },
-    
-  ],
-  productItems: [
-    {
-      to: '/admin/products',
-      label: 'Products',
-      icon: <ShoppingCart size={16} />
-    },
-    {
-      to: '/admin/categories',
-      label: 'Categories',
-      icon: <Tag size={16} />
-    },
-   
-  ]
-};
+const adminNavConfig = [
+  {
+    to: '/admin/dashboard',
+    label: 'Dashboard',
+    allowedRoles: ['Admin', 'Order Manager', 'Inventory Manager'],
+    icon: <Home size={18} />
+  },
+  {
+    to: '/admin/users',
+    label: 'Users',
+    allowedRoles: ['Admin'],
+    icon: <Users size={18} />
+  },
+  {
+    to: '/admin/suppliers',
+    label: 'Suppliers',
+    allowedRoles: ['Admin', 'Order Manager', 'Inventory Manager'],
+    icon: <Users size={16} />
+  },
+  {
+    to: '/admin/products',
+    label: 'Products',
+    allowedRoles: ['Admin', 'Inventory Manager'],
+    icon: <ShoppingCart size={18} />
+  },
+  {
+    to: '/admin/categories',
+    label: 'Categories',
+    allowedRoles: ['Admin', 'Inventory Manager'],
+    icon: <Tags size={18} />
+  },
+  {
+    to: '/admin/orders',
+    label: 'Orders',
+    allowedRoles: ['Admin', 'Order Manager'],
+    icon: <ShoppingBag size={18} />
+  },
+  {
+    to: '/admin/inventory',
+    label: 'Inventory',
+    allowedRoles: ['Admin', 'Inventory Manager'],
+    icon: <Package size={18} />
+  },
+  {
+    to: '/admin/purchases',
+    label: 'Purchases',
+    allowedRoles: ['Admin', 'Inventory Manager'],
+    icon: <Import size={18} />
+  },
+  {
+    to: '/admin/shipping',
+    label: 'Shipping',
+    allowedRoles: ['Admin', 'Order Manager'],
+    icon: <ShipIcon size={18} />
+  },
+  {
+    to: '/admin/payments',
+    label: 'Payments',
+    allowedRoles: ['Admin', 'Order Manager'],
+    icon: <ReceiptIcon size={18} />
+  },
+  {
+    to: '/admin/reports',
+    label: 'Reports',
+    allowedRoles: ['Admin'],
+    icon: <BarChart2 size={18} />
+  },
+  {
+    to: '/supplier/sales',
+    label: 'Sales',
+    allowedRoles: ['Supplier'],
+    icon: <CircleDollarSign size={18} />
+  },
+];
 
 // Custom hook for authorization
 const useAdminAuth = () => {
@@ -122,7 +115,6 @@ const useAdminAuth = () => {
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [productsExpanded, setProductsExpanded] = useState(false);
   const dropdownRef = useRef();
   const location = useLocation();
 
@@ -130,14 +122,6 @@ const AdminLayout = () => {
   const navigate = useNavigate();
   const [logoutApiCall, { isLoading }] = useLogoutMutation();
   const { userInfo, hasAccess } = useAdminAuth();
-
-  // Auto-expand products menu if on a products-related page
-  useEffect(() => {
-    const productPaths = ['/admin/products', '/admin/categories', '/admin/suppliers', '/admin/inventory'];
-    if (productPaths.some(path => location.pathname.includes(path))) {
-      setProductsExpanded(true);
-    }
-  }, [location.pathname]);
 
   const handleLogout = async () => {
     try {
@@ -163,7 +147,7 @@ const AdminLayout = () => {
 
   // Filter navigation items based on role
   const filteredNavItems = useMemo(() => (
-    adminNavConfig.mainItems.filter(item => hasAccess(item.allowedRoles))
+    adminNavConfig.filter(item => hasAccess(item.allowedRoles))
   ), [userInfo]);
 
   // Early return if unauthorized
@@ -250,15 +234,6 @@ const AdminLayout = () => {
                   <UserCircle className="w-4 h-4 mr-2" />
                   Profile
                 </NavLink>
-                <NavLink
-                  to="/admin/settings"
-                  onClick={() => setDropdownOpen(false)}
-                  className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
-                  role="menuitem"
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
-                </NavLink>
                 <button
                   onClick={handleLogout}
                   disabled={isLoading}
@@ -299,49 +274,6 @@ const AdminLayout = () => {
                 {icon} {label}
               </NavLink>
             ))}
-
-            {/* Products Menu with Submenu */}
-            <div className="space-y-1">
-              <button
-                onClick={() => setProductsExpanded(!productsExpanded)}
-                className={`w-full flex items-center justify-between gap-2 p-2 rounded-md transition ${location.pathname.includes('/admin/products') ||
-                  location.pathname.includes('/admin/categories') ||
-                  location.pathname.includes('/admin/suppliers') ||
-                  location.pathname.includes('/admin/inventory')
-                 
-                  ? 'bg-blue-100 text-blue-700 font-medium'
-                  : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                aria-expanded={productsExpanded}
-              >
-                <div className="flex items-center gap-2">
-                  <ShoppingCart size={18} />
-                  Products
-                </div>
-                {productsExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-              </button>
-
-              {productsExpanded && (
-                <div className="ml-4 space-y-1" role="menu">
-                  {adminNavConfig.productItems.map(({ to, label, icon }) => (
-                    <NavLink
-                      key={to}
-                      to={to}
-                      onClick={() => setSidebarOpen(false)}
-                      className={({ isActive }) =>
-                        `flex items-center gap-2 p-2 rounded-md transition text-sm ${isActive
-                          ? 'bg-blue-100 text-blue-700 font-medium'
-                          : 'text-gray-600 hover:bg-gray-100'
-                        }`
-                      }
-                      role="menuitem"
-                    >
-                      {icon} {label}
-                    </NavLink>
-                  ))}
-                </div>
-              )}
-            </div>
           </nav>
         </aside>
 

@@ -59,6 +59,7 @@ const Products = () => {
   };
 
   const handleEdit = (product, supplierItem) => {
+    refetch();
     setSelectedProduct(product);
     setSelectedSupplierItem(supplierItem);
     setShowEditModal(true);

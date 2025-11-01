@@ -304,7 +304,7 @@ export const getAllProductsWithDeleted = asyncHandler(async (req, res) => {
 // Update product
 export const updateProduct = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { supplier_id, ...updates } = req.body;
+    const { supplier_id, image_url, ...updates } = req.body;
 
     // Validate that supplier_id is provided
     if (!supplier_id) {
@@ -342,7 +342,7 @@ export const updateProduct = asyncHandler(async (req, res) => {
             });
         }
 
-        // 3. Find the specific supplier item (using default association name)
+        // 3. Find the specific supplier item
         const supplierItem = await SupplierItem.findOne({
             where: { product_id: id, supplier_id },
             transaction
@@ -367,6 +367,26 @@ export const updateProduct = asyncHandler(async (req, res) => {
         }
         if (updates.category_id !== undefined) {
             productUpdates.category_id = updates.category_id;
+        }
+
+        // Handle image URL updates
+        if (image_url !== undefined) {
+            // If image_url is empty string or null, clear the image
+            if (!image_url) {
+                productUpdates.base_image_url = null;
+                supplierItemUpdates.image_url = null;
+
+                // Delete from Cloudinary if there was an existing image
+                if (product.base_image_url && product.base_image_url.includes('cloudinary.com')) {
+                    const publicId = extractPublicId(product.base_image_url);
+                    if (publicId) {
+                        await cloudinary.uploader.destroy(publicId);
+                    }
+                }
+            } else {
+                productUpdates.base_image_url = image_url;
+                supplierItemUpdates.image_url = image_url;
+            }
         }
 
         // SupplierItem fields
@@ -397,9 +417,6 @@ export const updateProduct = asyncHandler(async (req, res) => {
         if (updates.description !== undefined) {
             supplierItemUpdates.description = updates.description === '' ? null : updates.description;
         }
-        if (updates.image_url !== undefined) {
-            supplierItemUpdates.image_url = updates.image_url === '' ? null : updates.image_url;
-        }
 
         // Check if we have any updates to perform
         if (Object.keys(productUpdates).length === 0 &&
@@ -417,7 +434,9 @@ export const updateProduct = asyncHandler(async (req, res) => {
             await product.update(productUpdates, { transaction });
         }
 
-        await supplierItem.update(supplierItemUpdates, { transaction });
+        if (Object.keys(supplierItemUpdates).length > 0) {
+            await supplierItem.update(supplierItemUpdates, { transaction });
+        }
 
         await transaction.commit();
 
@@ -426,7 +445,8 @@ export const updateProduct = asyncHandler(async (req, res) => {
             include: [
                 {
                     model: SupplierItem,
-                    where: { supplier_id }
+                    where: { supplier_id },
+                    include: [Supplier]
                 },
                 {
                     model: Category
@@ -434,16 +454,10 @@ export const updateProduct = asyncHandler(async (req, res) => {
             ]
         });
 
-        // Access the supplier items through the default association name
-        const supplierItems = updatedProduct.SupplierItems || [];
-
         return res.status(200).json({
             success: true,
             message: "Product updated successfully",
-            data: {
-                ...updatedProduct.get({ plain: true }),
-                supplierItem: supplierItems[0] || null
-            }
+            data: updatedProduct
         });
 
     } catch (error) {
@@ -477,6 +491,12 @@ export const updateProduct = asyncHandler(async (req, res) => {
         return res.status(500).json(response);
     }
 });
+
+const extractPublicId = (url) => {
+    if (!url) return null;
+    const matches = url.match(/\/upload\/(?:v\d+\/)?(.+?)\.(?:jpg|jpeg|png|gif|webp)/);
+    return matches ? matches[1] : null;
+};
 
 // Admin-only endpoint for SKU updates
 export const updateProductSku = asyncHandler(async (req, res) => {
@@ -666,6 +686,49 @@ export const deleteProduct = asyncHandler(async (req, res) => {
             message: 'Failed to delete product',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined,
             code: 'DELETE_FAILED'
+        });
+    }
+});
+
+// Restore a soft-deleted product
+export const restoreProduct = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const product = await Product.findByPk(id, { paranoid: false });
+
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found'
+            });
+        }
+
+        if (!product.deletedAt) {
+            return res.status(400).json({
+                success: false,
+                message: 'Product is already active'
+            });
+        }
+
+        // Restore the product
+        await product.restore();
+
+        res.status(200).json({
+            success: true,
+            message: 'Product restored successfully',
+            data: {
+                product: {
+                    ...product.toJSON(),
+                    name: toTitleCase(product.name)
+                }
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: `Failed to restore product: ${error.message}`
         });
     }
 });

@@ -12,7 +12,9 @@ import {
     Cart,
     Role,
     Address,
-    ShippingCost
+    ShippingCost,
+    User,
+    Payment
 } from '../models/index.js';
 
 // Valid order status transitions
@@ -27,7 +29,7 @@ const STATUS_TRANSITIONS = {
 // checkout (create order)
 export const checkoutCart = asyncHandler(async (req, res) => {
     const user_id = req.user.id;
-    const { address_id, selected_items } = req.body; // Add selected_items parameter
+    const { address_id, selected_items, payment_method = 'cash_on_delivery' } = req.body;
 
     // Validate shipping details
     if (!address_id) {
@@ -48,7 +50,7 @@ export const checkoutCart = asyncHandler(async (req, res) => {
             include: [Product, Supplier],
             where: {
                 quantity: { [Op.gt]: 0 },
-                id: { [Op.in]: selected_items } // Only get selected items
+                id: { [Op.in]: selected_items }
             }
         }]
     });
@@ -101,7 +103,6 @@ export const checkoutCart = asyncHandler(async (req, res) => {
             }
 
             totalAmount += cartItem.price * cartItem.quantity;
-
             orderItems.push({
                 product_id: cartItem.product_id,
                 supplier_id: cartItem.supplier_id,
@@ -131,11 +132,21 @@ export const checkoutCart = asyncHandler(async (req, res) => {
             return;
         }
 
+        // Get shipping cost for total calculation
+        const address = await Address.findByPk(address_id, { transaction });
+        const shippingCost = await ShippingCost.findOne({
+            where: { city: address.city },
+            transaction
+        });
+
+        const shippingAmount = shippingCost ? parseFloat(shippingCost.cost) : 0;
+        const finalTotalAmount = totalAmount + shippingAmount;
+
         // Create order
         const order = await Order.create({
             order_number: generateOrderNumber(),
             address_id,
-            total_amount: totalAmount,
+            total_amount: finalTotalAmount,
             user_id,
             status: 'pending',
             notes: 'Order created from selected cart items'
@@ -149,6 +160,16 @@ export const checkoutCart = asyncHandler(async (req, res) => {
             })),
             { transaction }
         );
+
+        // Create payment record with pending status
+        const payment = await Payment.create({
+            order_id: order.id,
+            payment_method: payment_method,
+            payment_status: 'pending',
+            amount: finalTotalAmount,
+            transaction_id: `TXN_${generateOrderNumber()}`,
+            gateway_response: null
+        }, { transaction });
 
         // Update inventory
         for (const cartItem of cart.CartItems) {
@@ -173,7 +194,7 @@ export const checkoutCart = asyncHandler(async (req, res) => {
 
         await transaction.commit();
 
-        // Return complete order details
+        // Return complete order details with payment info
         try {
             const orderDetail = await Order.findByPk(order.id, {
                 include: [
@@ -184,12 +205,12 @@ export const checkoutCart = asyncHandler(async (req, res) => {
                     {
                         model: Address,
                         where: { id: address_id },
+                    },
+                    {
+                        model: Payment,
+                        as: 'payment' // FIX: Added the alias here
                     }
                 ]
-            });
-
-            const shippingCost = await ShippingCost.findOne({
-                where: { city: orderDetail.Address.city }
             });
 
             const responseData = {
@@ -207,8 +228,20 @@ export const checkoutCart = asyncHandler(async (req, res) => {
                 })),
                 address_id: orderDetail.Address.id,
                 city: orderDetail.Address.city,
-                shipping_cost: shippingCost ? shippingCost.cost : 0,
-                payment_status: 'pending',
+                shipping_cost: shippingAmount,
+                payment: orderDetail.payment ? {
+                    id: orderDetail.payment.id,
+                    payment_method: orderDetail.payment.payment_method,
+                    payment_status: orderDetail.payment.payment_status,
+                    amount: orderDetail.payment.amount,
+                    transaction_id: orderDetail.payment.transaction_id
+                } : {
+                    id: payment.id,
+                    payment_method: payment.payment_method,
+                    payment_status: payment.payment_status,
+                    amount: payment.amount,
+                    transaction_id: payment.transaction_id
+                }
             };
 
             res.status(201).json({
@@ -221,7 +254,10 @@ export const checkoutCart = asyncHandler(async (req, res) => {
             res.status(201).json({
                 success: true,
                 message: 'Order created successfully but could not fetch complete details',
-                data: { id: order.id }
+                data: {
+                    id: order.id,
+                    payment_id: payment.id
+                }
             });
         }
 
@@ -239,7 +275,7 @@ export const checkoutCart = asyncHandler(async (req, res) => {
 
 // GET all orders (Admin)
 export const getAllOrders = asyncHandler(async (req, res) => {
-    const { search, range = '30d', status, startDate, endDate, product_id, supplier_id, page = 1, limit = 10 } = req.query;
+    const { search, range = '90d', status, product_id, supplier_id, payment_status, page = 1, limit = 10 } = req.query;
 
     const where = {};
     const include = [
@@ -249,20 +285,25 @@ export const getAllOrders = asyncHandler(async (req, res) => {
         },
         {
             model: Address,
+        },
+        {
+            model: Payment,
+            as: 'payment',
+            attributes: ['id', 'payment_status', 'payment_method', 'amount', 'transaction_id', 'payment_date'] // Include specific payment fields
         }
     ];
 
     // Status filter
     if (status) where.status = status;
 
-    // Date range filter - handle both manual dates and range parameter
-    if (startDate && endDate) {
-        // Use manually selected dates if provided
-        where.createdAt = {
-            [Op.between]: [new Date(startDate), new Date(endDate)]
-        };
-    } else if (range) {
-        // Use the range parameter if no manual dates are provided
+    // Payment status filter
+    if (payment_status) {
+        include[2].where = include[2].where || {};
+        include[2].where.payment_status = payment_status;
+    }
+
+    // Date range filter - using only range parameter
+    if (range && range !== 'all') {
         const now = new Date();
         let startDay = new Date();
 
@@ -276,30 +317,38 @@ export const getAllOrders = asyncHandler(async (req, res) => {
             case '90d':
                 startDay.setDate(now.getDate() - 90);
                 break;
-            case 'all':
-                // For "all time", we don't need to set a date filter
-                break;
             default:
-                startDay.setDate(now.getDate() - 30);
+                startDay.setDate(now.getDate() - 90);
         }
 
-        // Only apply date filter if range is not "all"
-        if (range !== 'all') {
-            startDay.setHours(0, 0, 0, 0);
-            where.createdAt = {
-                [Op.gte]: startDay
-            };
-        }
+        startDay.setHours(0, 0, 0, 0);
+        where.createdAt = {
+            [Op.between]: [startDay, now]
+        };
     }
 
-    // Search filter
-    if (search) {
-        where[Op.or] = [
-            { order_id: { [Op.like]: `%${search}%` } },
-            { '$Orders.id$': { [Op.like]: `%${search}%` } },
-            { '$Orders.Users.name$': { [Op.like]: `%${search}%` } }
-        ];
-        include[0].include.push(Product, Supplier);
+    // Search filter - Search by order_number and payment transaction_id
+    if (search && search.trim() !== '') {
+        const searchConditions = [];
+
+        // Search by order_number (main search field)
+        searchConditions.push({
+            order_number: { [Op.like]: `%${search}%` }
+        });
+
+        // Also search by database ID if search is numeric
+        if (!isNaN(search)) {
+            searchConditions.push({
+                id: parseInt(search)
+            });
+        }
+
+        // Search by payment transaction_id
+        searchConditions.push({
+            '$payment.transaction_id$': { [Op.like]: `%${search}%` }
+        });
+
+        where[Op.or] = searchConditions;
     }
 
     // Product filter
@@ -310,24 +359,130 @@ export const getAllOrders = asyncHandler(async (req, res) => {
 
     // Supplier filter
     if (supplier_id) {
+        include[0].include = include[0].include || [];
         include[0].include.push({
             model: Supplier,
             where: { id: supplier_id }
         });
     }
 
-    const orders = await Order.findAndCountAll({
+    try {
+        const orders = await Order.findAndCountAll({
+            where,
+            include,
+            order: [['createdAt', 'DESC']],
+            limit: parseInt(limit),
+            offset: (page - 1) * limit,
+            distinct: true
+        });
+
+        const cities = [...new Set(orders.rows.map(order => order.Address?.city).filter(city => city))];
+
+        // Fetch shipping costs for all cities in one query
+        const shippingCosts = await ShippingCost.findAll({
+            where: { city: cities }
+        });
+
+        // Create a map of city to shipping cost for quick lookup
+        const shippingCostMap = {};
+        shippingCosts.forEach(cost => {
+            shippingCostMap[cost.city] = cost;
+        });
+
+        // Add shipping cost details to each order and format payment data
+        const ordersWithShipping = orders.rows.map(order => {
+            const orderData = order.get({ plain: true });
+            const city = order.Address?.city;
+
+            if (city && shippingCostMap[city]) {
+                orderData.shippingCost = shippingCostMap[city];
+            } else {
+                orderData.shippingCost = null;
+            }
+
+            // Calculate total with shipping
+            const shippingAmount = orderData.shippingCost ? parseFloat(orderData.shippingCost.cost) : 0;
+            const orderAmount = parseFloat(orderData.total_amount) || 0;
+            orderData.final_total = (orderAmount + shippingAmount).toFixed(2);
+
+            // Format payment information for easier access
+            if (orderData.payment) {
+                orderData.payment_id = orderData.payment.id;
+                orderData.payment_status = orderData.payment.payment_status;
+                orderData.payment_method = orderData.payment.payment_method;
+                orderData.payment_amount = orderData.payment.amount;
+                orderData.transaction_id = orderData.payment.transaction_id;
+                orderData.payment_date = orderData.payment.payment_date;
+            } else {
+                // Handle cases where payment record doesn't exist
+                orderData.payment_id = null;
+                orderData.payment_status = 'pending';
+                orderData.payment_method = null;
+                orderData.payment_amount = null;
+                orderData.transaction_id = null;
+                orderData.payment_date = null;
+            }
+
+            return orderData;
+        });
+
+        res.json({
+            success: true,
+            data: ordersWithShipping,
+            meta: {
+                total: orders.count,
+                page: parseInt(page),
+                totalPages: Math.ceil(orders.count / limit)
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching orders:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching orders',
+            error: error.message
+        });
+    }
+});
+
+// GET user's orders
+export const getUserOrders = asyncHandler(async (req, res) => {
+    const user_id = req.user.id;
+    const { status, payment_status } = req.query;
+
+    const where = { user_id };
+    if (status) where.status = status;
+
+    const include = [
+        {
+            model: OrderItem,
+            include: [Product]
+        },
+        {
+            model: Payment,
+            as: 'payment',
+            attributes: ['id', 'payment_status', 'payment_method', 'amount', 'transaction_id', 'payment_date']
+        },
+        {
+            model: Address,
+            attributes: ['id', 'city', 'shipping_name', 'address_line1']
+        }
+    ];
+
+    // Payment status filter
+    if (payment_status) {
+        include[1].where = include[1].where || {};
+        include[1].where.payment_status = payment_status;
+    }
+
+    const orders = await Order.findAll({
         where,
         include,
-        order: [['createdAt', 'DESC']],
-        limit: parseInt(limit),
-        offset: (page - 1) * limit,
-        distinct: true
+        order: [['createdAt', 'DESC']]
     });
 
-    const cities = [...new Set(orders.rows.map(order => order.Address?.city).filter(city => city))];
-
     // Fetch shipping costs for all cities in one query
+    const cities = [...new Set(orders.map(order => order.Address?.city).filter(city => city))];
     const shippingCosts = await ShippingCost.findAll({
         where: { city: cities }
     });
@@ -338,62 +493,76 @@ export const getAllOrders = asyncHandler(async (req, res) => {
         shippingCostMap[cost.city] = cost;
     });
 
-    // Add shipping cost details to each order
-    const ordersWithShipping = orders.rows.map(order => {
+    // Format orders with payment and shipping information
+    const formattedOrders = orders.map(order => {
         const orderData = order.get({ plain: true });
         const city = order.Address?.city;
 
+        // Add shipping cost
         if (city && shippingCostMap[city]) {
             orderData.shippingCost = shippingCostMap[city];
         } else {
             orderData.shippingCost = null;
         }
 
+        // Calculate final total with shipping
+        const shippingAmount = orderData.shippingCost ? parseFloat(orderData.shippingCost.cost) : 0;
+        const orderAmount = parseFloat(orderData.total_amount) || 0;
+        orderData.final_total = (orderAmount + shippingAmount).toFixed(2);
+
+        // Format payment information
+        if (orderData.payment) {
+            orderData.payment_id = orderData.payment.id;
+            orderData.payment_status = orderData.payment.payment_status;
+            orderData.payment_method = orderData.payment.payment_method;
+            orderData.payment_amount = orderData.payment.amount;
+            orderData.transaction_id = orderData.payment.transaction_id;
+            orderData.payment_date = orderData.payment.payment_date;
+        } else {
+            // Default values if no payment record exists
+            orderData.payment_id = null;
+            orderData.payment_status = 'pending';
+            orderData.payment_method = null;
+            orderData.payment_amount = null;
+            orderData.transaction_id = null;
+            orderData.payment_date = null;
+        }
+
+        // Simplify address data for user orders list
+        orderData.shipping_address = {
+            city: orderData.Address?.city,
+            shipping_name: orderData.Address?.shipping_name,
+            address_line1: orderData.Address?.address_line1
+        };
+
+        // Remove the full Address object to reduce response size
+        delete orderData.Address;
+
         return orderData;
     });
 
     res.json({
         success: true,
-        data: ordersWithShipping,
-        meta: {
-            total: orders.count,
-            page: parseInt(page),
-            totalPages: Math.ceil(orders.count / limit)
-        }
+        data: formattedOrders
     });
 });
-
-// GET user's orders
-export const getUserOrders = asyncHandler(async (req, res) => {
-    const user_id = req.user.id;
-    const { status } = req.query;
-
-    const where = { user_id };
-    if (status) where.status = status;
-
-    const orders = await Order.findAll({
-        where,
-        include: [{
-            model: OrderItem,
-            include: [Product]
-        }],
-        order: [['createdAt', 'DESC']]
-    });
-
-
-    res.json({
-        success: true,
-        data: orders
-    });
-});
-
 // GET order details
 export const getOrderDetails = asyncHandler(async (req, res) => {
     const order = await Order.findByPk(req.params.id, {
-        include: [{
-            model: OrderItem,
-            include: [Product, Supplier]
-        }]
+        include: [
+            {
+                model: OrderItem,
+                include: [Product, Supplier]
+            },
+            {
+                model: Payment,
+                as: 'payment',
+                attributes: ['id', 'payment_status', 'payment_method', 'amount', 'transaction_id', 'payment_date', 'gateway_response']
+            },
+            {
+                model: Address
+            }
+        ]
     });
 
     if (!order) {
@@ -404,34 +573,96 @@ export const getOrderDetails = asyncHandler(async (req, res) => {
         });
         return;
     }
-    
-    const address = await Address.findByPk(order.address_id);
+
+    // Check if the order belongs to the user (for non-admin users)
+    if (req.user.role !== 'admin' && order.user_id !== req.user.id) {
+        res.status(403).json({
+            success: false,
+            message: 'Access denied. You can only view your own orders.',
+            code: 'ACCESS_DENIED'
+        });
+        return;
+    }
+
+    const address = order.Address || await Address.findByPk(order.address_id);
     const shippingCost = await ShippingCost.findOne({
         where: { city: address.city }
     });
 
-    const total = (
-        (parseFloat(order?.total_amount) || 0) +
-        (parseFloat(shippingCost?.cost) || 0)
-    ).toFixed(2);
+    const shippingAmount = parseFloat(shippingCost?.cost) || 0;
+    const orderAmount = parseFloat(order?.total_amount) || 0;
+    const total = (orderAmount + shippingAmount).toFixed(2);
 
     const orderDetail = {
-        id: order.id, order_number: order.order_number, status: order.status,
-        total_amount: order.total_amount, createdAt: order.createdAt, updatedAt: order.updatedAt,
-        items: order.OrderItems,
-        address_id: address.id,
-        shipping_name: address.shipping_name, shipping_phone: address.shipping_phone,
-        address_line1: address.address_line1, address_line2: address.address_line2, city: address.city,
-        shipping_cost: shippingCost.cost, estimated_delivery_date: shippingCost.estimated_delivery_date,
-        total: total
-    }
+        id: order.id,
+        order_number: order.order_number,
+        status: order.status,
+        total_amount: order.total_amount,
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
+        items: order.OrderItems.map(item => ({
+            id: item.id,
+            quantity: item.quantity,
+            price: item.price,
+            product: {
+                id: item.Product.id,
+                name: item.Product.name,
+                sku: item.Product.sku,
+                base_image_url: item.Product.base_image_url
+            },
+            supplier: {
+                id: item.Supplier.id,
+                name: item.Supplier.name,
+                contact: item.Supplier.contact_number
+            }
+        })),
+        // Payment information
+        payment: order.payment ? {
+            id: order.payment.id,
+            payment_status: order.payment.payment_status,
+            payment_method: order.payment.payment_method,
+            amount: order.payment.amount,
+            transaction_id: order.payment.transaction_id,
+            payment_date: order.payment.payment_date,
+            gateway_response: order.payment.gateway_response
+        } : {
+            id: null,
+            payment_status: 'pending',
+            payment_method: null,
+            amount: null,
+            transaction_id: null,
+            payment_date: null,
+            gateway_response: null
+        },
+        // Address information
+        address: {
+            id: address.id,
+            shipping_name: address.shipping_name,
+            shipping_phone: address.shipping_phone,
+            address_line1: address.address_line1,
+            address_line2: address.address_line2,
+            city: address.city,
+            state: address.state,
+            country: address.country,
+            postal_code: address.postal_code
+        },
+        // Shipping information
+        shipping: {
+            cost: shippingCost?.cost || 0,
+            estimated_delivery_date: shippingCost?.estimated_delivery_date,
+            city: address.city
+        },
+        // Totals
+        subtotal: orderAmount.toFixed(2),
+        shipping_cost: shippingAmount.toFixed(2),
+        final_total: total
+    };
 
     res.json({
         success: true,
         data: orderDetail
     });
 });
-
 // UPDATE order status
 export const updateOrderStatus = asyncHandler(async (req, res) => {
     const { status } = req.body;

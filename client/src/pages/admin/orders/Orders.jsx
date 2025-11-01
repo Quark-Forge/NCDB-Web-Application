@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useGetAllOrdersQuery, useGetOrderStatsQuery } from '../../../slices/ordersApiSlice';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
@@ -9,13 +8,11 @@ import Pagination from '../../../components/common/Pagination';
 
 const Order = () => {
   const [filters, setFilters] = useState({
-    range: '30d',
+    range: '90d',
     status: '',
-    startDate: '',
-    endDate: '',
     product_id: '',
     supplier_id: '',
-    searchQuery: '',
+    search: '',
   });
 
   const [pagination, setPagination] = useState({
@@ -46,7 +43,7 @@ const Order = () => {
       <div className="space-y-4">
         {/* Order Stats at the top */}
         <div className="bg-white rounded-lg shadow p-4">
-          <OrderStats data={stats} isLoading = {statsLoading}/>
+          <OrderStats data={stats} isLoading={statsLoading}/>
         </div>
 
         {/* Filters section */}

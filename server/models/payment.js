@@ -71,7 +71,8 @@ export default (sequelize) => {
   Payment.associate = (models) => {
     Payment.belongsTo(models.Order, {
       foreignKey: 'order_id',
-      onDelete: 'RESTRICT' // Prevent payment deletion if order exists
+      onDelete: 'RESTRICT', // Prevent payment deletion if order exists
+      as : 'order'
     });
   };
 

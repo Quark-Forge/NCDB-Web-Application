@@ -4,6 +4,9 @@ import { toast } from "react-toastify";
 import { setCredentials } from "../../slices/authSlice";
 import { useNavigate } from "react-router-dom";
 import { useUpdateUserMutation } from "../../slices/usersApiSlice";
+import { useUploadProfilePhotoMutation, useDeleteProfilePhotoMutation } from "../../slices/uploadApiSlice";
+import ImageUpload from "../../components/common/ImageUpload";
+import { User, Trash2, Loader2 } from "lucide-react";
 
 const EditProfile = () => {
   const [formData, setFormData] = useState({
@@ -16,11 +19,14 @@ const EditProfile = () => {
   });
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+  const [profileImage, setProfileImage] = useState(null);
+  const [isImageUploading, setIsImageUploading] = useState(false);
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { userInfo } = useSelector((state) => state.auth);
   const [updateProfile, { isLoading }] = useUpdateUserMutation();
+  const [deleteProfilePhoto, { isLoading: isDeleting }] = useDeleteProfilePhotoMutation();
 
   useEffect(() => {
     if (userInfo) {
@@ -32,6 +38,7 @@ const EditProfile = () => {
         password: "",
         confirmPassword: ""
       });
+      setProfileImage(userInfo.profile_photo || null);
     }
   }, [userInfo]);
 
@@ -74,6 +81,28 @@ const EditProfile = () => {
     // Validate field if it's been touched before
     if (touched[name]) {
       setErrors({ ...errors, [name]: validateField(name, value) });
+    }
+  };
+
+  const handleImageChange = (imageUrl) => {
+    setProfileImage(imageUrl);
+  };
+
+  const handleImageUploadStart = () => {
+    setIsImageUploading(true);
+  };
+
+  const handleImageUploadEnd = () => {
+    setIsImageUploading(false);
+  };
+
+  const handleDeleteProfilePhoto = async () => {
+    try {
+      await deleteProfilePhoto().unwrap();
+      setProfileImage(null);
+      toast.success('Profile photo deleted successfully');
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to delete profile photo');
     }
   };
 
@@ -127,7 +156,7 @@ const EditProfile = () => {
       const res = await updateProfile(payload).unwrap();
       dispatch(setCredentials({ ...res }));
       toast.success('Profile updated successfully');
-      navigate('/'); // Redirect to profile page after successful update
+      navigate('/profile'); // Redirect to profile page after successful update
     } catch (err) {
       const errorMessage = err?.data?.message || err?.error || "Update failed. Please try again.";
       toast.error(errorMessage);
@@ -142,7 +171,7 @@ const EditProfile = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-md">
+      <div className="max-w-2xl w-full space-y-8 bg-white p-8 rounded-xl shadow-md">
         <div className="text-center">
           <h2 className="text-3xl font-extrabold text-gray-900">Update Profile</h2>
           <p className="mt-2 text-sm text-gray-600">
@@ -150,8 +179,60 @@ const EditProfile = () => {
           </p>
         </div>
 
+        {/* Profile Image Section */}
+        <div className="flex flex-col items-center space-y-4">
+          <div className="relative">
+            {profileImage ? (
+              <div className="relative">
+                <img
+                  src={profileImage}
+                  alt="Profile"
+                  className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-md"
+                />
+                <button
+                  onClick={handleDeleteProfilePhoto}
+                  disabled={isDeleting || isImageUploading}
+                  className="absolute -bottom-2 -right-2 p-2 bg-red-500 text-white rounded-full shadow-md hover:bg-red-600 transition-colors disabled:opacity-50"
+                >
+                  {isDeleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            ) : (
+              <div className="w-32 h-32 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
+                <User className="h-16 w-16 text-white" />
+              </div>
+            )}
+          </div>
+
+          <div className="w-full max-w-xs">
+            <ImageUpload
+              currentImage={profileImage}
+              onImageChange={handleImageChange}
+              onUploadStart={handleImageUploadStart}
+              onUploadEnd={handleImageUploadEnd}
+              entityId={userInfo?.id}
+              entityType="profile"
+              className="w-full"
+              canDelete={false} // We handle delete separately
+            />
+          </div>
+
+          {isImageUploading && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-center">
+                <Loader2 className="h-4 w-4 animate-spin text-blue-500 mr-2" />
+                <span className="text-sm text-blue-700">Profile photo upload in progress...</span>
+              </div>
+            </div>
+          )}
+        </div>
+
         <form onSubmit={submitHandler} className="mt-8 space-y-6" noValidate>
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                 Full Name
@@ -209,17 +290,17 @@ const EditProfile = () => {
               )}
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
                 Address
               </label>
-              <input
+              <textarea
                 id="address"
                 name="address"
-                type="text"
                 value={formData.address}
                 onChange={handleChange}
                 onBlur={() => handleBlur("address")}
+                rows="3"
                 className={getInputClass("address")}
               />
               {errors.address && touched.address && (
@@ -267,18 +348,22 @@ const EditProfile = () => {
             )}
           </div>
 
-          <div>
+          <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={() => navigate('/profile')}
+              className="flex-1 py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Cancel
+            </button>
             <button
               type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading || isImageUploading}
+              className="flex-1 flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
+                  <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
                   Updating...
                 </>
               ) : 'Update Profile'}
