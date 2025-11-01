@@ -96,9 +96,9 @@ export const uploadProfilePhoto = asyncHandler(async (req, res) => {
     }
 
     try {
-        // Delete old photo if exists
-        if (user.profile_photo) {
-            const publicId = extractPublicId(user.profile_photo);
+        // Delete old photo if exists - using image_url
+        if (user.image_url) {
+            const publicId = extractPublicId(user.image_url);
             if (publicId) {
                 await cloudinary.uploader.destroy(publicId);
             }
@@ -118,19 +118,21 @@ export const uploadProfilePhoto = asyncHandler(async (req, res) => {
             ]
         });
 
-        // Update user with Cloudinary URL
-        await user.update({ profile_photo: result.secure_url });
+        // Update user with Cloudinary URL - using image_url
+        await user.update({ image_url: result.secure_url });
 
         res.status(200).json({
             success: true,
             message: 'Profile photo uploaded successfully',
             data: {
-                profile_photo: result.secure_url,
+                profile_photo: result.secure_url, // For frontend compatibility
+                image_url: result.secure_url, // Main field for database
                 cloudinary_public_id: result.public_id,
                 user: {
                     id: user.id,
                     name: user.name,
-                    email: user.email
+                    email: user.email,
+                    image_url: result.secure_url // Include in user object
                 }
             }
         });
@@ -209,7 +211,8 @@ export const deleteProfilePhoto = asyncHandler(async (req, res) => {
         });
     }
 
-    if (!user.profile_photo) {
+    // Check using image_url
+    if (!user.image_url) {
         return res.status(400).json({
             success: false,
             message: 'User does not have a profile photo'
@@ -218,13 +221,13 @@ export const deleteProfilePhoto = asyncHandler(async (req, res) => {
 
     try {
         // Extract public ID and delete from Cloudinary
-        const publicId = extractPublicId(user.profile_photo);
+        const publicId = extractPublicId(user.image_url);
         if (publicId) {
             await cloudinary.uploader.destroy(publicId);
         }
 
-        // Update user to remove photo reference
-        await user.update({ profile_photo: null });
+        // Update user to remove photo reference - using image_url
+        await user.update({ image_url: null });
 
         res.status(200).json({
             success: true,

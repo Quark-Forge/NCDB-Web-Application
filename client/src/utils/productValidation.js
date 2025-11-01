@@ -151,8 +151,10 @@ export const isFormValid = (formData, errors) => {
         formData[field] && formData[field].toString().trim() !== ''
     );
 
-    // Check if there are no validation errors
-    const hasNoErrors = Object.keys(errors).length === 0;
+    // Check if there are no validation errors - only count errors with actual messages
+    const hasNoErrors = !Object.values(errors).some(error =>
+        error && error.trim() !== ''
+    );
 
     return hasAllValues && hasNoErrors;
 };
