@@ -137,17 +137,6 @@ const ProfileDropdown = () => {
               <Heart className="w-4 h-4 mr-3 text-gray-400" />
               Wishlist
             </button>
-
-            <button
-              onClick={() => {
-                setIsOpen(false);
-                navigate('/user/settings');
-              }}
-              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-            >
-              <Settings className="w-4 h-4 mr-3 text-gray-400" />
-              Settings
-            </button>
           </div>
 
           {/* Logout section */}

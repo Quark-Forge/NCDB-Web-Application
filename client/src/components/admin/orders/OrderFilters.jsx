@@ -1,8 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
 import Card from '../../common/Card';
-import Button from '../../common/Button';
 import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
 
 const OrderFilters = ({ filters, onFilterChange }) => {
@@ -11,6 +8,11 @@ const OrderFilters = ({ filters, onFilterChange }) => {
     const [showDateRangeDropdown, setShowDateRangeDropdown] = useState(false);
     const dropdownRef = useRef(null);
     const buttonRef = useRef(null);
+
+    // Update local filters when parent filters change
+    useEffect(() => {
+        setLocalFilters(filters);
+    }, [filters]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -29,28 +31,18 @@ const OrderFilters = ({ filters, onFilterChange }) => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setLocalFilters(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleDateChange = (date, field) => {
-        setLocalFilters(prev => ({
-            ...prev,
-            [field]: date ? date.toISOString() : ''
-        }));
-    };
-
-    const applyFilters = () => {
-        onFilterChange(localFilters);
+        const newFilters = { ...localFilters, [name]: value };
+        setLocalFilters(newFilters);
+        onFilterChange(newFilters);
     };
 
     const resetFilters = () => {
         const resetValues = {
             status: '',
-            startDate: '',
-            endDate: '',
+            range: '90d',
             product_id: '',
             supplier_id: '',
-            searchQuery: '',
+            search: '',
         };
         setLocalFilters(resetValues);
         onFilterChange(resetValues);
@@ -60,34 +52,24 @@ const OrderFilters = ({ filters, onFilterChange }) => {
         setShowAdvancedFilters(!showAdvancedFilters);
     };
 
-    const applyDateRange = (days) => {
-        let startDate = '';
-        let endDate = '';
-
-        if (days !== 'all') {
-            const today = new Date();
-            endDate = today.toISOString();
-
-            const start = new Date();
-            start.setDate(today.getDate() - parseInt(days));
-            startDate = start.toISOString();
-        }
-
-        setLocalFilters(prev => ({
-            ...prev,
-            startDate,
-            endDate
-        }));
-
+    const applyDateRange = (range) => {
+        const newFilters = { ...localFilters, range };
+        setLocalFilters(newFilters);
         setShowDateRangeDropdown(false);
+        onFilterChange(newFilters);
     };
 
     const dateRangeOptions = [
-        { value: '7', label: 'Last 7 days' },
-        { value: '30', label: 'Last 30 days' },
-        { value: '90', label: 'Last 90 days' },
+        { value: '7d', label: 'Last 7 days' },
+        { value: '30d', label: 'Last 30 days' },
+        { value: '90d', label: 'Last 90 days' },
         { value: 'all', label: 'All time' }
     ];
+
+    const getCurrentRangeLabel = () => {
+        const option = dateRangeOptions.find(opt => opt.value === localFilters.range);
+        return option ? option.label : 'Last 90 days';
+    };
 
     // Calculate dropdown position
     const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
@@ -119,7 +101,8 @@ const OrderFilters = ({ filters, onFilterChange }) => {
                     {dateRangeOptions.map(option => (
                         <button
                             key={option.value}
-                            className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-gray-700"
+                            className={`block w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-gray-700 ${localFilters.range === option.value ? 'bg-blue-50 text-blue-600' : ''
+                                }`}
                             onClick={() => applyDateRange(option.value)}
                         >
                             {option.label}
@@ -131,22 +114,30 @@ const OrderFilters = ({ filters, onFilterChange }) => {
             <Card className="p-4 relative">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-sm font-medium">Filters</h3>
-                    <button
-                        onClick={toggleAdvancedFilters}
-                        className="text-xs flex items-center text-blue-600 hover:text-blue-800"
-                    >
-                        {showAdvancedFilters ? (
-                            <>
-                                <span>Hide filters</span>
-                                <FiChevronUp className="ml-1" />
-                            </>
-                        ) : (
-                            <>
-                                <span>Show all filters</span>
-                                <FiChevronDown className="ml-1" />
-                            </>
-                        )}
-                    </button>
+                    <div className="flex items-center space-x-2">
+                        <button
+                            onClick={resetFilters}
+                            className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 hover:bg-blue-50 rounded"
+                        >
+                            Reset
+                        </button>
+                        <button
+                            onClick={toggleAdvancedFilters}
+                            className="text-xs flex items-center text-blue-600 hover:text-blue-800"
+                        >
+                            {showAdvancedFilters ? (
+                                <>
+                                    <span>Hide filters</span>
+                                    <FiChevronUp className="ml-1" />
+                                </>
+                            ) : (
+                                <>
+                                    <span>Show all filters</span>
+                                    <FiChevronDown className="ml-1" />
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
 
                 <div className="space-y-4">
@@ -156,12 +147,11 @@ const OrderFilters = ({ filters, onFilterChange }) => {
                             <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Search</label>
                             <input
                                 type="text"
-                                name="searchQuery"
-                                value={localFilters.searchQuery}
+                                name="search"
+                                value={localFilters.search}
                                 onChange={handleChange}
-                                onKeyPress={(e) => e.key === 'Enter' && applyFilters()}
                                 className="w-full p-2 text-xs sm:text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Order ID, Customer Name"
+                                placeholder="Search orders..."
                             />
                         </div>
 
@@ -171,9 +161,9 @@ const OrderFilters = ({ filters, onFilterChange }) => {
                                 ref={buttonRef}
                                 type="button"
                                 onClick={() => setShowDateRangeDropdown(!showDateRangeDropdown)}
-                                className="w-full sm:w-auto p-2 text-xs sm:text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white flex items-center justify-between"
+                                className="w-full sm:w-48 p-2 text-xs sm:text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white flex items-center justify-between"
                             >
-                                <span>Quick Select</span>
+                                <span>{getCurrentRangeLabel()}</span>
                                 <FiChevronDown className="ml-2" />
                             </button>
                         </div>
@@ -197,29 +187,6 @@ const OrderFilters = ({ filters, onFilterChange }) => {
                                     <option value="delivered">Delivered</option>
                                     <option value="cancelled">Cancelled</option>
                                 </select>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">From</label>
-                                    <DatePicker
-                                        selected={localFilters.startDate ? new Date(localFilters.startDate) : null}
-                                        onChange={(date) => handleDateChange(date, 'startDate')}
-                                        className="w-full p-2 text-xs sm:text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                        placeholderText="Start Date"
-                                        dateFormat="d MMM, yyyy"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">To</label>
-                                    <DatePicker
-                                        selected={localFilters.endDate ? new Date(localFilters.endDate) : null}
-                                        onChange={(date) => handleDateChange(date, 'endDate')}
-                                        className="w-full p-2 text-xs sm:text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                        placeholderText="End Date"
-                                        dateFormat="d MMM, yyyy"
-                                    />
-                                </div>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -248,25 +215,6 @@ const OrderFilters = ({ filters, onFilterChange }) => {
                             </div>
                         </>
                     )}
-
-                    <div className="flex space-x-2 pt-2">
-                        <Button
-                            onClick={applyFilters}
-                            variant="primary"
-                            size="sm"
-                            className="w-full sm:w-auto"
-                        >
-                            Apply Filters
-                        </Button>
-                        <Button
-                            onClick={resetFilters}
-                            variant="secondary"
-                            size="sm"
-                            className="w-full sm:w-auto"
-                        >
-                            Reset
-                        </Button>
-                    </div>
                 </div>
             </Card>
         </>

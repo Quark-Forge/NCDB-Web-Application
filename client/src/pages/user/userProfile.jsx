@@ -15,12 +15,16 @@ import {
     Heart,
     Package,
     Clock,
-    CheckCircle
+    CheckCircle,
+    Trash2,
+    Loader2
 } from 'lucide-react';
 
 import { setCredentials } from '../../slices/authSlice';
 import { toast } from 'react-toastify';
 import { useGetUserProfileQuery, useUpdateUserMutation } from '../../slices/usersApiSlice';
+import { useUploadProfilePhotoMutation, useDeleteProfilePhotoMutation } from '../../slices/uploadApiSlice';
+import ImageUpload from '../../components/common/ImageUpload';
 
 const UserProfile = () => {
     const navigate = useNavigate();
@@ -29,6 +33,8 @@ const UserProfile = () => {
 
     const { data: response, refetch, isLoading } = useGetUserProfileQuery();
     const [updateProfile, { isLoading: updating }] = useUpdateUserMutation();
+    const [uploadProfilePhoto, { isLoading: isUploading }] = useUploadProfilePhotoMutation();
+    const [deleteProfilePhoto, { isLoading: isDeleting }] = useDeleteProfilePhotoMutation();
 
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
@@ -37,6 +43,8 @@ const UserProfile = () => {
         contact_number: '',
         address: ''
     });
+    const [profileImage, setProfileImage] = useState(null);
+    const [isImageUploading, setIsImageUploading] = useState(false);
 
     // Extract user data from response
     const userData = response?.user;
@@ -50,6 +58,7 @@ const UserProfile = () => {
                 contact_number: userData.contact_number || '',
                 address: userData.address || ''
             });
+            setProfileImage(userData.profile_photo || null);
         }
     }, [userData]);
 
@@ -81,7 +90,33 @@ const UserProfile = () => {
             contact_number: userData.contact_number || '',
             address: userData.address || ''
         });
+        setProfileImage(userData.profile_photo || null);
         setIsEditing(false);
+    };
+
+    const handleImageChange = (imageUrl) => {
+        setProfileImage(imageUrl);
+    };
+
+    const handleImageUploadStart = () => {
+        setIsImageUploading(true);
+    };
+
+    const handleImageUploadEnd = () => {
+        setIsImageUploading(false);
+        // Refetch user data to get updated profile photo
+        refetch();
+    };
+
+    const handleDeleteProfilePhoto = async () => {
+        try {
+            await deleteProfilePhoto().unwrap();
+            setProfileImage(null);
+            toast.success('Profile photo deleted successfully');
+            refetch();
+        } catch (err) {
+            toast.error(err?.data?.message || 'Failed to delete profile photo');
+        }
     };
 
     const stats = [
@@ -130,7 +165,7 @@ const UserProfile = () => {
                         <div className="flex gap-2">
                             <button
                                 onClick={handleSave}
-                                disabled={updating}
+                                disabled={updating || isImageUploading}
                                 className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
                             >
                                 <Save className="h-4 w-4" />
@@ -138,7 +173,8 @@ const UserProfile = () => {
                             </button>
                             <button
                                 onClick={handleCancel}
-                                className="flex items-center gap-2 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+                                disabled={isImageUploading}
+                                className="flex items-center gap-2 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors disabled:opacity-50"
                             >
                                 <X className="h-4 w-4" />
                                 Cancel
@@ -154,17 +190,37 @@ const UserProfile = () => {
                         <div className="bg-white rounded-xl shadow-sm p-6">
                             <div className="flex items-center gap-6 mb-6">
                                 <div className="relative">
-                                    <div className="w-24 h-24 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
-                                        <User className="h-12 w-12 text-white" />
-                                    </div>
-                                    {isEditing && (
-                                        <button className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition-colors">
-                                            <Camera className="h-4 w-4 text-gray-600" />
-                                        </button>
+                                    {profileImage ? (
+                                        <div className="relative">
+                                            <img
+                                                src={profileImage}
+                                                alt="Profile"
+                                                className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
+                                            />
+                                            {isEditing && (
+                                                <div className="absolute -bottom-2 -right-2 flex gap-1">
+                                                    <button
+                                                        onClick={handleDeleteProfilePhoto}
+                                                        disabled={isDeleting || isImageUploading}
+                                                        className="p-2 bg-red-500 text-white rounded-full shadow-md hover:bg-red-600 transition-colors disabled:opacity-50"
+                                                    >
+                                                        {isDeleting ? (
+                                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                                        ) : (
+                                                            <Trash2 className="h-3 w-3" />
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="w-24 h-24 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center relative">
+                                            <User className="h-12 w-12 text-white" />
+                                        </div>
                                     )}
                                 </div>
-                                <div>
-                                    <h2 className="text-2xl font-semibold text-gray-900">
+                                <div className="flex-1">
+                                    <h2 className="text-2xl font-semibold text-gray-900 mb-2">
                                         {isEditing ? (
                                             <input
                                                 type="text"
@@ -179,6 +235,22 @@ const UserProfile = () => {
                                         )}
                                     </h2>
                                     <p className="text-gray-600">Member since {new Date(userData?.createdAt).toLocaleDateString()}</p>
+
+                                    {/* Profile Image Upload Section */}
+                                    {isEditing && (
+                                        <div className="mt-4">
+                                            <ImageUpload
+                                                currentImage={profileImage}
+                                                onImageChange={handleImageChange}
+                                                onUploadStart={handleImageUploadStart}
+                                                onUploadEnd={handleImageUploadEnd}
+                                                entityId={userInfo?.id}
+                                                entityType="profile"
+                                                className="max-w-xs"
+                                                canDelete={false} // We handle delete separately
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -241,6 +313,16 @@ const UserProfile = () => {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Image Upload Status */}
+                            {isImageUploading && (
+                                <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                    <div className="flex items-center">
+                                        <Loader2 className="h-4 w-4 animate-spin text-blue-500 mr-2" />
+                                        <span className="text-sm text-blue-700">Profile photo upload in progress...</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Recent Activity */}

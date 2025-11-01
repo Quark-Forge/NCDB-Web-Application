@@ -15,72 +15,229 @@ import {
     Minus,
     CircleAlert
 } from 'lucide-react';
-import { useGetSupplierItemByIdQuery } from '../../slices/supplierItemsApiSlice'; // Import the correct hook
+import { useGetSupplierItemByIdQuery } from '../../slices/supplierItemsApiSlice';
+import {
+    useAddToWishlistMutation,
+    useRemoveFromWishlistMutation,
+    useCheckWishlistItemQuery
+} from '../../slices/wishlistApiSlice';
+import { useAddToCartMutation } from '../../slices/cartApiSlice'; // Import cart API
+import { useSelector } from 'react-redux';
+import { toast } from 'react-toastify';
 
 const ProductDetail = () => {
-    const { supplierItemId } = useParams(); // Now gets only supplierItem ID
+    const { supplierItemId } = useParams();
     const navigate = useNavigate();
     const { cartCount, setCartCount, cartItems, setCartItems } = useOutletContext();
 
     const [selectedImage, setSelectedImage] = useState(0);
     const [quantity, setQuantity] = useState(1);
+    const [isInWishlist, setIsInWishlist] = useState(false);
+    const [wishlistItemId, setWishlistItemId] = useState(null);
+    const [isWishlistLoading, setIsWishlistLoading] = useState(false);
 
-    // Fetch supplier item data using the correct hook
+    // Get auth state from Redux store
+    const { userInfo } = useSelector((state) => state.auth);
+
+    // Fetch supplier item data
     const { data: supplierItemData, isLoading, error } = useGetSupplierItemByIdQuery(supplierItemId);
     const supplierItem = supplierItemData?.data || {};
 
-    // Extract product and supplier information from the supplier item
+    // Cart mutation
+    const [addToCart, { isLoading: isAddingToCart }] = useAddToCartMutation();
+
+    // Wishlist mutations and queries - only enable if user is logged in
+    const [addToWishlist] = useAddToWishlistMutation();
+    const [removeFromWishlist] = useRemoveFromWishlistMutation();
+
+    // Check if item is in wishlist - only if user is logged in and has customer role
+    const shouldFetchWishlist = userInfo?.user_role === 'Customer';
+    const { data: wishlistCheckData, refetch: refetchWishlistCheck } = useCheckWishlistItemQuery(
+        supplierItem.product_id,
+        { skip: !supplierItem.product_id || !shouldFetchWishlist }
+    );
+
+    // Extract product and supplier information
     const product = {
         id: supplierItem.product_id,
         name: supplierItem.Product?.name,
         description: supplierItem.description || supplierItem.Product?.description,
         image_url: supplierItem.image_url || supplierItem.Product?.base_image_url,
         specifications: supplierItem.Product?.specifications,
-        // Add other product fields as needed
     };
 
     const selectedSupplier = {
         id: supplierItem.supplier_id,
         name: supplierItem.Supplier?.name,
-        price: supplierItem.price,
-        discount_price: supplierItem.discount_price,
+        price: parseFloat(supplierItem.price) || 0,
+        discount_price: supplierItem.discount_price ? parseFloat(supplierItem.discount_price) : null,
         stock_level: supplierItem.stock_level,
         image_url: supplierItem.image_url,
-        // Add other supplier fields as needed
     };
 
-    const handleAddToCart = () => {
+    // Update wishlist status when check data changes - FIXED LOGIC
+    useEffect(() => {
+        if (wishlistCheckData && wishlistCheckData.data) {
+            const hasWishlistItems = wishlistCheckData.data.items && wishlistCheckData.data.items.length > 0;
+            setIsInWishlist(hasWishlistItems);
+
+            // Find if the current supplier item is in the wishlist
+            if (hasWishlistItems && supplierItem) {
+                const currentItem = wishlistCheckData.data.items.find(
+                    item => item.supplier_item_id === supplierItem.id
+                );
+
+                if (currentItem) {
+                    setWishlistItemId(currentItem.wishlist_item_id);
+                }
+            }
+        }
+    }, [wishlistCheckData, supplierItem]);
+
+    // Helper function to format price safely
+    const formatPrice = (price) => {
+        if (typeof price === 'number') {
+            return price.toFixed(2);
+        }
+        if (typeof price === 'string') {
+            const parsed = parseFloat(price);
+            return isNaN(parsed) ? '0.00' : parsed.toFixed(2);
+        }
+        return '0.00';
+    };
+
+    // Check if user is authenticated, if not redirect to login
+    const requireAuth = (action) => {
+        if (!userInfo) {
+            navigate('/auth/login', {
+                state: {
+                    from: window.location.pathname,
+                    message: `Please login to ${action}`
+                }
+            });
+            return false;
+        }
+        return true;
+    };
+
+    const handleAddToCart = async () => {
         if (!supplierItem) return;
 
-        const itemToAdd = {
-            ...product,
-            supplier: selectedSupplier,
-            quantity,
-            cartId: supplierItem.id // Use supplier item ID as cart ID
-        };
-
-        // Check if item already exists in cart
-        const existingItemIndex = cartItems.findIndex(
-            item => item.cartId === itemToAdd.cartId
-        );
-
-        if (existingItemIndex >= 0) {
-            // Update quantity if item exists
-            const updatedCartItems = [...cartItems];
-            updatedCartItems[existingItemIndex].quantity += quantity;
-            setCartItems(updatedCartItems);
-        } else {
-            // Add new item to cart
-            setCartItems(prev => [...prev, itemToAdd]);
+        // Check if user is logged in
+        if (!requireAuth('add items to cart')) {
+            return;
         }
 
-        setCartCount(prev => prev + quantity);
+        try {
+            await addToCart({
+                product_id: product.id,
+                supplier_id: selectedSupplier.id,
+                quantity: quantity.toString(),
+                product_data: {
+                    ...product,
+                    supplierItem: selectedSupplier,
+                    price: selectedSupplier.price,
+                    discount_price: selectedSupplier.discount_price,
+                    image_url: selectedSupplier.image_url || product.image_url,
+                    supplier_name: selectedSupplier.name
+                }
+            }).unwrap();
+
+            toast.success('Product added to cart successfully!');
+
+            // Update local cart state if needed
+            const itemToAdd = {
+                ...product,
+                supplier: selectedSupplier,
+                quantity,
+                cartId: supplierItem.id
+            };
+
+            const existingItemIndex = cartItems.findIndex(
+                item => item.cartId === itemToAdd.cartId
+            );
+
+            if (existingItemIndex >= 0) {
+                const updatedCartItems = [...cartItems];
+                updatedCartItems[existingItemIndex].quantity += quantity;
+                setCartItems(updatedCartItems);
+            } else {
+                setCartItems(prev => [...prev, itemToAdd]);
+            }
+
+            setCartCount(prev => prev + quantity);
+
+        } catch (error) {
+            console.error('Error adding to cart:', error);
+            toast.error(error?.data?.message || 'Error adding product to cart');
+        }
     };
 
     const handleQuantityChange = (change) => {
         const newQuantity = quantity + change;
         if (newQuantity >= 1 && newQuantity <= (supplierItem?.stock_level || 10)) {
             setQuantity(newQuantity);
+        }
+    };
+
+    const handleWishlistToggle = async () => {
+        // Check if user is logged in and has customer role
+        if (!userInfo) {
+            requireAuth('add items to wishlist');
+            return;
+        }
+
+        if (userInfo.user_role !== 'Customer') {
+            toast.error('Only customers can add items to wishlist');
+            return;
+        }
+
+        try {
+            setIsWishlistLoading(true);
+
+            if (isInWishlist && wishlistItemId) {
+                // Remove from wishlist
+                await removeFromWishlist(wishlistItemId).unwrap();
+                setIsInWishlist(false);
+                setWishlistItemId(null);
+                toast.success('Removed from wishlist');
+            } else {
+                // Add to wishlist
+                const result = await addToWishlist({
+                    product_id: product.id,
+                    supplier_item_id: supplierItem.id
+                }).unwrap();
+
+                setIsInWishlist(true);
+                setWishlistItemId(result.data?.id || result.id);
+                toast.success('Added to wishlist');
+            }
+
+            // Refetch the wishlist check to ensure state is up to date
+            await refetchWishlistCheck();
+        } catch (error) {
+            console.error('Error updating wishlist:', error);
+            toast.error(error?.data?.message || 'Error updating wishlist');
+        } finally {
+            setIsWishlistLoading(false);
+        }
+    };
+
+    const handleShare = async () => {
+        try {
+            if (navigator.share) {
+                await navigator.share({
+                    title: product.name,
+                    text: product.description,
+                    url: window.location.href,
+                });
+            } else {
+                // Fallback: copy to clipboard
+                await navigator.clipboard.writeText(window.location.href);
+                toast.success('Product link copied to clipboard!');
+            }
+        } catch (error) {
+            console.error('Error sharing:', error);
         }
     };
 
@@ -131,6 +288,10 @@ const ProductDetail = () => {
         );
     }
 
+    const hasDiscount = selectedSupplier.discount_price && selectedSupplier.discount_price < selectedSupplier.price;
+    const displayPrice = hasDiscount ? selectedSupplier.discount_price : selectedSupplier.price;
+    const savings = hasDiscount ? selectedSupplier.price - selectedSupplier.discount_price : 0;
+
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* Breadcrumb */}
@@ -170,35 +331,23 @@ const ProductDetail = () => {
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
 
-                    <div className="flex items-center mb-4">
-                        <div className="flex items-center">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                                <Star
-                                    key={star}
-                                    className={`h-5 w-5 ${star <= 4 ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
-                                />
-                            ))}
-                        </div>
-                        <span className="ml-2 text-sm text-gray-600">(24 reviews)</span>
-                    </div>
-
                     {selectedSupplier && (
                         <>
                             <div className="mb-6">
                                 <div className="flex items-baseline gap-2">
-                                    {selectedSupplier.discount_price && selectedSupplier.discount_price < selectedSupplier.price && (
-                                        <span className="text-xl text-gray-500 line-through">Rs {selectedSupplier.price}</span>
+                                    {hasDiscount && (
+                                        <span className="text-xl text-gray-500 line-through">
+                                            Rs {formatPrice(selectedSupplier.price)}
+                                        </span>
                                     )}
                                     <span className="text-3xl font-bold text-gray-900">
-                                        Rs {selectedSupplier.discount_price && selectedSupplier.discount_price < selectedSupplier.price
-                                            ? selectedSupplier.discount_price
-                                            : selectedSupplier.price.toFixed(2)}
+                                        Rs {formatPrice(displayPrice)}
                                     </span>
                                 </div>
-                                {selectedSupplier.discount_price && selectedSupplier.discount_price < selectedSupplier.price && (
+                                {hasDiscount && (
                                     <div className="mt-1">
-                                        <span className="inline-block bg-red-100 text-red-800 text-sm font-medium px-2 py-1 rounded">
-                                            Save Rs {(selectedSupplier.price - selectedSupplier.discount_price)}
+                                        <span className="inline-block bg-green-100 text-green-800 text-sm font-medium px-2 py-1 rounded">
+                                            Save Rs {formatPrice(savings)}
                                         </span>
                                     </div>
                                 )}
@@ -246,19 +395,56 @@ const ProductDetail = () => {
                             <div className="flex flex-col sm:flex-row gap-3 mb-8">
                                 <button
                                     onClick={handleAddToCart}
-                                    disabled={selectedSupplier.stock_level <= 0}
+                                    disabled={selectedSupplier.stock_level <= 0 || isAddingToCart}
                                     className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                                 >
-                                    <ShoppingCart className="h-5 w-5" />
-                                    {selectedSupplier.stock_level <= 0 ? 'Out of Stock' : 'Add to Cart'}
+                                    {isAddingToCart ? (
+                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                    ) : (
+                                        <>
+                                            <ShoppingCart className="h-5 w-5" />
+                                            {selectedSupplier.stock_level <= 0 ? 'Out of Stock' : 'Add to Cart'}
+                                        </>
+                                    )}
                                 </button>
-                                <button className="p-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
-                                    <Heart className="h-5 w-5" />
+
+                                {/* Wishlist Button - Fixed heart color */}
+                                <button
+                                    onClick={handleWishlistToggle}
+                                    disabled={isWishlistLoading || userInfo?.user_role !== 'Customer'}
+                                    className={`p-3 border rounded-lg transition-colors ${isInWishlist
+                                            ? 'border-red-300 bg-red-50 text-red-600 hover:bg-red-100'
+                                            : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                >
+                                    {isWishlistLoading ? (
+                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-400"></div>
+                                    ) : (
+                                        <Heart
+                                            className={`h-5 w-5 ${isInWishlist
+                                                    ? 'fill-red-500 text-red-500'
+                                                    : 'text-gray-700'
+                                                }`}
+                                        />
+                                    )}
                                 </button>
-                                <button className="p-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+
+                                <button
+                                    onClick={handleShare}
+                                    className="p-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                                >
                                     <Share2 className="h-5 w-5" />
                                 </button>
                             </div>
+
+                            {/* Login Reminder for Guest Users */}
+                            {!userInfo && (
+                                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                    <p className="text-yellow-800 text-sm">
+                                        <strong>Please login</strong> to add items to your cart or wishlist.
+                                    </p>
+                                </div>
+                            )}
                         </>
                     )}
 
@@ -272,41 +458,6 @@ const ProductDetail = () => {
                                     <span className="w-2/3">{supplierItem.quantity_per_unit} {supplierItem.unit_symbol}</span>
                                 </div>
                             )}
-                            {supplierItem.expiry_days && (
-                                <div className="flex">
-                                    <span className="font-medium w-1/3">Shelf Life:</span>
-                                    <span className="w-2/3">{supplierItem.expiry_days} days</span>
-                                </div>
-                            )}
-                            {/* Add more product details as needed */}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Features & Benefits */}
-            <div className="mt-12 border-t border-gray-200 pt-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Features & Benefits</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="flex items-start">
-                        <Truck className="h-6 w-6 text-blue-600 mt-1 mr-4" />
-                        <div>
-                            <h3 className="font-medium text-gray-900 mb-1">Free Shipping</h3>
-                            <p className="text-gray-600">Free delivery on orders over Rs 1000</p>
-                        </div>
-                    </div>
-                    <div className="flex items-start">
-                        <RotateCcw className="h-6 w-6 text-blue-600 mt-1 mr-4" />
-                        <div>
-                            <h3 className="font-medium text-gray-900 mb-1">30-Day Returns</h3>
-                            <p className="text-gray-600">Money-back guarantee</p>
-                        </div>
-                    </div>
-                    <div className="flex items-start">
-                        <Shield className="h-6 w-6 text-blue-600 mt-1 mr-4" />
-                        <div>
-                            <h3 className="font-medium text-gray-900 mb-1">Quality Guarantee</h3>
-                            <p className="text-gray-600">Premium quality products</p>
                         </div>
                     </div>
                 </div>

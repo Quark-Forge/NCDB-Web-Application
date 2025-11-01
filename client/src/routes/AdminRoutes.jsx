@@ -6,7 +6,6 @@ import Categories from '../pages/admin/Categories';
 import Suppliers from '../pages/admin/Suppliers';
 import Orders from '../pages/admin/orders/Orders';
 import Dashboard from '../pages/admin/Dashboard';
-import Settings from '../pages/admin/Settings';
 import AdminProfile from '../pages/admin/AdminProfile';
 import OrderDetails from '../pages/admin/orders/OrderDetails';
 import Shipping from '../pages/admin/shipping/Shipping';
@@ -32,7 +31,6 @@ export const adminChildren = (
       <Route path='categories' element={<Categories />} />
       <Route path='suppliers' element={<Suppliers />} />
       <Route path='dashboard' element={<Dashboard />} />
-      <Route path='settings' element={<Settings />} />
       <Route path='profile' element={<AdminProfile />} />
       <Route path='inventory' element={<Inventory />} />
     </Route>

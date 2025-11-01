@@ -4,6 +4,7 @@ import {
     deleteProduct,
     getAllProducts,
     getAllProductsWithDeleted,
+    restoreProduct,
     updateProduct,
     updateProductStock,
 } from '../controllers/productController.js';
@@ -17,6 +18,8 @@ router.route('/')
       .get(getAllProducts);
 
 router.route('/:product_id/suppliers/:supplier_id').delete(protect, authorize('Admin', 'Inventory Manager'), deleteProduct);
+
+router.route('/:id/restore').put(protect, authorize('Admin', 'Inventory Manager'), restoreProduct);
 
 router.route('/:id')
       .put(protect, authorize('Admin','Inventory Manager'),updateProduct);

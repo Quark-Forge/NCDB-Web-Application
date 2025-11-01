@@ -59,14 +59,6 @@ export default (sequelize) => {
                 }
             }
         },
-        payment_id: {
-            type: DataTypes.UUID,
-            allowNull: true,
-            references: {
-                model: 'payments',
-                key: 'id'
-            }
-        },
 
     }, {
         tableName: 'orders',
@@ -91,7 +83,8 @@ export default (sequelize) => {
 
         Order.hasOne(models.Payment, {
             foreignKey: 'order_id',
-            onDelete: 'CASCADE'
+            onDelete: 'CASCADE',
+            as: 'payment'
         });
 
     };
