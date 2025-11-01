@@ -17,6 +17,8 @@ import shippingCostRoutes from './routes/shippingCostRoutes.js';
 import wishListRoutes from './routes/wishListRoutes.js'
 import supplierItemsRequestRoutes from './routes/supplierItemsRequestRoutes.js';
 
+import testRoute from './routes/testRoute.js';
+
 
 dotenv.config();
 const port = process.env.PORT || 5000;
@@ -39,6 +41,7 @@ app.use('/api/shipping-addresses', addressRoutes);
 app.use('/api/shipping-costs', shippingCostRoutes);
 app.use('/api/wishlist', wishListRoutes);
 app.use('/api/supplier-item-requests',supplierItemsRequestRoutes);
+app.use('/api/test', testRoute);
 
 
 app.get('/', (req, res) => res.send('server is ready'));
