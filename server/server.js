@@ -16,18 +16,27 @@ import addressRoutes from './routes/AddressRoutes.js';
 import shippingCostRoutes from './routes/shippingCostRoutes.js';
 import wishListRoutes from './routes/wishListRoutes.js'
 import supplierItemsRequestRoutes from './routes/supplierItemsRequestRoutes.js';
-
 import testRoute from './routes/testRoute.js';
-
 
 dotenv.config();
 const port = process.env.PORT || 5000;
 const app = express();
 
+app.use(cors({
+    origin: [
+        'http://localhost:3000',
+        'https://ncdb-mart.vercel.app',
+        'https://trains-production.up.railway.app'
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(cors());
+
 app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/suppliers', supplierRoute);
@@ -40,12 +49,10 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/shipping-addresses', addressRoutes);
 app.use('/api/shipping-costs', shippingCostRoutes);
 app.use('/api/wishlist', wishListRoutes);
-app.use('/api/supplier-item-requests',supplierItemsRequestRoutes);
+app.use('/api/supplier-item-requests', supplierItemsRequestRoutes);
 app.use('/api/test', testRoute);
 
-
 app.get('/', (req, res) => res.send('server is ready'));
-
 
 app.use(notFound);
 app.use(errorHandler);
