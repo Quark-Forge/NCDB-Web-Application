@@ -10,7 +10,7 @@ import AdminProfile from '../pages/admin/AdminProfile';
 import OrderDetails from '../pages/admin/orders/OrderDetails';
 import Shipping from '../pages/admin/shipping/Shipping';
 import Inventory  from '../pages/admin/Inventory';
-import Payments from '../pages/admin/payments/payments';
+import Payments from '../pages/admin/payments/Payments';
 import Purchases from '../pages/admin/purchase/Purchases';
 
 export const adminChildren = (
