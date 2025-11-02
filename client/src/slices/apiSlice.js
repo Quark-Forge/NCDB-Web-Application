@@ -1,9 +1,13 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
-// Use environment variable for base URL
 const baseQuery = fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:5000',
-    credentials: 'include'
+    baseUrl: import.meta.env.VITE_API_URL || 'https://trains-production.up.railway.app',
+    credentials: 'include',
+    prepareHeaders: (headers, { getState }) => {
+        // You can add auth headers here if needed
+        headers.set('Content-Type', 'application/json');
+        return headers;
+    }
 });
 
 export const apiSlice = createApi({

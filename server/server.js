@@ -6,10 +6,9 @@ import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 
 import './config/db.js';
 
-// Import production setup
 import { setupDatabase } from './db/init-db.js';
 
-//Routes
+// Routes
 import userRoutes from './routes/userRoutes.js';
 import supplierRoute from './routes/supplierRoutes.js';
 import roleRoutes from './routes/roleRoutes.js';
@@ -30,16 +29,47 @@ dotenv.config();
 const port = process.env.PORT || 8080;
 const app = express();
 
+const allowedOrigins = [
+    'http://localhost:3000',
+    'https://ncdb-mart.vercel.app',
+    'https://trains-production.up.railway.app'
+];
+
 app.use(cors({
-    origin: [
-        'http://localhost:3000',
-        'https://ncdb-mart.vercel.app',
-        'https://trains-production.up.railway.app'
-    ],
+    origin: function (origin, callback) {
+        // Allow requests with no origin
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            console.log('Blocked by CORS:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
+
+// Manual CORS headers for ALL responses
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+
+    if (allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+    }
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
+    next();
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -76,20 +106,23 @@ app.use('/api/wishlist', wishListRoutes);
 app.use('/api/supplier-item-requests', supplierItemsRequestRoutes);
 app.use('/api/test', testRoute);
 
-// Test routes
+// Test route
 app.get('/api/test-server', (req, res) => {
-    res.json({ 
-        message: 'Server is working!',
+    res.json({
+        message: 'Server is working from Vercel!',
         timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development'
+        environment: process.env.NODE_ENV || 'development',
+        origin: req.headers.origin
     });
 });
 
+// Health check route
 app.get('/health', (req, res) => {
-    res.status(200).json({ 
-        status: 'OK', 
+    res.status(200).json({
+        status: 'OK',
         message: 'Server is healthy',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        origin: req.headers.origin
     });
 });
 
@@ -98,6 +131,8 @@ app.get('/', (req, res) => res.send('server is ready'));
 app.use(notFound);
 app.use(errorHandler);
 
+// Start server
 app.listen(port, '0.0.0.0', () => {
     console.log(`Server is listening on port ${port}`);
+    console.log(`Allowed origins:`, allowedOrigins);
 });
