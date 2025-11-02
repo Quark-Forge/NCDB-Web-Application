@@ -5,7 +5,7 @@ dotenv.config();
 
 let sequelize;
 
-if (process.env.DATABASE_URL) {
+if (process.env.NODE_ENV === 'production') {
   // Production - Railway
   sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: 'mysql',
@@ -14,7 +14,6 @@ if (process.env.DATABASE_URL) {
         rejectUnauthorized: false
       }
     },
-    logging: console.log, // Set to false if you don't want logs
   });
 } else {
   // Development - Local
