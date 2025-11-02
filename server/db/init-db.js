@@ -28,20 +28,15 @@ const DEFAULT_ROLES = [
   { name: 'Supplier' }
 ];
 
-// Add this function to check if setup is needed
+// Check if setup is needed
 async function needsInitialSetup() {
   try {
-    // Check if users table exists
-    const [results] = await sequelize.query(`
-      SELECT COUNT(*) as table_count 
-      FROM information_schema.tables 
-      WHERE table_schema = DATABASE() 
-      AND table_name = 'users'
-    `);
-
-    return results[0].table_count === 0;
+    // Check if users table exists and has data
+    const userCount = await User.count();
+    return userCount === 0;
   } catch (error) {
     // If query fails, assume setup is needed
+    console.log('Setup check failed, assuming first-time setup:', error.message);
     return true;
   }
 }
@@ -87,20 +82,21 @@ async function initializeData() {
         role_id: adminRole.id,
         is_verified: true,
         contact_number: '0771234567',
-        address: 'Temp Address'
+        address: 'System Address'
       }, { transaction });
 
       if (!process.env.INITIAL_ADMIN_PASSWORD) {
-        console.warn(`\n⚠️ Temporary admin password: ${tempPassword}\n` +
-          `⚠️ Please change this immediately after login!`);
+        console.warn(`\n⚠️  Temporary admin password: ${tempPassword}`);
+        console.warn(`⚠️  Please change this immediately after login!\n`);
+      } else {
+        console.log('Admin user created with provided password');
       }
-      console.log('✅ Admin user created');
     } else {
-      console.log('✅ Admin user already exists');
+      console.log('Admin user already exists');
     }
 
     await transaction.commit();
-    console.log('🎉 Database initialized with default data');
+    console.log('Database initialized with default data');
   } catch (error) {
     await transaction.rollback();
     console.error('Initialization failed:', error);
@@ -110,42 +106,25 @@ async function initializeData() {
 
 async function syncModels() {
   try {
-    console.log('🔄 Syncing database models...');
+    console.log('Syncing database models...');
 
-    // Temporary disable foreign key checks
+    // Disable foreign key checks temporarily
     await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
-
-    // Verify essential models are registered
-    if (!Role || !User) {
-      throw new Error('Essential models not registered');
-    }
 
     // Sync in proper hierarchical order
     await Role.sync({ force: false });
     await User.sync({ force: false });
-
-    // Sync independent models
     await Category.sync({ force: false });
     await Product.sync({ force: false });
     await Supplier.sync({ force: false });
-
-    // Sync models that depend only on User
     await ShippingCost.sync({ force: false });
     await Address.sync({ force: false });
     await Cart.sync({ force: false });
     await Wishlist.sync({ force: false });
-
-    // Sync Payment first, then Order
     await Payment.sync({ force: false });
     await Order.sync({ force: false });
-
-    // Sync SupplierItem before SupplierItemRequest
     await SupplierItem.sync({ force: false });
-
-    // Sync SupplierItemRequest after all its dependencies
     await SupplierItemRequest.sync({ force: false });
-
-    // Sync junction/association models last
     await WishlistItem.sync({ force: false });
     await CartItem.sync({ force: false });
     await OrderItem.sync({ force: false });
@@ -162,9 +141,11 @@ async function syncModels() {
 
 export async function setupDatabase() {
   try {
-    // Verify database connection
+    console.log('🔄 Starting database setup...');
+
+    // Verify database connection first
     await sequelize.authenticate();
-    console.log('Database connection established');
+    console.log('Database connection verified');
 
     // Check if setup is already done
     const requiresSetup = await needsInitialSetup();
@@ -190,10 +171,10 @@ export async function setupDatabase() {
     });
 
     console.log('\nCurrent roles:');
-    console.table(roles.map(r => r.toJSON()));
+    console.table(roles.map(r => ({ id: r.id, name: r.name })));
 
     if (admin) {
-      console.log('\nAdmin user:');
+      console.log('\n👤 Admin user created:');
       console.table([{
         name: admin.name,
         email: admin.email,
@@ -201,7 +182,7 @@ export async function setupDatabase() {
         verified: admin.is_verified
       }]);
     } else {
-      console.warn('\nAdmin user not found');
+      console.warn('\nAdmin user not found after setup');
     }
 
     console.log('Database setup completed successfully');
@@ -211,19 +192,3 @@ export async function setupDatabase() {
     throw error;
   }
 }
-
-// REMOVE the auto-execute part at the bottom
-// Delete these lines:
-/*
-setupDatabase()
-  .then(success => {
-    if (success) {
-      console.log('Database setup completed successfully');
-      process.exit(0);
-    }
-  })
-  .catch(error => {
-    console.error('Database setup failed:', error);
-    process.exit(1);
-  });
-*/

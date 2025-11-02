@@ -4,8 +4,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 
-import './config/db.js';
-
+import { testConnection } from './config/db.js';
 import { setupDatabase } from './db/init-db.js';
 
 // Routes
@@ -26,7 +25,7 @@ import testRoute from './routes/testRoute.js';
 
 dotenv.config();
 
-const port = process.env.PORT || 8080;
+const port = process.env.PORT || 5000;
 const app = express();
 
 const allowedOrigins = [
@@ -35,9 +34,10 @@ const allowedOrigins = [
     'https://trains-production.up.railway.app'
 ];
 
+// CORS configuration
 app.use(cors({
     origin: function (origin, callback) {
-        // Allow requests with no origin
+        // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
 
         if (allowedOrigins.indexOf(origin) !== -1) {
@@ -52,7 +52,7 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
 
-// Manual CORS headers for ALL responses
+// Additional CORS headers
 app.use((req, res, next) => {
     const origin = req.headers.origin;
 
@@ -71,68 +71,123 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-// Request logging
+// Request logging middleware
 app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - Origin: ${req.headers.origin}`);
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - Origin: ${req.headers.origin}`);
     next();
 });
 
-// Run production database setup
-if (process.env.NODE_ENV === 'production') {
-    setupDatabase().then(() => {
-        console.log('Production database setup completed');
-    }).catch(error => {
-        console.error('Production database setup failed:', error);
+// Health check route (no DB dependency)
+app.get('/health', (req, res) => {
+    res.status(200).json({
+        status: 'OK',
+        message: 'Server is running',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development'
     });
-}
+});
 
-// Your routes
-app.use('/api/users', userRoutes);
-app.use('/api/roles', roleRoutes);
-app.use('/api/suppliers', supplierRoute);
-app.use('/api/categories', categoryRoute);
-app.use('/api/products', productRoute);
-app.use('/api/upload', uploadRoutes);
-app.use('/api/supplier-items', supplierItemRoutes);
-app.use('/api/carts', cartRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/shipping-addresses', addressRoutes);
-app.use('/api/shipping-costs', shippingCostRoutes);
-app.use('/api/wishlist', wishListRoutes);
-app.use('/api/supplier-item-requests', supplierItemsRequestRoutes);
-app.use('/api/test', testRoute);
-
-// Test route
+// Test server route (no DB dependency)
 app.get('/api/test-server', (req, res) => {
     res.json({
-        message: 'Server is working from Vercel!',
+        message: 'Server is working!',
         timestamp: new Date().toISOString(),
         environment: process.env.NODE_ENV || 'development',
         origin: req.headers.origin
     });
 });
 
-// Health check route
-app.get('/health', (req, res) => {
-    res.status(200).json({
-        status: 'OK',
-        message: 'Server is healthy',
-        timestamp: new Date().toISOString(),
-        origin: req.headers.origin
-    });
-});
+// Database-dependent routes
+const initializeApp = async () => {
+    try {
+        // Test database connection
+        console.log('Testing database connection...');
+        const dbConnected = await testConnection();
 
-app.get('/', (req, res) => res.send('server is ready'));
+        if (!dbConnected) {
+            console.warn('Starting server without database connection');
+            console.log('Some features may not work until database is available');
+        } else {
+            // Setup database if connected
+            if (process.env.NODE_ENV === 'production') {
+                try {
+                    await setupDatabase();
+                    console.log('Production database setup completed');
+                } catch (setupError) {
+                    console.error('Database setup failed:', setupError.message);
+                    console.log('Continuing without database setup...');
+                }
+            }
+        }
 
-app.use(notFound);
-app.use(errorHandler);
+        // Mount routes (they should handle DB errors gracefully)
+        app.use('/api/users', userRoutes);
+        app.use('/api/roles', roleRoutes);
+        app.use('/api/suppliers', supplierRoute);
+        app.use('/api/categories', categoryRoute);
+        app.use('/api/products', productRoute);
+        app.use('/api/upload', uploadRoutes);
+        app.use('/api/supplier-items', supplierItemRoutes);
+        app.use('/api/carts', cartRoutes);
+        app.use('/api/orders', orderRoutes);
+        app.use('/api/shipping-addresses', addressRoutes);
+        app.use('/api/shipping-costs', shippingCostRoutes);
+        app.use('/api/wishlist', wishListRoutes);
+        app.use('/api/supplier-item-requests', supplierItemsRequestRoutes);
+        app.use('/api/test', testRoute);
 
-// Start server
-app.listen(port, '0.0.0.0', () => {
-    console.log(`Server is listening on port ${port}`);
-    console.log(`Allowed origins:`, allowedOrigins);
-});
+        // Root route
+        app.get('/', (req, res) => {
+            res.send(`
+                <html>
+                    <head>
+                        <title>NCDB Mart Server</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; margin: 40px; }
+                            .status { padding: 10px; border-radius: 5px; margin: 10px 0; }
+                            .success { background: #d4edda; color: #155724; }
+                            .warning { background: #fff3cd; color: #856404; }
+                            .error { background: #f8d7da; color: #721c24; }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>NCDB Mart Server</h1>
+                        <div class="status success">Server is running on port ${port}</div>
+                        <div class="status ${dbConnected ? 'success' : 'warning'}">
+                            Database: ${dbConnected ? 'Connected' : 'Disconnected'}
+                        </div>
+                        <p>Environment: ${process.env.NODE_ENV || 'development'}</p>
+                        <p>Check <a href="/health">/health</a> for server status</p>
+                        <p>Check <a href="/api/test-server">/api/test-server</a> for API test</p>
+                    </body>
+                </html>
+            `);
+        });
+
+        // Error handling middleware
+        app.use(notFound);
+        app.use(errorHandler);
+
+        // Start server
+        app.listen(port, '0.0.0.0', () => {
+            console.log(`
+    Server started successfully!
+    Port: ${port}
+    Environment: ${process.env.NODE_ENV || 'development'}
+    Database: ${dbConnected ? 'Connected' : 'Disconnected'}
+    Allowed origins: ${allowedOrigins.join(', ')}
+            `);
+        });
+
+    } catch (error) {
+        console.error('Failed to initialize application:', error);
+        process.exit(1);
+    }
+};
+
+// Start the application
+initializeApp();
