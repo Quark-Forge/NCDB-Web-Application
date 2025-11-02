@@ -11,10 +11,10 @@ import { authorize, protect } from '../middleware/authMiddleware.js';
 const router = express.Router();
 
 router.route('/')
-    .get(protect, authorize('admin' , 'Order Maneger', 'Customer'), getShippingCosts)
-    .post(protect, authorize('admin'), createShippingCost);
+    .get(protect, authorize('Admin' , 'Order Manager', 'Customer'), getShippingCosts)
+    .post(protect, authorize('Admin'), createShippingCost);
 router.route('/:id')
-    .put(protect, authorize('admin'), updateShippingCost)
-    .delete(protect, authorize('admin'), deleteShippingCost);
+    .put(protect, authorize('Admin'), updateShippingCost)
+    .delete(protect, authorize('Admin'), deleteShippingCost);
 
 export default router;

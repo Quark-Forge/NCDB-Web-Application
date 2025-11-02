@@ -3,9 +3,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
-
 import './config/db.js';
-
 import { setupDatabase } from './db/init-db.js';
 
 // Routes
@@ -29,48 +27,36 @@ dotenv.config();
 const port = process.env.PORT || 8080;
 const app = express();
 
+// Allowed origins
 const allowedOrigins = [
     'http://localhost:3000',
     'https://ncdb-mart.vercel.app',
-    'https://trains-production.up.railway.app'
+    'https://trains-production.up.railway.app',
 ];
 
-app.use(cors({
-    origin: function (origin, callback) {
-        // Allow requests with no origin
-        if (!origin) return callback(null, true);
+// CORS middleware
+app.use(
+    cors({
+        origin: (origin, callback) => {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                console.log('Blocked by CORS:', origin);
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+        preflightContinue: false,
+        optionsSuccessStatus: 204, // <-- This ensures OPTIONS never fails
+    })
+);
 
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            console.log('Blocked by CORS:', origin);
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
-}));
+// Handle OPTIONS requests for all routes
+app.options('*', cors());
 
-// Manual CORS headers for ALL responses
-app.use((req, res, next) => {
-    const origin = req.headers.origin;
-
-    if (allowedOrigins.includes(origin)) {
-        res.header('Access-Control-Allow-Origin', origin);
-    }
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-
-    next();
-});
-
+// Core middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -81,16 +67,14 @@ app.use((req, res, next) => {
     next();
 });
 
-// Run production database setup
+// Initialize DB if production
 if (process.env.NODE_ENV === 'production') {
-    setupDatabase().then(() => {
-        console.log('Production database setup completed');
-    }).catch(error => {
-        console.error('Production database setup failed:', error);
-    });
+    setupDatabase()
+        .then(() => console.log('Production DB setup complete'))
+        .catch((err) => console.error('Production DB setup failed:', err));
 }
 
-// Your routes
+// Routes
 app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/suppliers', supplierRoute);
@@ -109,30 +93,21 @@ app.use('/api/test', testRoute);
 // Test route
 app.get('/api/test-server', (req, res) => {
     res.json({
-        message: 'Server is working from Vercel!',
+        message: 'Server is working from Railway!',
         timestamp: new Date().toISOString(),
         environment: process.env.NODE_ENV || 'development',
-        origin: req.headers.origin
+        origin: req.headers.origin,
     });
 });
 
-// Health check route
-app.get('/health', (req, res) => {
-    res.status(200).json({
-        status: 'OK',
-        message: 'Server is healthy',
-        timestamp: new Date().toISOString(),
-        origin: req.headers.origin
-    });
-});
+app.get('/', (req, res) => res.send('Server is ready 🚀'));
 
-app.get('/', (req, res) => res.send('server is ready'));
-
+// Error handlers
 app.use(notFound);
 app.use(errorHandler);
 
 // Start server
 app.listen(port, '0.0.0.0', () => {
-    console.log(`Server is listening on port ${port}`);
+    console.log(`Server running on port ${port}`);
     console.log(`Allowed origins:`, allowedOrigins);
 });
