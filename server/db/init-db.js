@@ -28,9 +28,29 @@ const DEFAULT_ROLES = [
   { name: 'Supplier' }
 ];
 
+// Add this function to check if setup is needed
+async function needsInitialSetup() {
+  try {
+    // Check if users table exists
+    const [results] = await sequelize.query(`
+      SELECT COUNT(*) as table_count 
+      FROM information_schema.tables 
+      WHERE table_schema = DATABASE() 
+      AND table_name = 'users'
+    `);
+
+    return results[0].table_count === 0;
+  } catch (error) {
+    // If query fails, assume setup is needed
+    return true;
+  }
+}
+
 async function initializeData() {
   const transaction = await sequelize.transaction();
   try {
+    console.log('Initializing default data...');
+
     // Create roles if they don't exist
     for (const role of DEFAULT_ROLES) {
       await Role.findOrCreate({
@@ -39,6 +59,7 @@ async function initializeData() {
         transaction
       });
     }
+    console.log('Default roles created');
 
     // Create admin user if doesn't exist
     const adminEmail = process.env.INITIAL_ADMIN_EMAIL || 'admin@ncdbmart.com';
@@ -73,10 +94,13 @@ async function initializeData() {
         console.warn(`\n⚠️ Temporary admin password: ${tempPassword}\n` +
           `⚠️ Please change this immediately after login!`);
       }
+      console.log('✅ Admin user created');
+    } else {
+      console.log('✅ Admin user already exists');
     }
 
     await transaction.commit();
-    console.log('Database initialized with default data');
+    console.log('🎉 Database initialized with default data');
   } catch (error) {
     await transaction.rollback();
     console.error('Initialization failed:', error);
@@ -86,6 +110,8 @@ async function initializeData() {
 
 async function syncModels() {
   try {
+    console.log('🔄 Syncing database models...');
+
     // Temporary disable foreign key checks
     await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
 
@@ -134,12 +160,21 @@ async function syncModels() {
   }
 }
 
-async function setupDatabase() {
-  let connection;
+export async function setupDatabase() {
   try {
     // Verify database connection
-    connection = await sequelize.authenticate();
+    await sequelize.authenticate();
     console.log('Database connection established');
+
+    // Check if setup is already done
+    const requiresSetup = await needsInitialSetup();
+
+    if (!requiresSetup) {
+      console.log('Database already set up - skipping initialization');
+      return true;
+    }
+
+    console.log('First-time setup detected - initializing database...');
 
     // Sync models in correct order
     await syncModels();
@@ -169,19 +204,17 @@ async function setupDatabase() {
       console.warn('\nAdmin user not found');
     }
 
+    console.log('Database setup completed successfully');
     return true;
   } catch (error) {
     console.error('Database setup failed:', error);
     throw error;
-  } finally {
-    if (connection) {
-      await sequelize.close();
-      console.log('Database connection closed');
-    }
   }
 }
 
-// Run the complete setup with proper error handling
+// REMOVE the auto-execute part at the bottom
+// Delete these lines:
+/*
 setupDatabase()
   .then(success => {
     if (success) {
@@ -193,3 +226,4 @@ setupDatabase()
     console.error('Database setup failed:', error);
     process.exit(1);
   });
+*/
