@@ -22,15 +22,41 @@ dotenv.config();
 const port = process.env.PORT || 5000;
 const app = express();
 
+// Parse allowed origins from environment variable
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',')
+    : ['http://localhost:3000'];
+
+const corsMethods = process.env.CORS_METHODS
+    ? process.env.CORS_METHODS.split(',')
+    : ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'];
+
+const corsHeaders = process.env.CORS_ALLOWED_HEADERS
+    ? process.env.CORS_ALLOWED_HEADERS.split(',')
+    : ['Content-Type', 'Authorization', 'X-Requested-With'];
+
+// CORS configuration using environment variables
 app.use(cors({
-    origin: [
-        'http://localhost:3000',
-        'https://ncdb-mart.vercel.app',
-        'https://trains-production.up.railway.app'
-    ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            console.log('Blocked by CORS:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    methods: corsMethods,
+    allowedHeaders: corsHeaders,
+    credentials: process.env.CORS_CREDENTIALS === 'true',
+    preflightContinue: false,
+    optionsSuccessStatus: 204
 }));
+
+// Handle preflight requests explicitly
+app.options('*', cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
