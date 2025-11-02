@@ -1,4 +1,5 @@
 import { useGetCategoriesQuery } from "../../slices/categoryApiSlice";
+import { CircleAlert } from "lucide-react";
 
 const CategoryTabs = ({ category, setCategory, setCurrentPage }) => {
   const { data: categoryData, isLoading, error } = useGetCategoriesQuery();
