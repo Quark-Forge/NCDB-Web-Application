@@ -4,8 +4,13 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 
+// Import database connection
+import './config/db.js';
+
+// Import production setup
 import { setupDatabase } from './db/init-db.js';
 
+// Your routes imports...
 import userRoutes from './routes/userRoutes.js';
 import supplierRoute from './routes/supplierRoutes.js';
 import roleRoutes from './routes/roleRoutes.js';
@@ -17,52 +22,40 @@ import cartRoutes from './routes/cartRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import addressRoutes from './routes/AddressRoutes.js';
 import shippingCostRoutes from './routes/shippingCostRoutes.js';
-import wishListRoutes from './routes/wishListRoutes.js'
+import wishListRoutes from './routes/wishListRoutes.js';
 import supplierItemsRequestRoutes from './routes/supplierItemsRequestRoutes.js';
 import testRoute from './routes/testRoute.js';
 
 dotenv.config();
-const port = process.env.PORT || 5000;
+
+// Use Railway's PORT environment variable
+const port = process.env.PORT || 8080;
 const app = express();
 
-// Parse allowed origins from environment variable
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',')
-    : ['http://localhost:3000'];
-
-const corsMethods = process.env.CORS_METHODS
-    ? process.env.CORS_METHODS.split(',')
-    : ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'];
-
-const corsHeaders = process.env.CORS_ALLOWED_HEADERS
-    ? process.env.CORS_ALLOWED_HEADERS.split(',')
-    : ['Content-Type', 'Authorization', 'X-Requested-With'];
-
-// CORS configuration using environment variables
+// CORS configuration
 app.use(cors({
-    origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            console.log('Blocked by CORS:', origin);
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    methods: corsMethods,
-    allowedHeaders: corsHeaders,
-    credentials: process.env.CORS_CREDENTIALS === 'true',
-    preflightContinue: false,
-    optionsSuccessStatus: 204
+    origin: [
+        'http://localhost:3000',
+        'https://ncdb-mart.vercel.app',
+        'https://trains-production.up.railway.app'
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// ADD THIS - Run production database setup before routes
+// Add request logging middleware
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    console.log(`   Origin: ${req.headers.origin}`);
+    next();
+});
+
+// Run production database setup (async but don't block server start)
 if (process.env.NODE_ENV === 'production') {
     setupDatabase().then(() => {
         console.log('Production database setup completed');
@@ -71,6 +64,7 @@ if (process.env.NODE_ENV === 'production') {
     });
 }
 
+// Your routes
 app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/suppliers', supplierRoute);
@@ -86,9 +80,35 @@ app.use('/api/wishlist', wishListRoutes);
 app.use('/api/supplier-item-requests', supplierItemsRequestRoutes);
 app.use('/api/test', testRoute);
 
+// Test route - add this to verify server is working
+app.get('/api/test-server', (req, res) => {
+    res.json({ 
+        message: 'Server is working!',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development',
+        port: port
+    });
+});
+
+// Health check route
+app.get('/health', (req, res) => {
+    res.status(200).json({ 
+        status: 'OK', 
+        message: 'Server is healthy',
+        timestamp: new Date().toISOString()
+    });
+});
+
 app.get('/', (req, res) => res.send('server is ready'));
 
 app.use(notFound);
 app.use(errorHandler);
 
-app.listen(port, () => console.log(`server is listining on port ${port}`));
+// Start server
+app.listen(port, '0.0.0.0', () => {
+    console.log(`Server is listening on port ${port}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Frontend URL: ${process.env.FRONTEND_URL}`);
+    console.log(`Backend URL: ${process.env.BACKEND_URL}`);
+    console.log(`Database: ${process.env.NODE_ENV === 'production' ? 'Railway MySQL' : 'Local MySQL'}`);
+});
