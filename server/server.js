@@ -3,6 +3,9 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
+
+import { setupDatabase } from './db/init-db.js';
+
 import userRoutes from './routes/userRoutes.js';
 import supplierRoute from './routes/supplierRoutes.js';
 import roleRoutes from './routes/roleRoutes.js';
@@ -58,6 +61,15 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// ADD THIS - Run production database setup before routes
+if (process.env.NODE_ENV === 'production') {
+    setupDatabase().then(() => {
+        console.log('Production database setup completed');
+    }).catch(error => {
+        console.error('Production database setup failed:', error);
+    });
+}
 
 app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
