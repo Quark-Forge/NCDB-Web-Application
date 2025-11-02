@@ -4,7 +4,6 @@ const baseQuery = fetchBaseQuery({
     baseUrl: import.meta.env.VITE_API_URL || 'https://trains-production.up.railway.app',
     credentials: 'include',
     prepareHeaders: (headers, { getState }) => {
-        // You can add auth headers here if needed
         headers.set('Content-Type', 'application/json');
         return headers;
     }
