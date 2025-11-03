@@ -1,6 +1,6 @@
 import { apiSlice } from '../slices/apiSlice';
 
-const WISHLIST_URL = '/api/wishlist';
+const WISHLIST_URL = '/wishlist';
 
 const wishlistApiSlice = apiSlice.injectEndpoints({
     endpoints: (builder) => ({

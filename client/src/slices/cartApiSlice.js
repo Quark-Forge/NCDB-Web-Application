@@ -1,6 +1,6 @@
 import { apiSlice } from "./apiSlice";
 
-const CARTS_URL = '/api/carts';
+const CARTS_URL = '/carts';
 
 export const cartApiSlice = apiSlice.injectEndpoints({
     endpoints: (builder) => ({

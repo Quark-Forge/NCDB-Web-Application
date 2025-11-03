@@ -1,6 +1,6 @@
 import { apiSlice } from "./apiSlice";
 
-const SUPPLIERS_URL = '/api/suppliers';
+const SUPPLIERS_URL = '/suppliers';
 
 export const suppliersApiSlice = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
