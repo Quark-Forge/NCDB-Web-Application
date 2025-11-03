@@ -1,6 +1,6 @@
 import { apiSlice } from '../slices/apiSlice';
 
-const SHIPPING_COST_URL = '/api/shipping-costs';
+const SHIPPING_COST_URL = '/shipping-costs';
 
 const shippingCostApiSlice = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
