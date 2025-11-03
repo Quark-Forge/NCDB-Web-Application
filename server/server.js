@@ -27,34 +27,39 @@ dotenv.config();
 const port = process.env.PORT || 8080;
 const app = express();
 
-// Allowed origins
 const allowedOrigins = [
-    'http://localhost:3000',
-    'https://ncdb-mart.vercel.app',
-    'https://trains-production.up.railway.app',
+    "http://localhost:3000",
+    "https://ncdb-mart.vercel.app",
+    "https://trains-production.up.railway.app",
 ];
 
-// CORS middleware
-app.use(
-    cors({
-        origin: (origin, callback) => {
-            if (!origin || allowedOrigins.includes(origin)) {
-                callback(null, true);
-            } else {
-                console.log('Blocked by CORS:', origin);
-                callback(new Error('Not allowed by CORS'));
-            }
-        },
-        credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-        preflightContinue: false,
-        optionsSuccessStatus: 204, // <-- This ensures OPTIONS never fails
-    })
-);
+// Define clean CORS options
+const corsOptions = {
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
+};
 
-// Handle OPTIONS requests for all routes
-app.options('*', cors());
+// Apply CORS globally
+app.use(cors(corsOptions));
+
+// Handle preflight automatically
+app.use((req, res, next) => {
+    if (req.method === "OPTIONS") {
+        res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin");
+        res.sendStatus(200);
+    } else {
+        next();
+    }
+});
 
 // Core middlewares
 app.use(express.json());
