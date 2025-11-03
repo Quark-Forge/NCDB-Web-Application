@@ -28,37 +28,43 @@ const port = process.env.PORT || 8080;
 const app = express();
 
 const allowedOrigins = [
-    "http://localhost:3000",
-    "https://ncdb-mart.vercel.app",
-    "https://trains-production.up.railway.app",
+    'http://localhost:3000',
+    'https://ncdb-mart.vercel.app',
+    'https://trains-production.up.railway.app'
 ];
 
-// Define clean CORS options
 const corsOptions = {
     origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error("Not allowed by CORS"));
-        }
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Requested-With',
+        'Accept',
+        'Origin'
+    ],
 };
 
-// Apply CORS globally
 app.use(cors(corsOptions));
 
-// Handle preflight automatically
-app.use((req, res, next) => {
-    if (req.method === "OPTIONS") {
-        res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-        res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin");
-        res.sendStatus(200);
-    } else {
-        next();
+// Handle all OPTIONS preflights safely (no regex wildcards)
+app.options(/^\/.*$/, (req, res) => {
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
     }
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header(
+        'Access-Control-Allow-Headers',
+        'Content-Type, Authorization, X-Requested-With, Accept, Origin'
+    );
+    res.sendStatus(200);
 });
 
 // Core middlewares
