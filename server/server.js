@@ -30,7 +30,7 @@ const app = express();
 const allowedOrigins = [
     'http://localhost:3000',
     'https://ncdb-mart.vercel.app',
-    'https://trains-production.up.railway.app'
+    'https://trains-production.up.railway.app',
 ];
 
 const corsOptions = {
@@ -46,26 +46,15 @@ const corsOptions = {
         'Authorization',
         'X-Requested-With',
         'Accept',
-        'Origin'
+        'Origin',
     ],
 };
 
+// Apply CORS globally before routes
 app.use(cors(corsOptions));
 
-// Handle all OPTIONS preflights safely (no regex wildcards)
-app.options(/^\/.*$/, (req, res) => {
-    const origin = req.headers.origin;
-    if (allowedOrigins.includes(origin)) {
-        res.header('Access-Control-Allow-Origin', origin);
-    }
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header(
-        'Access-Control-Allow-Headers',
-        'Content-Type, Authorization, X-Requested-With, Accept, Origin'
-    );
-    res.sendStatus(200);
-});
+// Express automatically respond to OPTIONS preflights
+app.options('/{*any}', cors(corsOptions));
 
 // Core middlewares
 app.use(express.json());
