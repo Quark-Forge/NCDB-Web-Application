@@ -30,7 +30,7 @@ const app = express();
 const allowedOrigins = [
     'http://localhost:3000',
     'https://ncdb-mart.vercel.app',
-    'https://trains-production.up.railway.app',
+    'https://ncdb-web-application-production.up.railway.app',
 ];
 
 const corsOptions = {
