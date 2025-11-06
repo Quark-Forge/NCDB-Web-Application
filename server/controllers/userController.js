@@ -66,11 +66,11 @@ const authUser = asyncHandler(async (req, res) => {
     }
 
     if (await matchPassword(password, existingUser.password)) {
-        const { id, name, email, contact_number, address, role_id } = existingUser;
+        const { id, name, email, contact_number, address, role_id, image_url } = existingUser;
         const role = await Role.findByPk(role_id);
         const user_role = role ? role.name : 'Unknown';
         generateToken(res, id);
-        return res.status(200).json({ id, name, email, contact_number, address, role_id, user_role });
+        return res.status(200).json({ id, name, email, contact_number, address, role_id, user_role, image_url });
     }
 
     res.status(401);

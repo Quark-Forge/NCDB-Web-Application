@@ -7,7 +7,7 @@ export const uploadProductImage = asyncHandler(async (req, res) => {
     if (!req.file) {
         return res.status(400).json({
             success: false,
-            message: 'No image file provided'
+            message: 'No image file provided in the request'
         });
     }
 
@@ -22,11 +22,23 @@ export const uploadProductImage = asyncHandler(async (req, res) => {
             });
         }
 
+        // Validate file buffer exists
+        if (!req.file.buffer) {
+            return res.status(400).json({
+                success: false,
+                message: 'File buffer is empty or invalid'
+            });
+        }
+
         // Delete old image if exists
         if (product.base_image_url) {
             const publicId = extractPublicId(product.base_image_url);
             if (publicId) {
-                await cloudinary.uploader.destroy(publicId);
+                try {
+                    await cloudinary.uploader.destroy(publicId);
+                } catch (cloudinaryError) {
+                    console.warn('Could not delete old Cloudinary image:', cloudinaryError);
+                }
             }
         }
 
@@ -68,7 +80,6 @@ export const uploadProductImage = asyncHandler(async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Upload error:', error);
         res.status(500).json({
             success: false,
             message: `Failed to upload image: ${error.message}`
@@ -138,7 +149,6 @@ export const uploadProfilePhoto = asyncHandler(async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Upload error:', error);
         res.status(500).json({
             success: false,
             message: `Failed to upload profile photo: ${error.message}`
@@ -191,7 +201,6 @@ export const deleteProductImage = asyncHandler(async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Delete error:', error);
         res.status(500).json({
             success: false,
             message: `Failed to delete image: ${error.message}`
@@ -241,7 +250,6 @@ export const deleteProfilePhoto = asyncHandler(async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Delete error:', error);
         res.status(500).json({
             success: false,
             message: `Failed to delete profile photo: ${error.message}`

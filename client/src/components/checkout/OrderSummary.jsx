@@ -49,8 +49,8 @@ const OrderSummary = ({
                 </div>
                 <div className="flex justify-between text-sm">
                     <span>Shipping</span>
-                    <span className={shippingCost === 0 ? 'text-green-600 font-medium' : ''}>
-                        {shippingCost === 0 ? 'FREE' : `LKR ${shippingCost}`}
+                    <span className={shippingCost === 0 ? 'text-red-600 font-medium' : ''}>
+                        {shippingCost === 0 ? 'select the shipping address' : `LKR ${shippingCost}`}
                     </span>
                 </div>
                 {subtotal >= freeShippingThreshold && (
@@ -78,7 +78,7 @@ const OrderSummary = ({
             </button>
 
             {/* Buyer Protection */}
-            <div className="mt-6 pt-6 border-t">
+            {/* <div className="mt-6 pt-6 border-t">
                 <h3 className="text-sm font-medium mb-3">Buyer Protection</h3>
                 <div className="flex items-start space-x-3">
                     <Shield className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
@@ -86,7 +86,7 @@ const OrderSummary = ({
                         Get a full refund if the item is not as described or not delivered.
                     </p>
                 </div>
-            </div>
+            </div> */}
         </div>
     );
 };

@@ -22,6 +22,8 @@ import { setCredentials } from '../../slices/authSlice';
 import { toast } from 'react-toastify';
 import { useGetUserProfileQuery, useUpdateUserMutation } from '../../slices/usersApiSlice';
 import { useUploadProfilePhotoMutation, useDeleteProfilePhotoMutation } from '../../slices/uploadApiSlice';
+import { useGetMyOrdersQuery } from '../../slices/ordersApiSlice';
+import { useGetCartQuery } from '../../slices/cartApiSlice';
 import ImageUpload from '../../components/common/ImageUpload';
 
 const UserProfile = () => {
@@ -29,9 +31,13 @@ const UserProfile = () => {
     const dispatch = useDispatch();
     const { userInfo } = useSelector((state) => state.auth);
 
-    const { data: response, refetch, isLoading } = useGetUserProfileQuery();
+    const { data: userResponse, refetch, isLoading } = useGetUserProfileQuery();
     const [updateProfile, { isLoading: updating }] = useUpdateUserMutation();
     const [deleteProfilePhoto, { isLoading: isDeleting }] = useDeleteProfilePhotoMutation();
+
+    // Fetch real data for orders and cart
+    const { data: ordersResponse, isLoading: ordersLoading } = useGetMyOrdersQuery();
+    const { data: cartResponse, isLoading: cartLoading } = useGetCartQuery();
 
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
@@ -45,7 +51,33 @@ const UserProfile = () => {
     const [hasImageChanged, setHasImageChanged] = useState(false);
 
     // Extract user data from response
-    const userData = response?.user;
+    const userData = userResponse?.user;
+
+    // Extract orders data from response
+    const ordersData = ordersResponse?.data || [];
+
+    // Extract cart data from response
+    const cartData = cartResponse?.data;
+
+    // Calculate order statistics
+    const calculateOrderStats = () => {
+        if (!ordersData || ordersData.length === 0) return { total: 0, completed: 0, pending: 0 };
+
+        const total = ordersData.length;
+        const completed = ordersData.filter(order =>
+            order.status === 'delivered'
+        ).length;
+        const pending = ordersData.filter(order =>
+            order.status === 'pending' || order.status === 'confirmed' || order.status === 'shipped'
+        ).length;
+
+        return { total, completed, pending };
+    };
+
+    // Calculate wishlist items (assuming wishlist items are in cart with is_wishlist flag)
+    const wishlistCount = cartData?.CartItems?.filter(item => item.is_wishlist)?.length || 0;
+
+    const orderStats = calculateOrderStats();
 
     // Set form data when user data is loaded
     useEffect(() => {
@@ -56,8 +88,8 @@ const UserProfile = () => {
                 contact_number: userData.contact_number || '',
                 address: userData.address || ''
             });
-            // Use image_url from backend, fallback to profile_photo for compatibility
-            setProfileImage(userData.image_url || userData.profile_photo || null);
+            // Use image_url from backend
+            setProfileImage(userData.image_url || null);
         }
     }, [userData]);
 
@@ -82,8 +114,7 @@ const UserProfile = () => {
             dispatch(setCredentials({
                 ...userInfo,
                 ...res,
-                image_url: profileImage || userInfo.image_url,
-                profile_photo: profileImage || userInfo.profile_photo
+                image_url: profileImage || userInfo.image_url
             }));
 
             toast.success('Profile updated successfully');
@@ -102,7 +133,7 @@ const UserProfile = () => {
             contact_number: userData.contact_number || '',
             address: userData.address || ''
         });
-        setProfileImage(userData.image_url || userData.profile_photo || null);
+        setProfileImage(userData.image_url || null);
         setHasImageChanged(false);
         setIsEditing(false);
     };
@@ -115,8 +146,7 @@ const UserProfile = () => {
         if (userInfo) {
             dispatch(setCredentials({
                 ...userInfo,
-                image_url: imageUrl,
-                profile_photo: imageUrl
+                image_url: imageUrl
             }));
         }
     };
@@ -143,8 +173,7 @@ const UserProfile = () => {
             if (userInfo) {
                 dispatch(setCredentials({
                     ...userInfo,
-                    image_url: null,
-                    profile_photo: null
+                    image_url: null
                 }));
             }
 
@@ -157,12 +186,105 @@ const UserProfile = () => {
         }
     };
 
+    // Format recent activities from orders
+    const recentActivities = ordersData?.slice(0, 3).map(order => ({
+        id: order.id,
+        message: `Order ${order.order_number} placed`,
+        date: new Date(order.createdAt).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        }),
+        status: order.status
+    })) || [];
+
     const stats = [
-        { icon: Package, label: 'Total Orders', value: '12', color: 'blue' },
-        { icon: CheckCircle, label: 'Completed', value: '10', color: 'green' },
-        { icon: Clock, label: 'Pending', value: '2', color: 'yellow' },
-        { icon: Heart, label: 'Wishlist', value: '8', color: 'pink' }
+        {
+            icon: Package,
+            label: 'Total Orders',
+            value: orderStats.total.toString(),
+            color: 'blue'
+        },
+        {
+            icon: CheckCircle,
+            label: 'Completed',
+            value: orderStats.completed.toString(),
+            color: 'green'
+        },
+        {
+            icon: Clock,
+            label: 'Pending',
+            value: orderStats.pending.toString(),
+            color: 'yellow'
+        },
+        {
+            icon: Heart,
+            label: 'Wishlist',
+            value: wishlistCount.toString(),
+            color: 'pink'
+        }
     ];
+
+    // Get status color for recent activities
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'delivered':
+                return 'green';
+            case 'pending':
+            case 'confirmed':
+                return 'yellow';
+            case 'shipped':
+                return 'blue';
+            case 'cancelled':
+                return 'red';
+            default:
+                return 'gray';
+        }
+    };
+
+    // Get status text for display
+    const getStatusText = (status) => {
+        switch (status) {
+            case 'delivered':
+                return 'Delivered';
+            case 'pending':
+                return 'Pending';
+            case 'confirmed':
+                return 'Confirmed';
+            case 'shipped':
+                return 'Shipped';
+            case 'cancelled':
+                return 'Cancelled';
+            default:
+                return status.charAt(0).toUpperCase() + status.slice(1);
+        }
+    };
+
+    // Get status badge class
+    const getStatusBadgeClass = (status) => {
+        const color = getStatusColor(status);
+        switch (color) {
+            case 'green':
+                return 'bg-green-100 text-green-800';
+            case 'yellow':
+                return 'bg-yellow-100 text-yellow-800';
+            case 'blue':
+                return 'bg-blue-100 text-blue-800';
+            case 'red':
+                return 'bg-red-100 text-red-800';
+            default:
+                return 'bg-gray-100 text-gray-800';
+        }
+    };
+
+    // Format member since date
+    const formatMemberSince = (dateString) => {
+        if (!dateString) return 'N/A';
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long'
+        });
+    };
 
     if (isLoading) {
         return (
@@ -252,8 +374,11 @@ const UserProfile = () => {
                                             )}
                                         </div>
                                     ) : (
-                                        <div className="w-24 h-24 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center relative">
-                                            <User className="h-12 w-12 text-white" />
+                                        <div className="w-24 h-24 rounded-full bg-gray-200 border-4 border-white shadow-md flex items-center justify-center">
+                                            <img
+                                                src={"../../images/user.png"}
+                                                alt="Avatar"
+                                            />
                                         </div>
                                     )}
                                 </div>
@@ -272,7 +397,9 @@ const UserProfile = () => {
                                             userData?.name || 'User Name'
                                         )}
                                     </h2>
-                                    <p className="text-gray-600">Member since {new Date(userData?.createdAt).toLocaleDateString()}</p>
+                                    <p className="text-gray-600">
+                                        Member since {formatMemberSince(userData?.createdAt)}
+                                    </p>
 
                                     {/* Profile Image Upload Section */}
                                     {isEditing && (
@@ -367,16 +494,26 @@ const UserProfile = () => {
                         <div className="bg-white rounded-xl shadow-sm p-6">
                             <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
                             <div className="space-y-3">
-                                {[1, 2, 3].map((item) => (
-                                    <div key={item} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                        <div className="flex-1">
-                                            <p className="text-sm text-gray-700">Order #ORD{1000 + item} placed</p>
-                                            <p className="text-xs text-gray-500">2 days ago</p>
+                                {recentActivities.length > 0 ? (
+                                    recentActivities.map((activity) => (
+                                        <div key={activity.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                            <div className="flex-1">
+                                                <p className="text-sm text-gray-700">{activity.message}</p>
+                                                <p className="text-xs text-gray-500">{activity.date}</p>
+                                            </div>
+                                            <span
+                                                className={`px-2 py-1 text-xs rounded-full ${getStatusBadgeClass(activity.status)}`}
+                                            >
+                                                {getStatusText(activity.status)}
+                                            </span>
                                         </div>
-                                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Completed</span>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-4">
+                                        <p className="text-gray-500">No recent activity</p>
                                     </div>
-                                ))}
+                                )}
                             </div>
                         </div>
                     </div>
@@ -415,25 +552,33 @@ const UserProfile = () => {
                                     <Heart className="h-5 w-5 text-pink-500" />
                                     <span>Wishlist</span>
                                 </button>
-                                <button
-                                    onClick={() => navigate('/user/settings')}
-                                    className="w-full flex items-center gap-3 p-3 text-left rounded-lg hover:bg-gray-50 transition-colors"
-                                >
-                                    <Shield className="h-5 w-5 text-yellow-500" />
-                                    <span>Settings</span>
-                                </button>
                             </div>
                         </div>
 
                         {/* Account Status */}
                         <div className="bg-white rounded-xl shadow-sm p-6">
                             <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Status</h3>
-                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                                <CheckCircle className="h-5 w-5 text-green-500" />
-                                <div>
-                                    <p className="text-sm font-medium text-green-800">Verified Account</p>
-                                    <p className="text-xs text-green-600">Your account is fully verified</p>
-                                </div>
+                            <div className={`flex items-center gap-3 p-3 rounded-lg ${userData?.is_verified
+                                ? 'bg-green-50 border border-green-200'
+                                : 'bg-yellow-50 border border-yellow-200'
+                                }`}>
+                                {userData?.is_verified ? (
+                                    <>
+                                        <CheckCircle className="h-5 w-5 text-green-500" />
+                                        <div>
+                                            <p className="text-sm font-medium text-green-800">Verified Account</p>
+                                            <p className="text-xs text-green-600">Your account is fully verified</p>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Clock className="h-5 w-5 text-yellow-500" />
+                                        <div>
+                                            <p className="text-sm font-medium text-yellow-800">Pending Verification</p>
+                                            <p className="text-xs text-yellow-600">Your account is pending verification</p>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>

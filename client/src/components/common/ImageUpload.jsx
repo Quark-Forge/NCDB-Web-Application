@@ -84,21 +84,18 @@ const ImageUpload = ({
             let result;
 
             if (entityType === 'product') {
-                // Use product image upload
                 result = await uploadProductImage({
                     productId: entityId,
                     imageFile: file
                 }).unwrap();
+
             } else if (entityType === 'profile') {
-                // Use profile photo upload - create FormData properly
                 const formData = new FormData();
                 formData.append('photo', file);
-
                 result = await uploadProfilePhoto(formData).unwrap();
             }
 
             if (result.success) {
-                // For profile photos, use the image_url from the response which contains the Cloudinary URL
                 const imageUrl = entityType === 'product'
                     ? result.data.image_url
                     : result.data.image_url || result.data.profile_photo;
@@ -109,7 +106,6 @@ const ImageUpload = ({
 
                 toast.success(successMessage);
 
-                // Call onImageChange with the actual Cloudinary URL
                 if (onImageChange) {
                     onImageChange(imageUrl);
                 }
@@ -120,28 +116,39 @@ const ImageUpload = ({
                 return imageUrl;
             }
         } catch (error) {
-            console.error('Upload error:', error);
+            console.error('=== UPLOAD DEBUG ERROR ===');
+            console.error('Full error object:', error);
+            console.error('Error status:', error.status);
+            console.error('Error data:', error.data);
+            console.error('Error message:', error.message);
 
-            // More specific error handling
-            if (error.status === 403) {
-                const message = entityType === 'product'
-                    ? 'You do not have permission to upload product images'
-                    : 'You do not have permission to upload profile photos';
-                toast.error(message);
+            // Check network tab for the actual request
+            let errorMessage = 'Upload failed';
+
+            if (error.status === 400) {
+                errorMessage = error.data?.message || 'Invalid file format or size';
             } else if (error.status === 401) {
-                toast.error('Please log in to upload images');
+                errorMessage = 'Please log in to upload images';
+            } else if (error.status === 403) {
+                errorMessage = 'You do not have permission to upload images';
             } else if (error.status === 404) {
-                const message = entityType === 'product'
-                    ? 'Product not found'
-                    : 'User not found';
-                toast.error(message);
+                errorMessage = entityType === 'product' ? 'Product not found' : 'User not found';
+            } else if (error.status === 413) {
+                errorMessage = 'File too large. Maximum size is 5MB';
             } else {
-                toast.error(error?.data?.message || `Failed to upload ${entityType} image`);
+                errorMessage = error?.data?.message || `Failed to upload ${entityType} image`;
             }
+
+            toast.error(errorMessage);
 
             // Reset to current image on error
             setPreviewUrl(currentImage || null);
             setSelectedFile(null);
+
+            // Reset file input
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
         } finally {
             setIsUploading(false);
             if (onUploadEnd) onUploadEnd();
