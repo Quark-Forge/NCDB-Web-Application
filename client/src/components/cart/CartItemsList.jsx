@@ -1,6 +1,5 @@
 import { ShoppingCart } from 'lucide-react';
 import CartItem from './CartItem';
-import FreeShippingNotice from './FreeShippingNotice';
 
 const CartItemsList = ({
     cartItems,
@@ -22,7 +21,6 @@ const CartItemsList = ({
 
     const freeShippingThreshold = 3348.40;
     const currentTotal = calculateTotal();
-    const remainingForFreeShipping = Math.max(0, freeShippingThreshold - currentTotal);
 
     return (
         <>
@@ -40,12 +38,6 @@ const CartItemsList = ({
                     </label>
                 </div>
             )}
-
-            <FreeShippingNotice
-                currentTotal={currentTotal}
-                freeShippingThreshold={freeShippingThreshold}
-                remainingForFreeShipping={remainingForFreeShipping}
-            />
 
             {cartItems.length === 0 ? (
                 <div className="text-center py-12">

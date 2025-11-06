@@ -69,7 +69,7 @@ const ProfileDropdown = () => {
         aria-label="User profile menu"
       >
         <img
-          src={userInfo?.profile_picture || "../../images/user.png"}
+          src={userInfo?.image_url || "../../images/user.png"}
           alt="Avatar"
           className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover border-2 border-transparent hover:border-blue-500 transition-colors"
           onError={(e) => {
