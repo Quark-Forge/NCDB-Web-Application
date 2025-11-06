@@ -87,12 +87,6 @@ const adminNavConfig = [
     icon: <ReceiptIcon size={18} />
   },
   {
-    to: '/admin/reports',
-    label: 'Reports',
-    allowedRoles: ['Admin'],
-    icon: <BarChart2 size={18} />
-  },
-  {
     to: '/supplier/sales',
     label: 'Sales',
     allowedRoles: ['Supplier'],

@@ -34,7 +34,7 @@ const allowedOrigins = [
 ];
 
 const corsOptions = {
-    origin: function (origin, callback) {
+    origin(origin, callback) {
         if (!origin) return callback(null, true);
         if (allowedOrigins.includes(origin)) return callback(null, true);
         return callback(new Error('Not allowed by CORS'));
@@ -50,24 +50,31 @@ const corsOptions = {
     ],
 };
 
-// Apply CORS globally before routes
 app.use(cors(corsOptions));
-
-// Express automatically respond to OPTIONS preflights
 app.options('/{*any}', cors(corsOptions));
 
-// Core middlewares
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// JSON & URL-encoded parsers
+app.use((req, res, next) => {
+    if (req.headers['content-type']?.startsWith('multipart/form-data')) {
+        return next();
+    }
+    express.json({ limit: '10mb' })(req, res, () => {
+        express.urlencoded({ extended: true, limit: '10mb' })(req, res, next);
+    });
+});
+
+// Cookies
 app.use(cookieParser());
 
-// Request logging
+// Logging
 app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - Origin: ${req.headers.origin}`);
+    console.log(
+        `${new Date().toISOString()} - ${req.method} ${req.url} - Origin: ${req.headers.origin}`
+    );
     next();
 });
 
-// Initialize DB if production
+// Initialize DB (if production)
 if (process.env.NODE_ENV === 'production') {
     setupDatabase()
         .then(() => console.log('Production DB setup complete'))
@@ -90,7 +97,7 @@ app.use('/api/wishlist', wishListRoutes);
 app.use('/api/supplier-item-requests', supplierItemsRequestRoutes);
 app.use('/api/test', testRoute);
 
-// Test route
+
 app.get('/api/test-server', (req, res) => {
     res.json({
         message: 'Server is working from Railway!',
@@ -100,7 +107,7 @@ app.get('/api/test-server', (req, res) => {
     });
 });
 
-app.get('/', (req, res) => res.send('Server is ready 🚀'));
+app.get('/', (req, res) => res.send('Server is ready'));
 
 // Error handlers
 app.use(notFound);
@@ -109,5 +116,5 @@ app.use(errorHandler);
 // Start server
 app.listen(port, '0.0.0.0', () => {
     console.log(`Server running on port ${port}`);
-    console.log(`Allowed origins:`, allowedOrigins);
+    console.log('Allowed origins:', allowedOrigins);
 });

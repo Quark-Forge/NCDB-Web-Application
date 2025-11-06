@@ -55,9 +55,6 @@ const Inventory = () => {
           <h1 className="text-3xl font-bold text-gray-900">Inventory Management</h1>
           <p className="text-gray-500 mt-1">Monitor and manage your product inventory</p>
         </div>
-        <button className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2.5 rounded-lg font-medium hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg">
-          Export Report
-        </button>
       </div>
 
       <InventoryStats stock={stock} />

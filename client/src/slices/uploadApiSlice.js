@@ -4,6 +4,44 @@ const UPLOAD_URL = '/upload';
 
 export const uploadApiSlice = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
+        // POST /api/upload/products/:id/image
+        uploadProductImage: builder.mutation({
+            query: (data) => {
+                // Create FormData properly
+                const formData = new FormData();
+                formData.append('image', data.imageFile);
+
+                console.log('=== FormData Debug ===');
+                console.log('Product ID:', data.productId);
+                console.log('File in FormData:', data.imageFile);
+
+                // Log FormData contents
+                for (let pair of formData.entries()) {
+                    console.log('FormData entry:', pair[0], pair[1]);
+                }
+
+                return {
+                    url: `${UPLOAD_URL}/products/${data.productId}/image`,
+                    method: 'POST',
+                    body: formData,
+                    // Explicitly avoid setting any Content-Type header
+                    headers: {
+                        // Let browser set the multipart/form-data with boundary
+                    },
+                };
+            },
+            invalidatesTags: ['Product'],
+        }),
+
+        // DELETE /api/upload/products/:id/image
+        deleteProductImage: builder.mutation({
+            query: (productId) => ({
+                url: `${UPLOAD_URL}/products/${productId}/image`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: ['Product'],
+        }),
+
         // POST /api/upload/profile/photo
         uploadProfilePhoto: builder.mutation({
             query: (formData) => ({
@@ -21,30 +59,6 @@ export const uploadApiSlice = apiSlice.injectEndpoints({
                 method: 'DELETE',
             }),
             invalidatesTags: ['User'],
-        }),
-
-        // POST /api/upload/products/:id/image
-        uploadProductImage: builder.mutation({
-            query: (data) => {
-                const formData = new FormData();
-                formData.append('image', data.imageFile);
-
-                return {
-                    url: `${UPLOAD_URL}/products/${data.productId}/image`,
-                    method: 'POST',
-                    body: formData,
-                };
-            },
-            invalidatesTags: ['Product'],
-        }),
-
-        // DELETE /api/upload/products/:id/image
-        deleteProductImage: builder.mutation({
-            query: (productId) => ({
-                url: `${UPLOAD_URL}/products/${productId}/image`,
-                method: 'DELETE',
-            }),
-            invalidatesTags: ['Product'],
         }),
     }),
 });
