@@ -1,22 +1,24 @@
 import { Sequelize } from 'sequelize';
 import dotenv from 'dotenv';
-
 dotenv.config();
 
 let sequelize;
 
 if (process.env.NODE_ENV === 'production') {
-  // Production - Railway
-  sequelize = new Sequelize(process.env.DATABASE_URL, {
-    dialect: 'mysql',
-    dialectOptions: {
-      ssl: {
-        rejectUnauthorized: false
-      }
-    },
-  });
+  // Production – Railway MySQL
+  sequelize = new Sequelize(
+    process.env.MYSQLDATABASE,     // database name
+    process.env.MYSQLUSER,         // username
+    process.env.MYSQLPASSWORD,     // password
+    {
+      host: process.env.MYSQLHOST, // host (Railway internal/private domain)
+      port: process.env.MYSQLPORT || 3306,
+      dialect: 'mysql',
+      logging: false,
+    }
+  );
 } else {
-  // Development - Local
+  // Development – Local
   sequelize = new Sequelize(
     process.env.DB_NAME,
     process.env.DB_USER,
@@ -33,9 +35,9 @@ if (process.env.NODE_ENV === 'production') {
 // Test connection
 try {
   await sequelize.authenticate();
-  console.log('Database connected successfully');
+  console.log('✅ Database connected successfully');
 } catch (error) {
-  console.error('Database connection failed:', error.message);
+  console.error('❌ Database connection failed:', error.message);
 }
 
 export default sequelize;
