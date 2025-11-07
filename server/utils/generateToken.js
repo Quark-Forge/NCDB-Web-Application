@@ -8,7 +8,7 @@ export const generateToken = (res, userID) => {
 
     res.cookie('jwt', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'development',
+        secure: process.env.NODE_ENV !== 'development',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000,
     });
@@ -17,6 +17,13 @@ export const generateToken = (res, userID) => {
 export const generateVerificationToken = (userID) => {
     return jwt.sign({ userID }, process.env.JWT_VERIFICATION_SECRET, {
         expiresIn: '24h',
+        algorithm: 'HS256',
+    });
+}
+
+export const generatePasswordResetToken = (userID) => {
+    return jwt.sign({ userID }, process.env.JWT_VERIFICATION_SECRET, {
+        expiresIn: '1h', // Shorter expiry for security
         algorithm: 'HS256',
     });
 }

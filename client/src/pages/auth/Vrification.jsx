@@ -1,19 +1,20 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { toast } from 'react-toastify';
+import { useResendVerificationMutation } from '../../slices/usersApiSlice';
 
 const Verification = () => {
   const { state } = useLocation();
   const email = state?.email || 'your email';
-
   const navigate = useNavigate();
+
+  const [resendVerification, { isLoading }] = useResendVerificationMutation();
 
   const handleResendEmail = async () => {
     try {
-      const response = await axios.post('http://localhost:5000/api/users/resend-verification', { email });
-      toast.success(response.data.message);
+      const response = await resendVerification({ email }).unwrap();
+      toast.success(response.message);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to resend email');
+      toast.error(err?.data?.message || 'Failed to resend email');
     }
   };
 
@@ -53,9 +54,13 @@ const Verification = () => {
             <div className="flex flex-col space-y-4">
               <button
                 onClick={handleResendEmail}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                disabled={isLoading}
+                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${isLoading
+                    ? 'bg-blue-400 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                  }`}
               >
-                Resend Verification Email
+                {isLoading ? 'Sending...' : 'Resend Verification Email'}
               </button>
 
               <button

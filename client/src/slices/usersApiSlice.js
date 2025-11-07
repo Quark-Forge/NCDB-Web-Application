@@ -34,7 +34,8 @@ export const usersApiSlice = apiSlice.injectEndpoints({
             query: ({ page = 1, limit = 10 }) => ({
                 url: `${USERS_URL}`,
                 method: 'GET',
-                params: { page, limit }}
+                params: { page, limit }
+            }
             ),
             providesTags: ['user']
         }),
@@ -68,7 +69,37 @@ export const usersApiSlice = apiSlice.injectEndpoints({
             invalidatesTags: ['user'],
             providesTags: ['user']
         }),
-
+        // Forgot Password
+        forgotPassword: builder.mutation({
+            query: (data) => ({
+                url: `${USERS_URL}/forgot-password`,
+                method: 'POST',
+                body: data
+            })
+        }),
+        // Reset Password
+        resetPassword: builder.mutation({
+            query: ({ token, password }) => ({
+                url: `${USERS_URL}/reset-password/${token}`,
+                method: 'POST',
+                body: { password }
+            })
+        }),
+        // Email Verification
+        verifyEmail: builder.mutation({
+            query: (token) => ({
+                url: `${USERS_URL}/verify/${token}`,
+                method: 'GET',
+            })
+        }),
+        // Resend Verification Email
+        resendVerification: builder.mutation({
+            query: (data) => ({
+                url: `${USERS_URL}/resend-verification`,
+                method: 'POST',
+                body: data
+            })
+        }),
     })
 });
 
@@ -81,5 +112,9 @@ export const {
     useGetAllUsersQuery,
     useDeleteUserMutation,
     useRestoreUserMutation,
-    useUpdateUserRoleMutation
+    useUpdateUserRoleMutation,
+    useForgotPasswordMutation,
+    useResetPasswordMutation,
+    useVerifyEmailMutation,
+    useResendVerificationMutation
 } = usersApiSlice;
