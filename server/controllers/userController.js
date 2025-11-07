@@ -1,16 +1,18 @@
-import asyncHandler from 'express-async-handler';;
+import asyncHandler from 'express-async-handler';
 import { hashPassword, matchPassword } from '../utils/hash.js';
-import { generateToken, generateVerificationToken } from '../utils/generateToken.js';
-import crypto from 'crypto';
+import { generatePasswordResetToken, generateToken, generateVerificationToken } from '../utils/generateToken.js';
 import jwt from 'jsonwebtoken';
 import { sendUserCredentials } from '../utils/sendEmail.js';
 import { Role, User } from '../models/index.js';
-
+import {
+    passwordResetTemplate,
+    verificationEmailTemplate,
+    welcomeEmailTemplate
+} from '../templates/emailTemplates.js';
 
 // Get all users
 // Protected - Admin Only
 const getUsers = asyncHandler(async (req, res) => {
-
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
@@ -60,21 +62,45 @@ const authUser = asyncHandler(async (req, res) => {
         throw new Error('Invalid email or password');
     }
 
-    if (!existingUser.is_verified) {
+    // Check password first
+    if (!(await matchPassword(password, existingUser.password))) {
         res.status(401);
-        throw new Error('Please verify your email before logging in.');
+        throw new Error('Invalid email or password');
     }
 
-    if (await matchPassword(password, existingUser.password)) {
-        const { id, name, email, contact_number, address, role_id, image_url } = existingUser;
-        const role = await Role.findByPk(role_id);
-        const user_role = role ? role.name : 'Unknown';
-        generateToken(res, id);
-        return res.status(200).json({ id, name, email, contact_number, address, role_id, user_role, image_url });
+    // If password is correct but user is not verified
+    if (!existingUser.is_verified) {
+        return res.status(200).json({
+            id: existingUser.id,
+            name: existingUser.name,
+            email: existingUser.email,
+            contact_number: existingUser.contact_number,
+            address: existingUser.address,
+            role_id: existingUser.role_id,
+            image_url: existingUser.image_url,
+            is_verified: false,
+            requires_verification: true
+        });
     }
 
-    res.status(401);
-    throw new Error('Invalid email or password');
+    // User is verified - proceed with normal login
+    const { id, name, email: userEmail, contact_number, address, role_id, image_url } = existingUser;
+    const role = await Role.findByPk(role_id);
+    const user_role = role ? role.name : 'Unknown';
+
+    generateToken(res, id);
+
+    return res.status(200).json({
+        id,
+        name,
+        email: userEmail,
+        contact_number,
+        address,
+        role_id,
+        user_role,
+        image_url,
+        is_verified: true
+    });
 });
 
 // Register a new User
@@ -85,6 +111,7 @@ const registerUser = asyncHandler(async (req, res) => {
         res.status(400);
         throw new Error('All fields are required');
     }
+
     const verifiedUser = await User.findOne({
         where: {
             email,
@@ -107,8 +134,8 @@ const registerUser = asyncHandler(async (req, res) => {
     if (existingUser) {
         await existingUser.destroy();
     }
-    const hashedPassword = await hashPassword(password);
 
+    const hashedPassword = await hashPassword(password);
     const role = await Role.findOne({ where: { name: 'Customer' } });
 
     const newUser = await User.create({
@@ -118,55 +145,47 @@ const registerUser = asyncHandler(async (req, res) => {
         address,
         password: hashedPassword,
         role_id: role.id,
-        is_verified: true, // need to change this affter solving the verification mail problem
+        is_verified: false,
     });
 
-    // const token = generateVerificationToken(newUser.id);
-    // const verifyUrl = `${process.env.FRONTEND_URL}/verify/${token}`;
-    // console.log(token);
-    // console.log(verifyUrl);
+    try {
+        const token = generateVerificationToken(newUser.id);
+        const verifyUrl = `${process.env.FRONTEND_URL}/auth/verify/${token}`;
 
-    // const htmlMessage = `
-    // <div style="font-family: sans-serif; color: #333;">
-    //     <h2>Welcome to NCDB Mart</h2>
-    //     <p>Thank you for registering. Please verify your email by clicking the button below:</p>
-    //     <a href="${verifyUrl}" 
-    //     style="display: inline-block; background-color: #007BFF; color: white; padding: 10px 20px; 
-    //             text-decoration: none; border-radius: 4px;"
-    //     target="_blank">
-    //     Verify Email
-    //     </a>
-    //     <p>If you did not sign up, you can ignore this email.</p>
-    // </div>
-    // `;
+        // Use template function
+        const htmlMessage = verificationEmailTemplate(verifyUrl);
 
+        await sendUserCredentials(email, 'Verify Your Email Address', htmlMessage);
 
-    // await sendUserCredentials(email, 'Verify your account', htmlMessage);
-
-    res.status(201).json({
-        message: 'Verification email sent. Please check your inbox.',
-    });
+        res.status(201).json({
+            message: 'Verification email sent. Please check your inbox.',
+        });
+    } catch (emailError) {
+        // If email fails, delete the user and return error
+        await newUser.destroy();
+        console.error('Email sending failed:', emailError);
+        res.status(500);
+        throw new Error('Failed to send verification email. Please try again.');
+    }
 });
 
 // Email Verification
 const verifyEmail = asyncHandler(async (req, res) => {
     const { token } = req.params;
-    console.log(token);
-
+    console.log('Verification token received:', token);
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log(decoded);
+        const decoded = jwt.verify(token, process.env.JWT_VERIFICATION_SECRET);
+        console.log('Decoded token:', decoded);
+
         let user;
         try {
-            user = await User.findByPk(decoded.UserID);
-            console.log('User:', user ? user.toJSON() : null);
+            user = await User.findByPk(decoded.userID);
+            console.log('User found:', user ? user.toJSON() : null);
         } catch (dbErr) {
             console.error('Database Error:', dbErr.message);
             throw new Error('Database query failed');
         }
-        console.log('is_verified:', user?.is_verified);
-
 
         if (!user) {
             res.status(404);
@@ -179,16 +198,28 @@ const verifyEmail = asyncHandler(async (req, res) => {
 
         const [updated] = await User.update(
             { is_verified: true },
-            { where: { id: decoded.UserID } }
+            { where: { id: decoded.userID } }
         );
+
         if (updated === 0) {
             throw new Error('No rows updated. User might not exist.');
         }
 
-        console.log(user.is_verified);
+        console.log('User verification status updated');
+
+        // Send welcome email after successful verification
+        try {
+            const welcomeHtml = welcomeEmailTemplate(user.name);
+            await sendUserCredentials(user.email, 'Welcome to NCDB Mart!', welcomeHtml);
+        } catch (welcomeError) {
+            console.error('Failed to send welcome email:', welcomeError);
+            // Don't throw error, just log it
+        }
+
         res.status(200).json({ message: 'Email verified successfully. You can now log in.' });
 
     } catch (err) {
+        console.error('Token verification error:', err.message);
         res.status(400);
         throw new Error('Invalid or expired verification token');
     }
@@ -198,21 +229,100 @@ const verifyEmail = asyncHandler(async (req, res) => {
 const resendVerificationEmail = asyncHandler(async (req, res) => {
     const { email } = req.body;
     const user = await User.findOne({ where: { email } });
+
     if (!user) {
         res.status(404);
         throw new Error('User not found');
     }
+
     if (user.is_verified) {
         res.status(400);
         throw new Error('User already verified');
     }
+
     const token = generateVerificationToken(user.id);
-    const verifyUrl = `${process.env.FRONTEND_URL}/verify/${token}`;
-    const htmlMessage = `...`; // Same as in registerUser
-    await sendUserCredentials(email, 'Verify your account', htmlMessage);
-    res.status(200).json({ message: 'Verification email resent' });
+    const verifyUrl = `${process.env.FRONTEND_URL}/auth/verify/${token}`;
+
+    // Use the same template function
+    const htmlMessage = verificationEmailTemplate(verifyUrl);
+
+    await sendUserCredentials(email, 'Verify Your Email Address', htmlMessage);
+    res.status(200).json({ message: 'Verification email resent successfully' });
 });
 
+// Forgot Password - Send reset email
+const forgotPassword = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        res.status(400);
+        throw new Error('Email is required');
+    }
+
+    const user = await User.findOne({ where: { email } });
+
+    // Don't reveal if user exists or not for security
+    if (user) {
+        const resetToken = generatePasswordResetToken(user.id);
+        const resetUrl = `${process.env.FRONTEND_URL}/auth/reset-password/${resetToken}`;
+
+        const htmlMessage = passwordResetTemplate(resetUrl, user.name);
+
+        try {
+            await sendUserCredentials(email, 'Reset Your Password - NCDB Mart', htmlMessage);
+        } catch (emailError) {
+            console.error('Password reset email failed:', emailError);
+            res.status(500);
+            throw new Error('Failed to send password reset email');
+        }
+    }
+
+    // Always return success to prevent email enumeration
+    res.status(200).json({
+        message: 'If an account with that email exists, a password reset link has been sent.'
+    });
+});
+
+// Reset Password - Verify token and update password
+const resetPassword = asyncHandler(async (req, res) => {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!password) {
+        res.status(400);
+        throw new Error('Password is required');
+    }
+
+    if (password.length < 8) {
+        res.status(400);
+        throw new Error('Password must be at least 8 characters');
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_VERIFICATION_SECRET);
+        const user = await User.findByPk(decoded.userID);
+
+        if (!user) {
+            res.status(400);
+            throw new Error('Invalid or expired reset token');
+        }
+
+        const hashedPassword = await hashPassword(password);
+        await User.update(
+            { password: hashedPassword },
+            { where: { id: decoded.userID } }
+        );
+
+        res.status(200).json({
+            message: 'Password reset successfully. You can now login with your new password.'
+        });
+
+    } catch (err) {
+        console.error('Password reset error:', err);
+        res.status(400);
+        throw new Error('Invalid or expired reset token');
+    }
+});
 
 // Logout User
 // Protected
@@ -404,6 +514,8 @@ export {
     authUser,
     registerUser,
     logoutUser,
+    resetPassword,
+    forgotPassword,
     getUserProfile,
     updateUserProfile,
     getUsers,

@@ -78,12 +78,19 @@ const Login = () => {
 
     try {
       const res = await login(formData).unwrap();
-      dispatch(setCredentials({ ...res }));
 
-      // Success toast
-      // toast.success(`Welcome back, ${res.name || 'User'}!`, {
-      //   autoClose: 2000,
-      // });
+      // Check if user needs verification
+      if (!res.is_verified) {
+        // Redirect to verification page instead of setting credentials
+        toast.warning('Please verify your email to continue');
+        navigate('/auth/resend-verification', {
+          state: { email: formData.email, userName: res.name }
+        });
+        return;
+      }
+
+      // User is verified - proceed with normal login
+      dispatch(setCredentials({ ...res }));
 
       // Navigate based on role or redirect path
       const redirectPath = location.state?.from?.pathname ||
@@ -91,8 +98,7 @@ const Login = () => {
       navigate(redirectPath);
 
     } catch (err) {
-      toast.error(err?.data?.message || err.error || 'Login failed', {
-      });
+      toast.error(err?.data?.message || err.error || 'Login failed');
     }
   };
 
@@ -160,9 +166,12 @@ const Login = () => {
 
           <div className="flex items-center justify-between">
             <div className="flex items-center">
+              {/* Add remember me checkbox if needed */}
             </div>
-
-            <Link to="/auth/forgot-password" className="text-sm text-blue-600 hover:text-blue-500 hover:underline">
+            <Link
+              to="/auth/forgot-password"
+              className="text-sm text-blue-600 hover:text-blue-500 hover:underline"
+            >
               Forgot password?
             </Link>
           </div>
