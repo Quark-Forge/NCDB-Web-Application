@@ -14,8 +14,8 @@
       "handle": "filesystem"
     },
     {
-      "src": "/.*",
-      "dest": "/index.html"
+      "src": "/(.*)",
+      "dest": "/dist/index.html"
     }
   ],
   "headers": [
