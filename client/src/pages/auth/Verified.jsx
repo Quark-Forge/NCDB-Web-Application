@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useVerifyEmailMutation } from '../../slices/usersApiSlice';
-import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const Verified = () => {
   const { token } = useParams();
