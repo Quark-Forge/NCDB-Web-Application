@@ -55,10 +55,7 @@ const getUsers = asyncHandler(async (req, res) => {
 // Public
 const authUser = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
-    const existingUser = await User.findOne({ 
-        where: { email },
-        paranoid: false,
-    });
+    const existingUser = await User.findOne({ where: { email } });
 
     if (!existingUser) {
         res.status(401);
@@ -115,11 +112,9 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new Error('All fields are required');
     }
 
+    // Check if a verified user already exists
     const verifiedUser = await User.findOne({
-        where: {
-            email,
-            is_verified: true
-        }
+        where: { email, is_verified: true },
     });
 
     if (verifiedUser) {
@@ -127,35 +122,41 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new Error('Email already registered. Please login instead.');
     }
 
-    const existingUser = await User.findOne({
-        where: {
-            email,
-            is_verified: false
-        }
+    // Check for a soft-deleted or unverified user
+    let user = await User.findOne({
+        where: { email },
+        paranoid: false, // include soft-deleted records
     });
-
-    if (existingUser) {
-        await existingUser.destroy();
-    }
 
     const hashedPassword = await hashPassword(password);
     const role = await Role.findOne({ where: { name: 'Customer' } });
 
-    const newUser = await User.create({
-        name,
-        email,
-        contact_number,
-        address,
-        password: hashedPassword,
-        role_id: role.id,
-        is_verified: false,
-    });
+    if (user) {
+        // Restore soft-deleted or unverified user
+        if (user.deletedAt) await user.restore(); // soft-deleted
+        user.name = name;
+        user.contact_number = contact_number;
+        user.address = address;
+        user.password = hashedPassword;
+        user.role_id = role.id;
+        user.is_verified = false; // reset verification status
+        await user.save();
+    } else {
+        // Create new user
+        user = await User.create({
+            name,
+            email,
+            contact_number,
+            address,
+            password: hashedPassword,
+            role_id: role.id,
+            is_verified: false,
+        });
+    }
 
     try {
-        const token = generateVerificationToken(newUser.id);
+        const token = generateVerificationToken(user.id);
         const verifyUrl = `${process.env.FRONTEND_URL}/auth/verify/${token}`;
-
-        // Use template function
         const htmlMessage = verificationEmailTemplate(verifyUrl);
 
         await sendUserCredentials(email, 'Verify Your Email Address', htmlMessage);
@@ -164,8 +165,8 @@ const registerUser = asyncHandler(async (req, res) => {
             message: 'Verification email sent. Please check your inbox.',
         });
     } catch (emailError) {
-        // If email fails, delete the user and return error
-        await newUser.destroy();
+        // If email fails, delete the user if it was newly created or reset to soft-deleted
+        if (!user.deletedAt) await user.destroy();
         console.error('Email sending failed:', emailError);
         res.status(500);
         throw new Error('Failed to send verification email. Please try again.');
