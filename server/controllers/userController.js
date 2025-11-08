@@ -55,7 +55,10 @@ const getUsers = asyncHandler(async (req, res) => {
 // Public
 const authUser = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
-    const existingUser = await User.findOne({ where: { email } });
+    const existingUser = await User.findOne({ 
+        where: { email },
+        paranoid: false,
+    });
 
     if (!existingUser) {
         res.status(401);
