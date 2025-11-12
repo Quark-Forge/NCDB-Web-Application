@@ -74,6 +74,15 @@ export const productsApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: ['product'],
     }),
 
+    // PUT /api/product_id/suppliers/supplier_id
+    restoreProduct: builder.mutation({
+      query: ({ product_id, supplier_id }) => ({
+        url: `${PRODUCTS_URL}/${product_id}/suppliers/${supplier_id}`,
+        method: 'PUT',
+      }),
+      invalidatesTags: ['product'],
+    }),
+
     
   }),
 });
@@ -86,4 +95,5 @@ export const {
   useCreateProductMutation,
   useUpdateProductMutation,
   useDeleteProductMutation,
+  useRestoreProductMutation,
 } = productsApiSlice;

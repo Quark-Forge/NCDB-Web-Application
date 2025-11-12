@@ -690,45 +690,73 @@ export const deleteProduct = asyncHandler(async (req, res) => {
     }
 });
 
-// Restore a soft-deleted product
+// Restore a specific supplier's soft-deleted product item (and optionally restore product)
 export const restoreProduct = asyncHandler(async (req, res) => {
-    const { id } = req.params;
+    const { product_id, supplier_id } = req.params;
+    const transaction = await sequelize.transaction();
 
     try {
-        const product = await Product.findByPk(id, { paranoid: false });
+        // Find the supplier item including soft-deleted ones
+        const supplierItem = await SupplierItem.findOne({
+            where: { product_id, supplier_id },
+            paranoid: false,
+            transaction
+        });
 
-        if (!product) {
+        if (!supplierItem) {
+            await transaction.rollback();
             return res.status(404).json({
                 success: false,
-                message: 'Product not found'
+                message: 'Supplier item not found'
             });
         }
 
-        if (!product.deletedAt) {
+        if (!supplierItem.deletedAt) {
+            await transaction.rollback();
             return res.status(400).json({
                 success: false,
-                message: 'Product is already active'
+                message: 'Supplier item is already active'
             });
         }
 
-        // Restore the product
-        await product.restore();
+        // If the product itself was soft-deleted, restore it as well
+        const product = await Product.findByPk(product_id, { paranoid: false, transaction });
+        if (product && product.deletedAt) {
+            await product.restore({ transaction });
+        }
+
+        // Restore the supplier item
+        await supplierItem.restore({ transaction });
+
+        await transaction.commit();
+
+        // Re-fetch restored records (non-paranoid) for response
+        const restoredSupplierItem = await SupplierItem.findOne({
+            where: { product_id, supplier_id },
+            include: [{ model: Supplier, attributes: ['id', 'name'] }]
+        });
+
+        const restoredProduct = product
+            ? await Product.findByPk(product_id, { include: [{ model: SupplierItem, include: [Supplier] }, { model: Category }] })
+            : null;
 
         res.status(200).json({
             success: true,
-            message: 'Product restored successfully',
+            message: 'Supplier item restored successfully',
             data: {
-                product: {
-                    ...product.toJSON(),
-                    name: toTitleCase(product.name)
-                }
+                product: restoredProduct
+                    ? { ...restoredProduct.toJSON(), name: toTitleCase(restoredProduct.name) }
+                    : null,
+                supplier_item: restoredSupplierItem ? restoredSupplierItem.toJSON() : null
             }
         });
 
     } catch (error) {
+        try { await transaction.rollback(); } catch (e) { /* ignore rollback error */ }
+
         res.status(500).json({
             success: false,
-            message: `Failed to restore product: ${error.message}`
+            message: `Failed to restore supplier item: ${error.message}`
         });
     }
 });

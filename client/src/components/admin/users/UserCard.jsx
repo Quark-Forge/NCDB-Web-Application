@@ -64,14 +64,24 @@ const UserCard = ({ filteredUsers, refetch, deleteHandle }) => {
                                     className="text-gray-600 hover:text-gray-900 p-1 rounded-md hover:bg-gray-50 transition-colors"
                                     onClick={() => openUserDetails(user)}
                                 >
-                                    <Eye  size={16} />
+                                    <Eye size={16} />
                                 </button>
-                                <button
-                                    className="text-blue-400 hover:text-blue-600 rounded-md hover:bg-blue-50 transition-colors"
-                                    onClick={() => deleteHandle({ userID: user.id })}
-                                >
-                                    <Trash2 size={16} />
-                                </button>
+                                {!user.deletedAt && (
+                                    <button
+                                        className="text-red-600 hover:text-red-900 p-1 rounded-md hover:bg-red-50 transition-colors"
+                                        onClick={() => deleteHandle({ userID: user.id })}
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                )}
+                                {user.deletedAt && (
+                                    <button
+                                        className="text-green-600 hover:text-green-900 p-1 rounded-md hover:bg-green-50 transition-colors ml-2"
+                                        onClick={() => handleRestore(user.id)}
+                                    >
+                                        <RefreshCw size={16} />
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>

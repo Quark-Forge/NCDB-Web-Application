@@ -49,6 +49,15 @@ export const suppliersApiSlice = apiSlice.injectEndpoints({
             }),
             invalidatesTags: ['supplier'],
         }),
+
+        // PUT /api/suppliers/restore/:id
+        restoreSupplier: builder.mutation({
+            query: (id) => ({
+                url: `${SUPPLIERS_URL}/restore/${id}`,
+                method: 'PUT',
+            }),
+            invalidatesTags: ['supplier'],
+        }),
     }),
 });
 
@@ -59,4 +68,5 @@ export const {
     useCreateSupplierMutation,
     useUpdateSupplierMutation,
     useDeleteSupplierMutation,
+    useRestoreSupplierMutation,
 } = suppliersApiSlice;

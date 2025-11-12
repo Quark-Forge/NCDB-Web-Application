@@ -46,11 +46,7 @@ const Products = () => {
   );
 
   // Pagination logic
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const paginatedProducts = filteredProducts.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const totalPages = filteredProducts.pagination.totalPages;
 
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
@@ -152,11 +148,12 @@ const Products = () => {
         <div className="bg-white rounded-lg md:rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <ProductsList
             isLoading={isLoading}
-            filteredProducts={paginatedProducts} // Use paginated products
+            filteredProducts={filteredProducts} // Use paginated products
             searchTerm={searchTerm}
             handleEdit={handleEdit}
             handleDelete={handleDelete}
             handleToggleStatus={handleToggleStatus}
+            refetch={refetch}
           />
         </div>
 

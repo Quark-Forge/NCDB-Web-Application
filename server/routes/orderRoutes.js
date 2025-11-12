@@ -1,6 +1,7 @@
 import express from 'express';
 import { authorize, protect } from '../middleware/authMiddleware.js';
 import {
+    cancelUserOrder,
     checkoutCart,
     getAllOrders,
     getOrderDetails,
@@ -17,6 +18,7 @@ router.route('/stats').get(protect, authorize('Admin', 'Order Manager'), getOrde
 router.route('/my-orders').get(protect, authorize('Customer'), getUserOrders);
 router.route('/:id').get(protect, authorize('Admin', 'Order Manager', 'Customer'), getOrderDetails);
 router.route('/:id/status').put(protect, authorize('Admin', 'Order Manager'), updateOrderStatus);
+router.route('/:id/cancel').put(protect, authorize('Customer'), cancelUserOrder);
 
 
 

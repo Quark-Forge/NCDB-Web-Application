@@ -4,17 +4,16 @@ import tailwindcss from '@tailwindcss/vite';
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-  ],
+  base: '/',
+  plugins: [react(), tailwindcss()],
   server: {
     port: 3000,
     proxy: {
       '/api': {
-        target: 'https://trains-production.up.railway.app',
+        target: process.env.VITE_API_URL,
         changeOrigin: true,
       }
     }
   }
-})
+});
+

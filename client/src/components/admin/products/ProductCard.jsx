@@ -1,7 +1,8 @@
-import { Eye, Pencil, Trash2, ImageOff } from "lucide-react";
+import { Eye, Pencil, Trash2, ImageOff, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useSelector } from "react-redux";
 import ProductDetailModel from './ProductsDetailModel';
+import { useRestoreProductMutation } from "../../../slices/ProductsApiSlice";
 
 const allowedRoles = ['Admin', 'Inventory Manager'];
 
@@ -9,11 +10,14 @@ const ProductCard = ({
     filteredProducts = [],
     handleEdit,
     handleDelete,
-    handleToggleStatus
+    handleToggleStatus,
+    refetch
 }) => {
     const [isDetailModelOpen, setIsDetailModelOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState(null);
     const { userInfo } = useSelector((state) => state.auth);
+
+    const [restoreProduct] = useRestoreProductMutation();
 
     const formatPrice = (price) => {
         if (price === null || price === undefined) return '0.00';
@@ -62,6 +66,16 @@ const ProductCard = ({
             displayImage: getImageUrl(product, supplierItem)
         });
         setIsDetailModelOpen(true);
+    };
+
+    const handleRestore = async (product_id, supplier_id) => {
+        try {
+            await restoreProduct(product_id,supplier_id).unwrap();
+            toast.success('User restored successfully!');
+            refetch();
+        } catch (err) {
+            toast.error(err?.data?.message || 'Error restoring user');
+        }
     };
 
     const closeModal = () => {
@@ -207,17 +221,22 @@ const ProductCard = ({
                                             >
                                                 <Pencil size={16} />
                                             </button>
-                                            <button
-                                                onClick={() => handleDelete(product.id, supplierItem.supplier_id)}
-                                                className={`p-1 rounded-md transition-colors ${product.is_active
-                                                    ? 'text-red-600 hover:text-red-900 hover:bg-red-50'
-                                                    : 'text-gray-400 cursor-not-allowed'
-                                                    }`}
-                                                aria-label="Delete product"
-                                                disabled={!product.is_active}
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
+                                            {!product.is_active && (
+                                                <button
+                                                    className="text-green-600 hover:text-green-900 p-1 rounded-md hover:bg-green-50 transition-colors ml-2"
+                                                    onClick={() => handleRestore({ product_id: product.id, supplier_id: supplierItem.supplier_id })}
+                                                >
+                                                    <RefreshCw size={16} />
+                                                </button>
+                                            )}
+                                            {product.is_active && (
+                                                <button
+                                                    className="text-red-600 hover:text-red-900 p-1 rounded-md hover:bg-red-50 transition-colors"
+                                                    onClick={() => handleDelete( product.id, supplierItem.supplier_id )}
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            )}
                                         </>
                                     )}
                                 </div>
@@ -373,17 +392,22 @@ const ProductCard = ({
                                                     >
                                                         <Pencil size={18} />
                                                     </button>
-                                                    <button
-                                                        onClick={() => handleDelete(product.id, supplierItem.supplier_id)}
-                                                        className={`p-1 rounded-md transition-colors ${product.is_active
-                                                            ? 'text-red-600 hover:text-red-900 hover:bg-red-50'
-                                                            : 'text-gray-400 cursor-not-allowed'
-                                                            }`}
-                                                        aria-label="Delete product"
-                                                        disabled={!product.is_active}
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </button>
+                                                    {!product.is_active && (
+                                                        <button
+                                                            className="text-green-600 hover:text-green-900 p-1 rounded-md hover:bg-green-50 transition-colors ml-2"
+                                                            onClick={() => handleRestore({ product_id: product.id, supplier_id: supplierItem.supplier_id })}
+                                                        >
+                                                            <RefreshCw size={16} />
+                                                        </button>
+                                                    )}
+                                                    {product.is_active && (
+                                                        <button
+                                                            className="text-red-600 hover:text-red-900 p-1 rounded-md hover:bg-red-50 transition-colors"
+                                                            onClick={() => handleDelete( product.id, supplierItem.supplier_id )}
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </button>
+                                                    )}
                                                 </>
                                             )}
                                         </div>
