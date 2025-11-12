@@ -8,7 +8,8 @@ import {
     LogOut,
     ChevronLeft,
     CircleDollarSign,
-    LayoutDashboard
+    LayoutDashboard,
+    MoveDownIcon
 } from 'lucide-react';
 import { useLogoutMutation } from '../../slices/usersApiSlice';
 import { useDispatch, useSelector } from 'react-redux';
@@ -29,6 +30,12 @@ const adminNavConfig = {
             label: 'Sales',
             allowedRoles: ['Supplier'],
             icon: <CircleDollarSign size={18} />
+        },
+        {
+            to: '/suppliers/requests',
+            label: 'Product Requests',
+            allowedRoles: ['Supplier'],
+            icon: <MoveDownIcon size={18} />
         },
         
 

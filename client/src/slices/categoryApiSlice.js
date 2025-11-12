@@ -50,6 +50,14 @@ export const categoryApiSlice = apiSlice.injectEndpoints({
             }),
             invalidatesTags: ['category'],
         }),
+        // PUT /api/categories/restore/:id
+        restoreCategory: builder.mutation({
+            query: (id) => ({
+                url: `${CATEGORY_URL}/restore/${id}`,
+                method: 'PUT',
+            }),
+            invalidatesTags: ['category'],
+        }),
     }),
 });
 
@@ -60,4 +68,5 @@ export const {
     useCreateCategoryMutation,
     useUpdateCategoryMutation,
     useDeleteCategoryMutation,
+    useRestoreCategoryMutation,
 } = categoryApiSlice;
