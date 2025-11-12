@@ -6,12 +6,15 @@ export const purchaseApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // GET /api/supplier-item-requests
     getSupplierItemRequests: builder.query({
-      query: ({ status, supplier_id } = {}) => {
+      query: ({ status, supplier_id, page, limit, search } = {}) => {
         const params = new URLSearchParams();
-        
-        if (status) params.append('status', status);
+
+        if (status && status !== 'all') params.append('status', status);
         if (supplier_id) params.append('supplier_id', supplier_id);
-        
+        if (page) params.append('page', page);
+        if (limit) params.append('limit', limit);
+        if (search) params.append('search', search);
+
         return {
           url: `${SUPPLIER_ITEM_REQUESTS_URL}?${params.toString()}`,
           method: 'GET',
@@ -19,16 +22,24 @@ export const purchaseApiSlice = apiSlice.injectEndpoints({
       },
       providesTags: ['Purchase'],
     }),
-    
+
     // GET /api/supplier-item-requests/supplier/my-requests
     getMySupplierItemRequests: builder.query({
-      query: () => ({
-        url: `${SUPPLIER_ITEM_REQUESTS_URL}/supplier/my-requests`,
-        method: 'GET',
-      }),
+      query: ({ status, page, limit } = {}) => {
+        const params = new URLSearchParams();
+
+        if (status && status !== 'all') params.append('status', status);
+        if (page) params.append('page', page);
+        if (limit) params.append('limit', limit);
+
+        return {
+          url: `${SUPPLIER_ITEM_REQUESTS_URL}/supplier/my-requests?${params.toString()}`,
+          method: 'GET',
+        };
+      },
       providesTags: ['Purchase'],
     }),
-    
+
     // GET /api/supplier-item-requests/:id
     getSupplierItemRequestById: builder.query({
       query: (id) => ({
@@ -37,7 +48,7 @@ export const purchaseApiSlice = apiSlice.injectEndpoints({
       }),
       providesTags: ['Purchase'],
     }),
-    
+
     // POST /api/supplier-item-requests
     createSupplierItemRequest: builder.mutation({
       query: (data) => ({
@@ -47,7 +58,7 @@ export const purchaseApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Purchase'],
     }),
-    
+
     // PUT /api/supplier-item-requests/:id/status
     updateSupplierItemRequestStatus: builder.mutation({
       query: ({ id, ...data }) => ({
@@ -57,7 +68,7 @@ export const purchaseApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Purchase'],
     }),
-    
+
     // PUT /api/supplier-item-requests/:id/cancel
     cancelSupplierItemRequest: builder.mutation({
       query: (id) => ({
@@ -66,7 +77,7 @@ export const purchaseApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Purchase'],
     }),
-    
+
     // DELETE /api/supplier-item-requests/:id
     deleteSupplierItemRequest: builder.mutation({
       query: (id) => ({

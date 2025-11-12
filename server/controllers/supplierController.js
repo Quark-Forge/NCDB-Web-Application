@@ -122,6 +122,36 @@ export const removeSupplier = asyncHandler(async (req, res) => {
   });
 });
 
+// Restore a soft-deleted supplier
+export const restoreSupplier = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // include soft-deleted records
+  const supplier = await Supplier.findByPk(id, { paranoid: false });
+  if (!supplier) {
+    res.status(404);
+    throw new Error('Supplier not found');
+  }
+
+  // If not deleted, nothing to restore
+  if (!supplier.deletedAt) {
+    res.status(400);
+    throw new Error('Supplier is not deleted');
+  }
+
+  // Restore the supplier (works when model is paranoid)
+  await supplier.restore();
+
+  // reload to get current timestamps/state
+  await supplier.reload();
+
+  res.status(200).json({
+    success: true,
+    message: 'Supplier restored successfully',
+    data: formatSupplierResponse(supplier)
+  });
+});
+
 // Get all active suppliers
 export const getAllActiveSuppliers = asyncHandler(async (req, res) => {
   const suppliers = await Supplier.findAll({

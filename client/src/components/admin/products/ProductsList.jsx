@@ -7,7 +7,8 @@ const ProductsList = ({
   searchTerm,
   handleEdit,
   handleDelete,
-  handleToggleStatus
+  handleToggleStatus,
+  refetch
 }) => {
   if (isLoading) {
     return (
@@ -35,6 +36,7 @@ const ProductsList = ({
       handleEdit={handleEdit}
       handleDelete={handleDelete}
       handleToggleStatus={handleToggleStatus}
+      refetch={refetch}
     />
   );
 };

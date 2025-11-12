@@ -720,16 +720,57 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
             }
         }
 
-        // Update order
+        // Update order status
         order.status = status;
         await order.save({ transaction });
+
+        // Update or create payment status based on order status
+        let payment = await Payment.findOne({
+            where: { order_id: order.id },
+            transaction
+        });
+
+        if (status === 'delivered') {
+            if (payment) {
+                payment.payment_status = 'paid';
+                payment.payment_date = new Date();
+                await payment.save({ transaction });
+            } else {
+                payment = await Payment.create({
+                    order_id: order.id,
+                    payment_method: 'cash_on_delivery',
+                    payment_status: 'paid',
+                    amount: order.total_amount,
+                    transaction_id: `TXN_${generateOrderNumber()}`,
+                    payment_date: new Date()
+                }, { transaction });
+            }
+        } else if (status === 'cancelled') {
+            if (payment) {
+                payment.payment_status = 'failed';
+                payment.payment_date = new Date();
+                await payment.save({ transaction });
+            } else {
+                payment = await Payment.create({
+                    order_id: order.id,
+                    payment_method: 'cash_on_delivery',
+                    payment_status: 'failed',
+                    amount: order.total_amount,
+                    transaction_id: `TXN_${generateOrderNumber()}`,
+                    payment_date: new Date()
+                }, { transaction });
+            }
+        }
 
         await transaction.commit();
 
         res.json({
             success: true,
             message: 'Order status updated',
-            data: order
+            data: {
+                order,
+                payment: payment || null
+            }
         });
     } catch (error) {
         await transaction.rollback();
@@ -742,6 +783,117 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
         });
     }
 });
+
+// Cancel order by user (only allowed before 'shipped')
+export const cancelUserOrder = asyncHandler(async (req, res) => {
+    const orderId = req.params.id;
+    const user_id = req.user.id;
+
+    const transaction = await sequelize.transaction();
+    try {
+        // Load order with items
+        const order = await Order.findByPk(orderId, {
+            include: [{ model: OrderItem }],
+            transaction
+        });
+
+        if (!order) {
+            await transaction.rollback();
+            res.status(404).json({
+                success: false,
+                message: 'Order not found',
+                code: 'ORDER_NOT_FOUND'
+            });
+            return;
+        }
+
+        // Ensure ownership (admins allowed to cancel as well)
+        if (order.user_id !== user_id && req.user.role !== 'admin') {
+            await transaction.rollback();
+            res.status(403).json({
+                success: false,
+                message: 'Access denied. You can only cancel your own orders.',
+                code: 'ACCESS_DENIED'
+            });
+            return;
+        }
+
+        // Only allow cancellation before shipped
+        const notCancelable = ['shipped', 'delivered', 'cancelled'];
+        if (notCancelable.includes(order.status)) {
+            await transaction.rollback();
+            res.status(400).json({
+                success: false,
+                message: `Cannot cancel order with status '${order.status}'. Orders can only be cancelled before 'shipped'.`,
+                code: 'CANNOT_CANCEL'
+            });
+            return;
+        }
+
+        // Restock supplier items
+        const items = order.OrderItems || await OrderItem.findAll({
+            where: { order_id: order.id },
+            transaction
+        });
+
+        for (const item of items) {
+            await SupplierItem.increment('stock_level', {
+                by: item.quantity,
+                where: {
+                    product_id: item.product_id,
+                    supplier_id: item.supplier_id
+                },
+                transaction
+            });
+        }
+
+        // Update order status
+        order.status = 'cancelled';
+        await order.save({ transaction });
+
+        // Update or create payment as failed
+        let payment = await Payment.findOne({
+            where: { order_id: order.id },
+            transaction
+        });
+
+        if (payment) {
+            payment.payment_status = 'failed';
+            payment.payment_date = new Date();
+            await payment.save({ transaction });
+        } else {
+            payment = await Payment.create({
+                order_id: order.id,
+                payment_method: 'cash_on_delivery',
+                payment_status: 'failed',
+                amount: order.total_amount,
+                transaction_id: `TXN_${generateOrderNumber()}`,
+                payment_date: new Date()
+            }, { transaction });
+        }
+
+        await transaction.commit();
+
+        res.json({
+            success: true,
+            message: 'Order cancelled successfully',
+            data: {
+                order,
+                payment
+            }
+        });
+    } catch (error) {
+        await transaction.rollback();
+        console.error('Cancel order error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to cancel order',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            code: 'CANCEL_ERROR'
+        });
+    }
+});
+
 
 // GET order statistics
 export const getOrderStats = asyncHandler(async (req, res) => {

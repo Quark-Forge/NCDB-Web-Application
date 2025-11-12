@@ -13,5 +13,7 @@ router.route('/:id')
       .get(protect, authorize('Admin', 'Order Manager', 'Inventory Manager') , getSupplier)
       .put(protect, authorize('Admin') ,updateSupplier)
       .delete(protect, authorize('Admin') ,removeSupplier);
+router.route('/restore/:id')
+      .put(protect, authorize('Admin', 'Inventory Manager'), updateSupplier);
 
 export default router;

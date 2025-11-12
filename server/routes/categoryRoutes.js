@@ -20,8 +20,8 @@ router.get('/active', getActiveCategories);
 router.route('/:id')
       .get(getSingleCategory)
       .delete(protect, authorize('Admin', 'Inventory Manager'), disabledCategory)
-      .post(protect, authorize('Admin', 'Inventory Manager'), restoreCategory)
       .put(protect, authorize('Admin', 'Inventory Manager'), updateCategory);
+router.route('/restore/:id').put(protect, authorize('Admin', 'Inventory Manager'), restoreCategory);
 router.delete('/delete/:id',protect, authorize('Admin', 'Inventory Manager'), deleteCategory);
 
 
