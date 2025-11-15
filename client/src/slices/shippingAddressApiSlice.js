@@ -2,7 +2,7 @@ import { apiSlice } from '../slices/apiSlice';
 
 const SHIPPING_Address_URL = '/shipping-addresses';
 
-const shippingAddressApiSlice = apiSlice.injectEndpoints({
+const shippingAddressEndpoints = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
         getShippingAddress: builder.query({
             query: () => ({
@@ -26,4 +26,4 @@ const shippingAddressApiSlice = apiSlice.injectEndpoints({
 export const {
     useGetShippingAddressQuery,
     useAddShippingAddressMutation,
-} = shippingAddressApiSlice;
+} = shippingAddressEndpoints;

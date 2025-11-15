@@ -108,7 +108,7 @@ const Home = () => {
           {/* Mobile filter overlay */}
           {showMobileFilters && (
             <div className="fixed inset-0 z-50 lg:hidden">
-              <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setShowMobileFilters(false)}></div>
+              <div className="absolute inset-0 backdrop-brightness-40 bg-opacity-50" onClick={() => setShowMobileFilters(false)}></div>
               <div className="absolute right-0 top-0 h-full w-4/5 max-w-sm bg-white p-6 overflow-y-auto">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-lg font-semibold">Filters</h3>
@@ -155,7 +155,7 @@ const Home = () => {
               </p>
             ) : (
               <>
-                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {products.map((product) => (
                     <ProductWithSuppliers
                       key={product.id}

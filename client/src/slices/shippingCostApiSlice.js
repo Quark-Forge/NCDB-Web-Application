@@ -2,7 +2,7 @@ import { apiSlice } from '../slices/apiSlice';
 
 const SHIPPING_COST_URL = '/shipping-costs';
 
-const shippingCostApiSlice = apiSlice.injectEndpoints({
+const shippingCostEndpoints = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
         getShippingCost: builder.query({
             query: () => ({
@@ -43,4 +43,4 @@ export const {
     useAddShippingCostMutation,
     useUpdateShippingCostMutation,
     useDeleteShippingCostMutation,
-} = shippingCostApiSlice;
+} = shippingCostEndpoints;

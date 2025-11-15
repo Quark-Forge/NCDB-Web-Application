@@ -1,55 +1,72 @@
-import { DollarSign, CreditCard, AlertCircle } from 'lucide-react';
-import Card from '../../common/Card';
+import { DollarSign, CreditCard, AlertCircle, TrendingUp } from 'lucide-react';
 
-const PaymentStats = ({ stats }) => {
+const PaymentStats = ({ data, isLoading }) => {
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-US', {
+        return new Intl.NumberFormat('en-LK', {
             style: 'currency',
-            currency: 'USD'
+            currency: 'LKR'
         }).format(amount);
     };
 
-    const StatCard = ({ title, value, variant, icon: Icon }) => (
-        <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+    if (isLoading) {
+        return (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {[...Array(4)].map((_, i) => (
+                    <div key={i} className="bg-gray-200 animate-pulse h-24 rounded-lg"></div>
+                ))}
+            </div>
+        );
+    }
+
+    const stats = data?.data || {
+        totalRevenue: 0,
+        successfulTransactions: 0,
+        pendingIssues: 0,
+        totalTransactions: 0
+    };
+
+    const StatCard = ({ title, value, variant, icon: Icon, isCurrency = false }) => (
+        <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
             <div className="flex justify-between items-start">
                 <div>
                     <h4 className="text-sm font-medium text-gray-500">{title}</h4>
-                    <p className="text-2xl font-bold text-gray-900 mt-2">{value}</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-2">
+                        {isCurrency ? formatCurrency(value) : value}
+                    </p>
                 </div>
-                <div className={`p-3 rounded-lg bg-gradient-to-br ${variant} text-white`}>
+                <div className={`p-3 rounded-lg ${variant} text-white`}>
                     <Icon className="h-6 w-6" />
-                </div>
-            </div>
-            <div className="mt-4">
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                        className={`h-2 rounded-full ${variant.split(' ')[0]}`}
-                        style={{ width: '100%' }}
-                    ></div>
                 </div>
             </div>
         </div>
     );
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <StatCard
                 title="Total Revenue"
-                value={formatCurrency(stats.totalRevenue)}
-                variant="from-blue-500 to-blue-600"
+                value={stats.totalRevenue}
+                variant="bg-blue-500"
                 icon={DollarSign}
+                isCurrency={true}
             />
             <StatCard
                 title="Successful Transactions"
                 value={stats.successfulTransactions}
-                variant="from-green-500 to-green-600"
+                variant="bg-green-500"
                 icon={CreditCard}
             />
             <StatCard
                 title="Pending/Issues"
                 value={stats.pendingIssues}
-                variant="from-red-500 to-red-600"
+                variant="bg-red-500"
                 icon={AlertCircle}
+            />
+            <StatCard
+                title="Total Transactions"
+                value={stats.totalTransactions}
+                variant="bg-purple-500"
+                icon={TrendingUp}
             />
         </div>
     );

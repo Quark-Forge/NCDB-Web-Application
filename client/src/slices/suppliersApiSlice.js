@@ -2,7 +2,7 @@ import { apiSlice } from "./apiSlice";
 
 const SUPPLIERS_URL = '/suppliers';
 
-export const suppliersApiSlice = apiSlice.injectEndpoints({
+export const suppliersEndpoints = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
         // GET /api/suppliers
         getAllSuppliers: builder.query({
@@ -69,4 +69,4 @@ export const {
     useUpdateSupplierMutation,
     useDeleteSupplierMutation,
     useRestoreSupplierMutation,
-} = suppliersApiSlice;
+} = suppliersEndpoints;

@@ -2,7 +2,7 @@ import { apiSlice } from "./apiSlice";
 
 const UPLOAD_URL = '/upload';
 
-export const uploadApiSlice = apiSlice.injectEndpoints({
+export const uploadEndpoints = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
         // POST /api/upload/products/:id/image
         uploadProductImage: builder.mutation({
@@ -68,4 +68,4 @@ export const {
     useDeleteProfilePhotoMutation,
     useUploadProductImageMutation,
     useDeleteProductImageMutation,
-} = uploadApiSlice;
+} = uploadEndpoints;

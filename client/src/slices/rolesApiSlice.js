@@ -1,6 +1,6 @@
 import { apiSlice } from "./apiSlice";
 
-export const rolesApiSlice = apiSlice.injectEndpoints({
+export const rolesEndpoints = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getRoles: builder.query({
       query: () => '/roles',
@@ -9,4 +9,4 @@ export const rolesApiSlice = apiSlice.injectEndpoints({
   })
 });
 
-export const { useGetRolesQuery } = rolesApiSlice;
+export const { useGetRolesQuery } = rolesEndpoints;

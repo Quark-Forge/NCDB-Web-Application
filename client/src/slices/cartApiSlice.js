@@ -2,7 +2,7 @@ import { apiSlice } from "./apiSlice";
 
 const CARTS_URL = '/carts';
 
-export const cartApiSlice = apiSlice.injectEndpoints({
+export const cartEndpoints = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
         // GET /api/carts - Get user's cart
         getCart: builder.query({
@@ -63,4 +63,4 @@ export const {
     useRemoveFromCartMutation,
     useClearCartMutation,
     useGetCartTotalQuery,
-} = cartApiSlice;
+} = cartEndpoints;

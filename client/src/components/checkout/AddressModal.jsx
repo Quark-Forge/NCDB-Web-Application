@@ -201,7 +201,7 @@ const AddressModal = ({ addresses, selectedAddress, onClose, onSelectAddress }) 
                                             onChange={(e) => setNewAddress(prev => ({ ...prev, city: e.target.value }))}
                                             className="border border-gray-300 rounded-lg p-3 w-full"
                                         >
-                                            <option value="">Select a City</option>
+                                            <option value="">Select a Area near your location</option>
                                             {cities.map(city => (
                                                 <option key={city} value={city}>
                                                     {city}
