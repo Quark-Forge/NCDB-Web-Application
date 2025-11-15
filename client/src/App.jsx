@@ -3,6 +3,7 @@ import { ToastContainer } from 'react-toastify';
 import { Provider } from 'react-redux';
 import 'react-toastify/ReactToastify.css';
 import store from './store';
+import './slices';
 import AppRoutes from './routes/AppRoutes';
 
 const App = () => {

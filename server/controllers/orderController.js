@@ -548,121 +548,139 @@ export const getUserOrders = asyncHandler(async (req, res) => {
 });
 // GET order details
 export const getOrderDetails = asyncHandler(async (req, res) => {
-    const order = await Order.findByPk(req.params.id, {
-        include: [
-            {
-                model: OrderItem,
-                include: [Product, Supplier]
-            },
-            {
-                model: Payment,
-                as: 'payment',
-                attributes: ['id', 'payment_status', 'payment_method', 'amount', 'transaction_id', 'payment_date', 'gateway_response']
-            },
-            {
-                model: Address
-            }
-        ]
-    });
+    const orderId = req.params.id;
 
-    if (!order) {
-        res.status(404).json({
-            success: false,
-            message: 'Order not found',
-            code: 'ORDER_NOT_FOUND'
+    try {
+        const order = await Order.findByPk(orderId, {
+            include: [
+                {
+                    model: OrderItem,
+                    include: [Product, Supplier]
+                },
+                {
+                    model: Payment,
+                    as: 'payment',
+                    attributes: ['id', 'payment_status', 'payment_method', 'amount', 'transaction_id', 'payment_date', 'gateway_response']
+                },
+                {
+                    model: Address
+                }
+            ]
         });
-        return;
-    }
 
-    // Check if the order belongs to the user (for non-admin users)
-    if (req.user.role !== 'admin' && order.user_id !== req.user.id) {
-        res.status(403).json({
-            success: false,
-            message: 'Access denied. You can only view your own orders.',
-            code: 'ACCESS_DENIED'
+        if (!order) {
+            res.status(404).json({
+                success: false,
+                message: 'Order not found',
+                code: 'ORDER_NOT_FOUND'
+            });
+            return;
+        }
+
+        // Check permissions:
+        // - Admin/Manager can view any order
+        // - Customers can only view their own orders
+        // const isAdminOrManager = ['admin', 'order manager', 'inventory manager'].includes(req.user.user_role?.toLowerCase());
+        // const isOrderOwner = order.user_id === req.user.id;
+
+        // if (!isAdminOrManager && !isOrderOwner) {
+        //     res.status(403).json({
+        //         success: false,
+        //         message: 'Access denied. You can only view your own orders.',
+        //         code: 'ACCESS_DENIED'
+        //     });
+        //     return;
+        // }
+
+        const address = order.Address || await Address.findByPk(order.address_id);
+        const shippingCost = await ShippingCost.findOne({
+            where: { city: address.city }
         });
-        return;
-    }
 
-    const address = order.Address || await Address.findByPk(order.address_id);
-    const shippingCost = await ShippingCost.findOne({
-        where: { city: address.city }
-    });
+        const shippingAmount = parseFloat(shippingCost?.cost) || 0;
+        const orderAmount = parseFloat(order?.total_amount) || 0;
+        const total = (orderAmount + shippingAmount).toFixed(2);
 
-    const shippingAmount = parseFloat(shippingCost?.cost) || 0;
-    const orderAmount = parseFloat(order?.total_amount) || 0;
-    const total = (orderAmount + shippingAmount).toFixed(2);
-
-    const orderDetail = {
-        id: order.id,
-        order_number: order.order_number,
-        status: order.status,
-        total_amount: order.total_amount,
-        createdAt: order.createdAt,
-        updatedAt: order.updatedAt,
-        items: order.OrderItems.map(item => ({
-            id: item.id,
-            quantity: item.quantity,
-            price: item.price,
-            product: {
-                id: item.Product.id,
-                name: item.Product.name,
-                sku: item.Product.sku,
-                base_image_url: item.Product.base_image_url
+        const orderDetail = {
+            id: order.id,
+            order_number: order.order_number,
+            status: order.status,
+            total_amount: order.total_amount,
+            createdAt: order.createdAt,
+            updatedAt: order.updatedAt,
+            items: order.OrderItems.map(item => ({
+                id: item.id,
+                quantity: item.quantity,
+                price: item.price,
+                product: {
+                    id: item.Product.id,
+                    name: item.Product.name,
+                    sku: item.Product.sku,
+                    base_image_url: item.Product.base_image_url
+                },
+                supplier: {
+                    id: item.Supplier.id,
+                    name: item.Supplier.name,
+                    contact: item.Supplier.contact_number
+                }
+            })),
+            // Payment information
+            payment: order.payment ? {
+                id: order.payment.id,
+                payment_status: order.payment.payment_status,
+                payment_method: order.payment.payment_method,
+                amount: order.payment.amount,
+                transaction_id: order.payment.transaction_id,
+                payment_date: order.payment.payment_date,
+                gateway_response: order.payment.gateway_response
+            } : {
+                id: null,
+                payment_status: 'pending',
+                payment_method: null,
+                amount: null,
+                transaction_id: null,
+                payment_date: null,
+                gateway_response: null
             },
-            supplier: {
-                id: item.Supplier.id,
-                name: item.Supplier.name,
-                contact: item.Supplier.contact_number
-            }
-        })),
-        // Payment information
-        payment: order.payment ? {
-            id: order.payment.id,
-            payment_status: order.payment.payment_status,
-            payment_method: order.payment.payment_method,
-            amount: order.payment.amount,
-            transaction_id: order.payment.transaction_id,
-            payment_date: order.payment.payment_date,
-            gateway_response: order.payment.gateway_response
-        } : {
-            id: null,
-            payment_status: 'pending',
-            payment_method: null,
-            amount: null,
-            transaction_id: null,
-            payment_date: null,
-            gateway_response: null
-        },
-        // Address information
-        address: {
-            id: address.id,
-            shipping_name: address.shipping_name,
-            shipping_phone: address.shipping_phone,
-            address_line1: address.address_line1,
-            address_line2: address.address_line2,
-            city: address.city,
-            state: address.state,
-            country: address.country,
-            postal_code: address.postal_code
-        },
-        // Shipping information
-        shipping: {
-            cost: shippingCost?.cost || 0,
-            estimated_delivery_date: shippingCost?.estimated_delivery_date,
-            city: address.city
-        },
-        // Totals
-        subtotal: orderAmount.toFixed(2),
-        shipping_cost: shippingAmount.toFixed(2),
-        final_total: total
-    };
+            // Address information
+            address: {
+                id: address.id,
+                shipping_name: address.shipping_name,
+                shipping_phone: address.shipping_phone,
+                address_line1: address.address_line1,
+                address_line2: address.address_line2,
+                city: address.city,
+                state: address.state,
+                country: address.country,
+                postal_code: address.postal_code
+            },
+            // Shipping information
+            shipping: {
+                cost: shippingCost?.cost || 0,
+                estimated_delivery_date: shippingCost?.estimated_delivery_date,
+                city: address.city
+            },
+            // Totals
+            subtotal: orderAmount.toFixed(2),
+            shipping_cost: shippingAmount.toFixed(2),
+            final_total: total
+        };
 
-    res.json({
-        success: true,
-        data: orderDetail
-    });
+        res.json({
+            success: true,
+            data: orderDetail
+        });
+    } catch (error) {
+        console.error('Error fetching order details:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching order details',
+            error: error.message
+        });
+    }
 });
+
+
 // UPDATE order status
 export const updateOrderStatus = asyncHandler(async (req, res) => {
     const { status } = req.body;

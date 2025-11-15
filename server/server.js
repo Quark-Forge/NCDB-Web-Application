@@ -20,6 +20,7 @@ import addressRoutes from './routes/AddressRoutes.js';
 import shippingCostRoutes from './routes/shippingCostRoutes.js';
 import wishListRoutes from './routes/wishListRoutes.js';
 import supplierItemsRequestRoutes from './routes/supplierItemsRequestRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
 import testRoute from './routes/testRoute.js';
 
 dotenv.config();
@@ -101,6 +102,7 @@ app.use('/api/carts', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/shipping-addresses', addressRoutes);
 app.use('/api/shipping-costs', shippingCostRoutes);
+app.use('/api/payments', paymentRoutes);
 app.use('/api/wishlist', wishListRoutes);
 app.use('/api/supplier-item-requests', supplierItemsRequestRoutes);
 app.use('/api/test', testRoute);

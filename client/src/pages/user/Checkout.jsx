@@ -5,7 +5,7 @@ import { useGetShippingAddressQuery } from '../../slices/shippingAddressApiSlice
 import { useCheckoutOrderMutation } from '../../slices/ordersApiSlice';
 import CheckoutForm from '../../components/checkout/CheckoutForm';
 import OrderSummary from '../../components/checkout/OrderSummary';
-import PaymentMethod from '../../components/checkout/PaymentMethod'; // Import your PaymentMethod component
+import PaymentMethod from '../../components/checkout/PaymentMethod';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import AddressModal from '../../components/checkout/AddressModal';
 
@@ -15,7 +15,7 @@ const Checkout = () => {
   // Get selected items from localStorage
   const [selectedItems, setSelectedItems] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [paymentMethod, setPaymentMethod] = useState('cash_on_delivery');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
 
@@ -67,7 +67,7 @@ const Checkout = () => {
 
       const orderData = {
         address_id: selectedAddress.id,
-        selected_items: selectedItemIds, // Send selected item IDs
+        selected_items: selectedItemIds,
         payment_method: paymentMethod,
         total_amount: total,
         shipping_cost: shippingCost
@@ -193,7 +193,7 @@ const Checkout = () => {
               )}
             </div>
 
-            {/* Use your PaymentMethod component */}
+            {/* Payment Method Component */}
             <PaymentMethod
               paymentMethod={paymentMethod}
               onPaymentMethodChange={setPaymentMethod}

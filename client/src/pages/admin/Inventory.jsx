@@ -43,7 +43,7 @@ const Inventory = () => {
     productId: p.Product?.id,
     productName: p.Product?.name,
     stockLevel: p.stock_level,
-    supplierId: p.Supplier.id,
+    supplierId: p.Supplier?.supplier_id,
     supplierSku: p.supplier_sku,
     supplierName: p.Supplier?.name || 'Unknown Supplier'
   }));

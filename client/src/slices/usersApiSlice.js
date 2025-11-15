@@ -1,7 +1,7 @@
 import { apiSlice } from "./apiSlice";
 const USERS_URL = '/users';
 
-export const usersApiSlice = apiSlice.injectEndpoints({
+export const usersEndpoints = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
         login: builder.mutation({
             query: (data) => ({
@@ -117,4 +117,4 @@ export const {
     useResetPasswordMutation,
     useVerifyEmailMutation,
     useResendVerificationMutation
-} = usersApiSlice;
+} = usersEndpoints;

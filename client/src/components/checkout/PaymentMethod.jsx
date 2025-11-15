@@ -10,8 +10,8 @@ const PaymentMethod = ({ paymentMethod, onPaymentMethodChange }) => {
                     <input
                         type="radio"
                         name="payment"
-                        value="cash"
-                        checked={paymentMethod === 'cash'}
+                        value="cash_on_delivery"
+                        checked={paymentMethod === 'cash on delivery'}
                         onChange={(e) => onPaymentMethodChange(e.target.value)}
                         className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
                     />
@@ -26,8 +26,8 @@ const PaymentMethod = ({ paymentMethod, onPaymentMethodChange }) => {
                     <input
                         type="radio"
                         name="payment"
-                        value="card"
-                        checked={paymentMethod === 'card'}
+                        value="credit_card"
+                        checked={paymentMethod === 'credit_card'}
                         onChange={(e) => onPaymentMethodChange(e.target.value)}
                         className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
                     />

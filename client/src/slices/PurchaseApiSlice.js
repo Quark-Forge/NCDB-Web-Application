@@ -2,7 +2,7 @@ import { apiSlice } from './apiSlice';
 
 const SUPPLIER_ITEM_REQUESTS_URL = '/supplier-item-requests';
 
-export const purchaseApiSlice = apiSlice.injectEndpoints({
+export const purchaseEndpoints = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // GET /api/supplier-item-requests
     getSupplierItemRequests: builder.query({
@@ -97,4 +97,4 @@ export const {
   useUpdateSupplierItemRequestStatusMutation,
   useCancelSupplierItemRequestMutation,
   useDeleteSupplierItemRequestMutation,
-} = purchaseApiSlice;
+} = purchaseEndpoints;
