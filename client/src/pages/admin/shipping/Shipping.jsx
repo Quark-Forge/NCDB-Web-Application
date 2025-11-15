@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Plus, Search, ChevronDown, ChevronUp, Trash, Pencil } from 'lucide-react';
 
 import Button from '../../../components/common/Button';
@@ -25,7 +25,6 @@ const Shipping = () => {
     const shippingData = data?.data || [];
 
     // Local state
-    const [filteredData, setFilteredData] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState({ key: 'city', direction: 'asc' });
     const [currentPage, setCurrentPage] = useState(1);
@@ -41,36 +40,37 @@ const Shipping = () => {
     });
     const [errors, setErrors] = useState({});
 
-    // Filter and sort data
-    useEffect(() => {
-        if (shippingData) {
-            let filtered = [...shippingData];
+    // Memoize filtered and sorted data
+    const filteredData = useMemo(() => {
+        if (!shippingData) return [];
 
-            // Apply search filter
-            if (searchTerm.trim() !== '') {
-                filtered = filtered.filter(item =>
-                    item.city.toLowerCase().includes(searchTerm.toLowerCase())
-                );
-            }
+        let filtered = [...shippingData];
 
-            // Apply sorting
-            filtered.sort((a, b) => {
-                if (a[sortConfig.key] < b[sortConfig.key]) {
-                    return sortConfig.direction === 'asc' ? -1 : 1;
-                }
-                if (a[sortConfig.key] > b[sortConfig.key]) {
-                    return sortConfig.direction === 'asc' ? 1 : -1;
-                }
-                return 0;
-            });
-
-            setFilteredData(filtered);
+        // Apply search filter
+        if (searchTerm.trim() !== '') {
+            filtered = filtered.filter(item =>
+                item.city.toLowerCase().includes(searchTerm.toLowerCase())
+            );
         }
+
+        // Apply sorting
+        filtered.sort((a, b) => {
+            if (a[sortConfig.key] < b[sortConfig.key]) {
+                return sortConfig.direction === 'asc' ? -1 : 1;
+            }
+            if (a[sortConfig.key] > b[sortConfig.key]) {
+                return sortConfig.direction === 'asc' ? 1 : -1;
+            }
+            return 0;
+        });
+
+        return filtered;
     }, [searchTerm, shippingData, sortConfig]);
 
+    // Reset to first page when search or sort changes
     useEffect(() => {
-        setCurrentPage(1); // Reset to first page only when searchTerm or sortConfig changes
-    }, [searchTerm, sortConfig]);
+        setCurrentPage(1);
+    }, [searchTerm, sortConfig.key, sortConfig.direction]); // Use primitive values
 
     // Pagination
     const indexOfLastItem = currentPage * itemsPerPage;
@@ -78,23 +78,25 @@ const Shipping = () => {
     const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
-    const handleSort = (key) => {
-        let direction = 'asc';
-        if (sortConfig.key === key && sortConfig.direction === 'asc') {
-            direction = 'desc';
-        }
-        setSortConfig({ key, direction });
-    };
+    const handleSort = useCallback((key) => {
+        setSortConfig(prev => {
+            let direction = 'asc';
+            if (prev.key === key && prev.direction === 'asc') {
+                direction = 'desc';
+            }
+            return { key, direction };
+        });
+    }, []);
 
-    const handleSearch = (e) => {
+    const handleSearch = useCallback((e) => {
         setSearchTerm(e.target.value);
-    };
+    }, []);
 
-    const handlePageChange = (page) => {
+    const handlePageChange = useCallback((page) => {
         setCurrentPage(page);
-    };
+    }, []);
 
-    const openAddModal = () => {
+    const openAddModal = useCallback(() => {
         setEditMode(false);
         setCurrentItem({
             city: '',
@@ -103,9 +105,9 @@ const Shipping = () => {
         });
         setErrors({});
         setIsModalOpen(true);
-    };
+    }, []);
 
-    const openEditModal = (item) => {
+    const openEditModal = useCallback((item) => {
         setEditMode(true);
         setCurrentItem({
             ...item,
@@ -113,14 +115,14 @@ const Shipping = () => {
         });
         setErrors({});
         setIsModalOpen(true);
-    };
+    }, []);
 
-    const openDeleteModal = (item) => {
+    const openDeleteModal = useCallback((item) => {
         setItemToDelete(item);
         setIsDeleteModalOpen(true);
-    };
+    }, []);
 
-    const validateForm = () => {
+    const validateForm = useCallback(() => {
         const newErrors = {};
         if (!currentItem.city) newErrors.city = 'City is required';
         if (!currentItem.cost || isNaN(currentItem.cost)) newErrors.cost = 'Valid cost is required';
@@ -129,7 +131,7 @@ const Shipping = () => {
         }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
-    };
+    }, [currentItem]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -167,13 +169,13 @@ const Shipping = () => {
         }
     };
 
-    const handleInputChange = (e) => {
+    const handleInputChange = useCallback((e) => {
         const { name, value } = e.target;
         setCurrentItem(prev => ({
             ...prev,
             [name]: value
         }));
-    };
+    }, []);
 
     const deleteHandle = async () => {
         try {
@@ -187,17 +189,17 @@ const Shipping = () => {
         }
     }
 
-    const formatDeliveryDays = (days) => {
+    const formatDeliveryDays = useCallback((days) => {
         if (!days) return 'Not specified';
         return `${days} day${days !== 1 ? 's' : ''}`;
-    };
+    }, []);
 
-    const SortIcon = ({ column }) => {
+    const SortIcon = useCallback(({ column }) => {
         if (sortConfig.key !== column) return <ChevronDown className="ml-1 h-4 w-4 opacity-0 group-hover:opacity-100" />;
         return sortConfig.direction === 'asc' ?
             <ChevronUp className="ml-1 h-4 w-4" /> :
             <ChevronDown className="ml-1 h-4 w-4" />;
-    };
+    }, [sortConfig.key, sortConfig.direction]);
 
     if (isLoading) return <LoadingSpinner />;
     if (isError) return <div className="text-red-500">Error loading shipping costs</div>;
@@ -309,13 +311,13 @@ const Shipping = () => {
             {/* Add/Edit Modal */}
             {isModalOpen && (
                 <ShippingDetailsForm
-                    editMode = {editMode}
-                    handleSubmit = {handleSubmit}
-                     setIsModalOpen = {setIsModalOpen}
-                     handleInputChange = {handleInputChange}
-                     currentItem = {currentItem}
-                     errors = {errors}
-                     isAdding={isAdding}
+                    editMode={editMode}
+                    handleSubmit={handleSubmit}
+                    setIsModalOpen={setIsModalOpen}
+                    handleInputChange={handleInputChange}
+                    currentItem={currentItem}
+                    errors={errors}
+                    isAdding={isAdding}
                 />
             )}
 

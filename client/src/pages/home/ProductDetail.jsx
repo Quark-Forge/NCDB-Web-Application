@@ -21,7 +21,7 @@ import {
     useRemoveFromWishlistMutation,
     useCheckWishlistItemQuery
 } from '../../slices/wishlistApiSlice';
-import { useAddToCartMutation } from '../../slices/cartApiSlice'; // Import cart API
+import { useAddToCartMutation } from '../../slices/cartApiSlice';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 
