@@ -237,6 +237,7 @@ const getWishlistWithDetails = async (wishlistId) => {
                     category: product.Category
                 },
                 supplier_info: {
+                    supplier_id: supplierItem.supplier_id,
                     supplier_item_id: supplierItem.id,
                     original_price: supplierItem.price,
                     discount_price: supplierItem.discount_price,

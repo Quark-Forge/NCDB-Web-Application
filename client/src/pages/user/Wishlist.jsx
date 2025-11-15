@@ -74,7 +74,7 @@ const Wishlist = () => {
         try {
             await addToCart({
                 product_id: item.product.id,
-                supplier_item_id: item.supplier_info.supplier_item_id,
+                supplier_id: item.supplier_info.supplier_id,
                 quantity: 1
             }).unwrap();
 

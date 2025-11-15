@@ -547,6 +547,7 @@ export const getUserOrders = asyncHandler(async (req, res) => {
     });
 });
 // GET order details
+// GET order details
 export const getOrderDetails = asyncHandler(async (req, res) => {
     const orderId = req.params.id;
 
@@ -564,6 +565,10 @@ export const getOrderDetails = asyncHandler(async (req, res) => {
                 },
                 {
                     model: Address
+                },
+                {
+                    model: User, // Include User model to get customer details
+                    attributes: ['id', 'name', 'email', 'contact_number', 'image_url', 'role_id', 'is_verified'] // Correct field names
                 }
             ]
         });
@@ -577,12 +582,9 @@ export const getOrderDetails = asyncHandler(async (req, res) => {
             return;
         }
 
-        // Check permissions:
-        // - Admin/Manager can view any order
-        // - Customers can only view their own orders
+        // Check permissions (uncomment when ready)
         // const isAdminOrManager = ['admin', 'order manager', 'inventory manager'].includes(req.user.user_role?.toLowerCase());
         // const isOrderOwner = order.user_id === req.user.id;
-
         // if (!isAdminOrManager && !isOrderOwner) {
         //     res.status(403).json({
         //         success: false,
@@ -608,22 +610,38 @@ export const getOrderDetails = asyncHandler(async (req, res) => {
             total_amount: order.total_amount,
             createdAt: order.createdAt,
             updatedAt: order.updatedAt,
+
+            // Customer information - using correct field names from User model
+            customer: {
+                id: order.User?.id,
+                name: order.User?.name,
+                email: order.User?.email,
+                contact_number: order.User?.contact_number,
+                image_url: order.User?.image_url,
+                role_id: order.User?.role_id,
+                is_verified: order.User?.is_verified,
+                // For frontend compatibility, also provide full_name
+                full_name: order.User?.name
+            },
+
+            // Order items
             items: order.OrderItems.map(item => ({
                 id: item.id,
                 quantity: item.quantity,
                 price: item.price,
-                product: {
+                Product: {
                     id: item.Product.id,
                     name: item.Product.name,
                     sku: item.Product.sku,
                     base_image_url: item.Product.base_image_url
                 },
-                supplier: {
+                Supplier: {
                     id: item.Supplier.id,
                     name: item.Supplier.name,
                     contact: item.Supplier.contact_number
                 }
             })),
+
             // Payment information
             payment: order.payment ? {
                 id: order.payment.id,
@@ -642,24 +660,24 @@ export const getOrderDetails = asyncHandler(async (req, res) => {
                 payment_date: null,
                 gateway_response: null
             },
+
             // Address information
-            address: {
-                id: address.id,
-                shipping_name: address.shipping_name,
-                shipping_phone: address.shipping_phone,
-                address_line1: address.address_line1,
-                address_line2: address.address_line2,
-                city: address.city,
-                state: address.state,
-                country: address.country,
-                postal_code: address.postal_code
-            },
+            address_line1: address.address_line1,
+            address_line2: address.address_line2,
+            city: address.city,
+            state: address.state,
+            country: address.country,
+            postal_code: address.postal_code,
+            shipping_name: address.shipping_name,
+            shipping_phone: address.shipping_phone,
+
             // Shipping information
             shipping: {
                 cost: shippingCost?.cost || 0,
                 estimated_delivery_date: shippingCost?.estimated_delivery_date,
                 city: address.city
             },
+
             // Totals
             subtotal: orderAmount.toFixed(2),
             shipping_cost: shippingAmount.toFixed(2),
@@ -679,7 +697,6 @@ export const getOrderDetails = asyncHandler(async (req, res) => {
         });
     }
 });
-
 
 // UPDATE order status
 export const updateOrderStatus = asyncHandler(async (req, res) => {
