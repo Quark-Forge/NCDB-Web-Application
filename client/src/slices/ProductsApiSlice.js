@@ -2,7 +2,7 @@ import { apiSlice } from './apiSlice';
 
 const PRODUCTS_URL = '/products';
 
-export const productsApiSlice = apiSlice.injectEndpoints({
+export const productsEndpoints = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // GET /api/products
     getProducts: builder.query({
@@ -22,8 +22,9 @@ export const productsApiSlice = apiSlice.injectEndpoints({
           method: 'GET',
         };
       },
-      providesTags: ['product'],
+      providesTags: ['Product'],
     }),
+
     // GET /api/products/with-inactive
     getProductsWithInactive: builder.query({
       query: ({ search, category, sort, page, limit }) => {
@@ -40,7 +41,7 @@ export const productsApiSlice = apiSlice.injectEndpoints({
           method: 'GET',
         };
       },
-      providesTags: ['product'],
+      providesTags: ['Product'],
     }),
 
     // POST /api/products
@@ -50,28 +51,26 @@ export const productsApiSlice = apiSlice.injectEndpoints({
         method: 'POST',
         body: data,
       }),
-      invalidatesTags: ['product'],
+      invalidatesTags: ['Product'],
     }),
-    
+
     // PUT /api/products/:id
     updateProduct: builder.mutation({
-      query: ({ id, ...data }) => (
-        {
+      query: ({ id, ...data }) => ({
         url: `${PRODUCTS_URL}/${id}`,
         method: 'PUT',
         body: data,
       }),
-      
-      invalidatesTags: ['product'],
+      invalidatesTags: ['Product'],
     }),
 
     // DELETE /api/products/:product_id/suppliers/:supplier_id
     deleteProduct: builder.mutation({
-      query: ({ product_id, supplier_id }) => ({  // Destructure the object
+      query: ({ product_id, supplier_id }) => ({
         url: `${PRODUCTS_URL}/${product_id}/suppliers/${supplier_id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['product'],
+      invalidatesTags: ['Product'],
     }),
 
     // PUT /api/product_id/suppliers/supplier_id
@@ -80,20 +79,16 @@ export const productsApiSlice = apiSlice.injectEndpoints({
         url: `${PRODUCTS_URL}/${product_id}/suppliers/${supplier_id}`,
         method: 'PUT',
       }),
-      invalidatesTags: ['product'],
+      invalidatesTags: ['Product'],
     }),
-
-    
   }),
 });
 
 export const {
   useGetProductsQuery,
-
   useGetProductsWithInactiveQuery,
-  useGetProductByIdQuery,
   useCreateProductMutation,
   useUpdateProductMutation,
   useDeleteProductMutation,
   useRestoreProductMutation,
-} = productsApiSlice;
+} = productsEndpoints;

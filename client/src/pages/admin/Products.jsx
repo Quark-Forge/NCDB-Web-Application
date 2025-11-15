@@ -9,15 +9,28 @@ import AddProduct from "../../components/admin/products/AddProduct";
 import ProductsList from "../../components/admin/products/ProductsList";
 import EditProduct from "../../components/admin/products/EditProduct";
 import DeleteConfirmation from "../../components/common/DeleteConfirmation";
-import Pagination from "../../components/common/Pagination"; // Import your Pagination
+import Pagination from "../../components/common/Pagination";
 
 const Products = () => {
-  const { data: productsData, isLoading, error, refetch } = useGetProductsWithInactiveQuery({});
+  const [filters, setFilters] = useState({
+    search: "",
+  });
+
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+  });
+
+  // Include both filters and pagination in the API call
+  const { data: productsData, isLoading, error, refetch } = useGetProductsWithInactiveQuery({
+    ...filters,
+    ...pagination,
+  });
+
   const { data: categoriesData } = useGetCategoriesQuery();
   const { data: suppliersData } = useGetAllActiveSuppliersQuery();
   const [deleteSupplierItem] = useDeleteProductMutation();
 
-  const [searchTerm, setSearchTerm] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -25,12 +38,10 @@ const Products = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedSupplierItem, setSelectedSupplierItem] = useState(null);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-
   const products = productsData?.data || [];
   const categories = categoriesData?.data || [];
   const suppliers = suppliersData?.data || [];
+  const serverPagination = productsData?.pagination || {};
 
   useEffect(() => {
     if (error) {
@@ -38,20 +49,13 @@ const Products = () => {
     }
   }, [error]);
 
-  // Filtered products based on search
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.Category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Pagination logic
-  const totalPages = filteredProducts.pagination.totalPages;
+  const handleSearchChange = (searchTerm) => {
+    setFilters({ search: searchTerm });
+    setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page on search
+  };
 
   const handlePageChange = (page) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
+    setPagination(prev => ({ ...prev, page }));
   };
 
   const handleEdit = (product, supplierItem) => {
@@ -128,11 +132,8 @@ const Products = () => {
                 type="text"
                 placeholder="Search products..."
                 className="block w-full pl-10 pr-3 py-2 md:py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm md:text-base"
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setCurrentPage(1); // Reset to first page on search
-                }}
+                value={filters.search}
+                onChange={(e) => handleSearchChange(e.target.value)}
               />
             </div>
             <button
@@ -148,8 +149,8 @@ const Products = () => {
         <div className="bg-white rounded-lg md:rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <ProductsList
             isLoading={isLoading}
-            filteredProducts={filteredProducts} // Use paginated products
-            searchTerm={searchTerm}
+            filteredProducts={products} // Use products from server response
+            searchTerm={filters.search}
             handleEdit={handleEdit}
             handleDelete={handleDelete}
             handleToggleStatus={handleToggleStatus}
@@ -157,15 +158,15 @@ const Products = () => {
           />
         </div>
 
-        {/* Pagination */}
-      
+        {/* Pagination - Use server pagination data */}
+        {serverPagination.totalPages > 1 && (
           <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
+            currentPage={pagination.page}
+            totalPages={serverPagination.totalPages || 1}
             onPageChange={handlePageChange}
             className="mt-4"
           />
-       
+        )}
 
         {showCreateModal && (
           <AddProduct

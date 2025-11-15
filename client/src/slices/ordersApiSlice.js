@@ -2,20 +2,28 @@ import { apiSlice } from "./apiSlice";
 
 const ORDER_URL = "/orders";
 
-const ordersApiSlice = apiSlice.injectEndpoints({
+export const ordersEndpoints = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
         // GET ${ORDER_URL}
         getAllOrders: builder.query({
-            query: ({ search, range, status, startDate, endDate, product_id, supplier_id, limit, page }) => {
+            query: ({
+                search,
+                range,
+                status,
+                payment_status,
+                product_id,
+                supplier_id,
+                limit = 10,
+                page = 1
+            } = {}) => {
                 const params = new URLSearchParams();
 
                 if (search) params.append("search", search);
                 if (range) params.append("range", range);
-                if (startDate) params.append("startDate", startDate);
-                if (endDate) params.append("endDate", startDate);
+                if (status) params.append("status", status);
+                if (payment_status) params.append("payment_status", payment_status);
                 if (product_id) params.append("product_id", product_id);
                 if (supplier_id) params.append("supplier_id", supplier_id);
-                if (status) params.append("status", status);
                 if (page) params.append("page", page);
                 if (limit) params.append("limit", limit);
 
@@ -24,27 +32,27 @@ const ordersApiSlice = apiSlice.injectEndpoints({
                     method: "GET",
                 };
             },
-            providesTags: ["order"],
+            providesTags: ["Order"],
         }),
 
-        // POST ${ORDER_URL}
+        // POST ${ORDER_URL}/checkout
         checkoutOrder: builder.mutation({
             query: (data) => ({
                 url: `${ORDER_URL}/checkout`,
                 method: "POST",
                 body: data,
             }),
-            invalidatesTags: ["order", "cart"],
+            invalidatesTags: ["Order", "Cart"],
         }),
 
-        // PUT ${ORDER_URL}/:id
+        // PUT ${ORDER_URL}/:id/status
         updateOrderStatus: builder.mutation({
             query: ({ id, ...data }) => ({
                 url: `${ORDER_URL}/${id}/status`,
                 method: "PUT",
                 body: data,
             }),
-            invalidatesTags: ["order"],
+            invalidatesTags: ["Order"],
         }),
 
         // GET ${ORDER_URL}/my-orders
@@ -53,7 +61,7 @@ const ordersApiSlice = apiSlice.injectEndpoints({
                 url: `${ORDER_URL}/my-orders`,
                 method: "GET",
             }),
-            providesTags: ["order"],
+            providesTags: ["Order"],
         }),
 
         // GET ${ORDER_URL}/:id
@@ -62,7 +70,7 @@ const ordersApiSlice = apiSlice.injectEndpoints({
                 url: `${ORDER_URL}/${orderId}`,
                 method: "GET",
             }),
-            providesTags: (result, error, orderId) => [{ type: "order", orderId }],
+            providesTags: (result, error, orderId) => [{ type: "Order", id: orderId }],
         }),
 
         // GET ${ORDER_URL}/stats
@@ -78,7 +86,7 @@ const ordersApiSlice = apiSlice.injectEndpoints({
                     method: "GET",
                 };
             },
-            providesTags: ["order"],
+            providesTags: ["Order"],
         }),
     }),
 });
@@ -90,5 +98,4 @@ export const {
     useGetMyOrdersQuery,
     useGetOrderDetailsQuery,
     useGetOrderStatsQuery
-
-} = ordersApiSlice;
+} = ordersEndpoints;

@@ -2,7 +2,7 @@ import { apiSlice } from '../slices/apiSlice';
 
 const WISHLIST_URL = '/wishlist';
 
-const wishlistApiSlice = apiSlice.injectEndpoints({
+const wishlistEndpoints = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
         getWishlist: builder.query({
             query: () => ({
@@ -58,4 +58,4 @@ export const {
     useClearWishlistMutation,
     useCheckWishlistItemQuery,
     useUpdateWishlistItemMutation,
-} = wishlistApiSlice;
+} = wishlistEndpoints;

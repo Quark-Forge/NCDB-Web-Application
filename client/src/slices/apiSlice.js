@@ -12,9 +12,7 @@ const baseQuery = fetchBaseQuery({
         }
 
         // IMPORTANT: Don't set Content-Type for upload endpoints
-        // Let the browser set it automatically with boundary for FormData
         if (endpoint && endpoint.includes('upload')) {
-            // Remove any existing Content-Type header
             headers.delete('Content-Type');
             return headers;
         }
@@ -29,6 +27,20 @@ const baseQuery = fetchBaseQuery({
 
 export const apiSlice = createApi({
     baseQuery,
-    tagTypes: ['User', 'Product', 'Category', 'Role', 'Cart', 'Supplier-item', 'Upload'],
+    tagTypes: [
+        'User',
+        'Product',
+        'Category',
+        'Role',
+        'Cart',
+        'Supplier-item',
+        'Upload',
+        'Order',
+        'Payment',
+        'Purchase',
+        'ShippingAddress',
+        'ShippingCost',
+        'Wishlist'
+    ],
     endpoints: (builder) => ({})
 });
