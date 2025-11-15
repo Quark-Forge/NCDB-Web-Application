@@ -2,7 +2,7 @@
 import './cartApiSlice';
 import './categoryApiSlice';
 import './ProductsApiSlice';
-import './purchaseApiSlice';
+import './PurchaseApiSlice';
 import './rolesApiSlice';
 import './shippingAddressApiSlice';
 import './shippingCostApiSlice';
