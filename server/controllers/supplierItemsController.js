@@ -62,6 +62,51 @@ export const getSupplierItemById = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    Get current supplier's items
+// @route   GET /api/supplier-items/my-items
+// @access  Private (Supplier)
+export const getMySupplierItems = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+
+  // Find the supplier associated with this user
+  const supplier = await Supplier.findOne({
+    where: { user_id: userId }
+  });
+
+  if (!supplier) {
+    res.status(404);
+    throw new Error('Supplier profile not found');
+  }
+
+  // Get only this supplier's items
+  const supplierItems = await SupplierItem.findAll({
+    where: { supplier_id: supplier.id },
+    include: [
+      {
+        model: Product,
+        attributes: ['id', 'name', 'description', 'category']
+      },
+      {
+        model: Supplier,
+        attributes: ['id', 'company_name', 'email']
+      }
+    ],
+    order: [['created_at', 'DESC']]
+  });
+
+  res.json({
+    success: true,
+    data: {
+      supplierItems,
+      supplier: {
+        id: supplier.id,
+        company_name: supplier.company_name
+      }
+    },
+    count: supplierItems.length
+  });
+});
+
 // Get low stock products (stock level below threshold)
 export const getLowStockProducts = asyncHandler(async (req, res) => {
   try {

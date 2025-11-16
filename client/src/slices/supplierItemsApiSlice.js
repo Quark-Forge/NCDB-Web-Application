@@ -11,6 +11,12 @@ export const supplierItemsEndpoints = apiSlice.injectEndpoints({
             providesTags: ['supplier-item'],
         }),
 
+        // GET current supplier's own items (SUPPLIERS ONLY)
+        getMySupplierItems: builder.query({
+            query: () => `${SUPPLIER_ITEMS_URL}/my-items`,
+            providesTags: ['SupplierItem'],
+        }),
+
         // GET single supplier item by ID
         getSupplierItemById: builder.query({
             query: (id) => `${SUPPLIER_ITEMS_URL}/${id}`,
@@ -57,6 +63,7 @@ export const supplierItemsEndpoints = apiSlice.injectEndpoints({
 
 export const {
     useGetSupplierItemsQuery,
+    useGetMySupplierItemsQuery,
     useGetSupplierItemByIdQuery,
     useDeleteSupplierItemMutation,
     useGetLowStockItemsQuery,

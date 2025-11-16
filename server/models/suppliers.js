@@ -59,6 +59,16 @@ export default (sequelize) => {
                 }
             }
         },
+        user_id: {
+            type: DataTypes.UUID,
+            allowNull: true, // Keep as true until all suppliers have user accounts
+            references: {
+                model: 'users',
+                key: 'id'
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'RESTRICT'
+        },
     }, {
         tableName: 'suppliers',
         timestamps: true,
@@ -67,6 +77,12 @@ export default (sequelize) => {
     });
 
     Supplier.associate = (models) => {
+        // User relationship
+         Supplier.belongsTo(models.User, {
+            foreignKey: 'user_id',
+            as: 'user'
+        });
+
         // Product many-to-many relationship
         Supplier.belongsToMany(models.Product, {
             through: models.SupplierItem,

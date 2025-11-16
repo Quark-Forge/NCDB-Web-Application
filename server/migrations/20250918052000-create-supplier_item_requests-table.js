@@ -18,7 +18,7 @@ module.exports = {
           key: 'id'
         },
         onUpdate: 'CASCADE',
-        onDelete: 'SET NULL'
+        onDelete: 'RESTRICT'
       },
       supplier_id: {
         type: Sequelize.UUID,
@@ -89,17 +89,15 @@ module.exports = {
       }
     });
 
+    // Add indexes for better performance
+    await queryInterface.addIndex('supplier_item_requests', ['supplier_item_id']);
+    await queryInterface.addIndex('supplier_item_requests', ['supplier_id']);
+    await queryInterface.addIndex('supplier_item_requests', ['created_by']);
+    await queryInterface.addIndex('supplier_item_requests', ['status']);
   },
 
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable('supplier_item_requests');
 
-    // Remove the ENUM type
-    await queryInterface.sequelize.query(
-      'DROP TYPE IF EXISTS "enum_supplier_item_requests_urgency";'
-    );
-    await queryInterface.sequelize.query(
-      'DROP TYPE IF EXISTS "enum_supplier_item_requests_status";'
-    );
   }
 };

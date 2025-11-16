@@ -78,6 +78,12 @@ export default (sequelize) => {
       onDelete: 'RESTRICT'
     });
 
+    // Supplier relationship
+    User.hasOne(models.Supplier, {
+        foreignKey: 'user_id',
+        as: 'supplier'
+    });
+
     // Address relationship
     User.hasMany(models.Address, {
       foreignKey: 'user_id',
