@@ -69,6 +69,7 @@ const InventoryTable = ({ stock, filters }) => {
     if (!selectedProduct) return;
 
     try {
+      
       await updateSupplierItem({
         supplier_id: selectedProduct.supplierId,
         product_id: selectedProduct.productId,

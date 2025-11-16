@@ -43,10 +43,11 @@ const Inventory = () => {
     productId: p.Product?.id,
     productName: p.Product?.name,
     stockLevel: p.stock_level,
-    supplierId: p.Supplier?.supplier_id,
+    supplierId: p.supplier_id,
     supplierSku: p.supplier_sku,
     supplierName: p.Supplier?.name || 'Unknown Supplier'
   }));
+  
 
   return (
     <div className="space-y-6">

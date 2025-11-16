@@ -1,5 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import { SupplierItem, SupplierItemRequest, User, Supplier } from '../models/index.js';
+import { Op } from 'sequelize';
 
 // @desc    Create a new supplier item request
 // @route   POST /api/supplier-item-requests
@@ -52,7 +53,7 @@ export const createSupplierItemRequest = asyncHandler(async (req, res) => {
         ]
     });
 
-    // Send notification to supplier (you'll need to implement this)
+    // Send notification to supplier
     try {
         await sendNotificationToSupplier(populatedRequest);
     } catch (emailError) {
@@ -67,57 +68,174 @@ export const createSupplierItemRequest = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Get all supplier item requests
+// @desc    Get all supplier item requests (FOR ADMINS/MANAGERS)
 // @route   GET /api/supplier-item-requests
-// @access  Private (Admin, Inventory Manager, Supplier - only their own)
+// @access  Private (Admin, Inventory Manager)
 export const getSupplierItemRequests = asyncHandler(async (req, res) => {
-    const { status, supplier_id } = req.query;
+    const { status, page, limit, supplier_id, search } = req.query;
     const userRole = req.user.role?.name;
-    const userId = req.user.id;
 
     let whereClause = {};
-    let includeClause = [
-        {
-            model: SupplierItem,
-            include: [Supplier]
-        },
-        {
-            model: User,
-            attributes: ['id', 'name', 'email']
-        }
-    ];
 
     // Filter by status if provided
     if (status && ['pending', 'approved', 'rejected', 'cancelled'].includes(status)) {
         whereClause.status = status;
     }
 
-    // Filter by supplier if provided (for admins/managers)
-    if (supplier_id && (userRole === 'Admin' || userRole === 'Inventory Manager')) {
+    // Handle search
+    if (search) {
+        whereClause[Op.or] = [
+            { '$SupplierItem.name$': { [Op.like]: `%${search}%` } },
+            { '$SupplierItem.description$': { [Op.like]: `%${search}%` } },
+            { '$SupplierItem.Supplier.company_name$': { [Op.like]: `%${search}%` } },
+            { '$User.name$': { [Op.like]: `%${search}%` } },
+            { notes_from_requester: { [Op.like]: `%${search}%` } }
+        ];
+    }
+
+    // Admins/Managers can filter by specific supplier if provided
+    if (supplier_id) {
         whereClause.supplier_id = supplier_id;
     }
 
-    // If user is a supplier, only show their own requests
-    if (userRole === 'Supplier') {
-        const supplier = await Supplier.findOne({ where: { user_id: userId } });
-        if (supplier) {
-            whereClause.supplier_id = supplier.id;
-        } else {
-            res.status(403);
-            throw new Error('Supplier profile not found');
-        }
-    }
+    // Pagination
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 10;
+    const offset = (pageNum - 1) * limitNum;
 
-    const requests = await SupplierItemRequest.findAll({
+    const { count, rows: requests } = await SupplierItemRequest.findAndCountAll({
         where: whereClause,
-        include: includeClause,
-        order: [['created_at', 'DESC']]
+        include: [
+            {
+                model: SupplierItem,
+                include: [Supplier]
+            },
+            {
+                model: User,
+                attributes: ['id', 'name', 'email']
+            }
+        ],
+        order: [['created_at', 'DESC']],
+        limit: limitNum,
+        offset: offset,
+        distinct: true
     });
 
     res.json({
         success: true,
-        count: requests.length,
-        data: requests
+        data: requests,
+        count: count,
+        pagination: {
+            page: pageNum,
+            limit: limitNum,
+            totalPages: Math.ceil(count / limitNum)
+        }
+    });
+});
+
+// @desc    Get supplier's own requests (FOR SUPPLIERS)
+// @route   GET /api/supplier-item-requests/my-requests
+// @access  Private (Supplier)
+export const getMySupplierItemRequests = asyncHandler(async (req, res) => {
+    const { status, page, limit, search } = req.query;
+    const userId = req.user.id;
+
+    // Get user details first
+    const user = await User.findByPk(userId);
+    if (!user) {
+        res.status(403);
+        throw new Error('User not found');
+    }
+        console.log('email',user.email);
+    // Find supplier by email (since suppliers have email field)
+    const supplier = await Supplier.findOne({
+        where: {
+            email: user.email
+        }
+    });
+
+    console.log('supplier',supplier);
+    
+
+    if (!supplier) {
+        res.status(403);
+        throw new Error(`Supplier profile not found for email: ${user.email}. Please ensure your user email matches a supplier email.`);
+    }
+
+    let whereClause = {
+        supplier_id: supplier.id // Only show requests for this supplier
+    };
+
+    // Filter by status if provided
+    if (status && status !== 'all' && ['pending', 'approved', 'rejected', 'cancelled'].includes(status)) {
+        whereClause.status = status;
+    }
+
+    // Handle search
+    if (search) {
+        whereClause[Op.or] = [
+            { '$SupplierItem.name$': { [Op.like]: `%${search}%` } },
+            { '$SupplierItem.description$': { [Op.like]: `%${search}%` } },
+            { '$User.name$': { [Op.like]: `%${search}%` } },
+            { notes_from_requester: { [Op.like]: `%${search}%` } }
+        ];
+    }
+
+    // Pagination
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 10;
+    const offset = (pageNum - 1) * limitNum;
+
+    const { count, rows: requests } = await SupplierItemRequest.findAndCountAll({
+        where: whereClause,
+        include: [
+            {
+                model: SupplierItem,
+                include: [Supplier]
+            },
+            {
+                model: User,
+                attributes: ['id', 'name', 'email']
+            }
+        ],
+        order: [['created_at', 'DESC']],
+        limit: limitNum,
+        offset: offset,
+        distinct: true
+    });
+
+    // Get stats for supplier dashboard
+    const stats = await SupplierItemRequest.findAll({
+        where: { supplier_id: supplier.id },
+        attributes: [
+            'status',
+            [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+        ],
+        group: ['status'],
+        raw: true
+    });
+
+    const formattedStats = stats.reduce((acc, curr) => {
+        acc[curr.status] = parseInt(curr.count);
+        acc.total = (acc.total || 0) + parseInt(curr.count);
+        return acc;
+    }, {});
+
+    res.json({
+        success: true,
+        data: requests,
+        count: count,
+        stats: formattedStats,
+        supplier: {
+            id: supplier.id,
+            name: supplier.name,
+            email: supplier.email
+        },
+        pagination: {
+            page: pageNum,
+            limit: limitNum,
+            totalPages: Math.ceil(count / limitNum)
+        }
     });
 });
 
@@ -149,7 +267,20 @@ export const getSupplierItemRequestById = asyncHandler(async (req, res) => {
 
     // Authorization check for suppliers
     if (userRole === 'Supplier') {
-        const supplier = await Supplier.findOne({ where: { user_id: userId } });
+        // Get user details first
+        const user = await User.findByPk(userId);
+        if (!user) {
+            res.status(403);
+            throw new Error('User not found');
+        }
+
+        // Find supplier by email
+        const supplier = await Supplier.findOne({
+            where: {
+                email: user.email
+            }
+        });
+
         if (!supplier || request.supplier_id !== supplier.id) {
             res.status(403);
             throw new Error('Not authorized to access this request');
@@ -170,8 +301,22 @@ export const updateSupplierItemRequestStatus = asyncHandler(async (req, res) => 
     const { status, rejection_reason, supplier_quote, notes_from_supplier } = req.body;
     const userId = req.user.id;
 
-    // Verify user is a supplier
-    const supplier = await Supplier.findOne({ where: { user_id: userId } });
+    // Get user details first
+    const user = await User.findByPk(userId);
+    if (!user) {
+        res.status(403);
+        throw new Error('User not found');
+    }
+
+    
+
+    // Find supplier by email
+    const supplier = await Supplier.findOne({
+        where: {
+            email: user.email
+        }
+    });
+
     if (!supplier) {
         res.status(403);
         throw new Error('Only suppliers can update request status');
@@ -218,27 +363,48 @@ export const updateSupplierItemRequestStatus = asyncHandler(async (req, res) => 
         throw new Error('Rejection reason is required when rejecting a request');
     }
 
+    // Validate supplier quote for approval
+    if (status === 'approved' && !supplier_quote) {
+        res.status(400);
+        throw new Error('Supplier quote is required when approving a request');
+    }
+
     // Update the request
-    request.status = status;
-    if (rejection_reason) request.rejection_reason = rejection_reason;
-    if (supplier_quote) request.supplier_quote = supplier_quote;
-    if (notes_from_supplier) request.notes_from_supplier = notes_from_supplier;
+    const updateData = {
+        status,
+        ...(rejection_reason && { rejection_reason }),
+        ...(supplier_quote && { supplier_quote: parseFloat(supplier_quote) }),
+        ...(notes_from_supplier && { notes_from_supplier })
+    };
 
-    await request.save();
+    await SupplierItemRequest.update(updateData, {
+        where: { id }
+    });
 
-    // Refresh to get updated data
-    await request.reload();
+    // Get updated request
+    const updatedRequest = await SupplierItemRequest.findByPk(id, {
+        include: [
+            {
+                model: SupplierItem,
+                include: [Supplier]
+            },
+            {
+                model: User,
+                attributes: ['id', 'name', 'email']
+            }
+        ]
+    });
 
     // Send notification to requester
     try {
-        await sendStatusUpdateNotification(request);
+        await sendStatusUpdateNotification(updatedRequest);
     } catch (emailError) {
         console.error('Failed to send status update notification:', emailError);
     }
 
     res.json({
         success: true,
-        data: request,
+        data: updatedRequest,
         message: `Request ${status} successfully`
     });
 });
@@ -251,7 +417,18 @@ export const cancelSupplierItemRequest = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role?.name;
 
-    const request = await SupplierItemRequest.findByPk(id);
+    const request = await SupplierItemRequest.findByPk(id, {
+        include: [
+            {
+                model: SupplierItem,
+                include: [Supplier]
+            },
+            {
+                model: User,
+                attributes: ['id', 'name', 'email']
+            }
+        ]
+    });
 
     if (!request) {
         res.status(404);
@@ -274,12 +451,28 @@ export const cancelSupplierItemRequest = asyncHandler(async (req, res) => {
         throw new Error('Only pending requests can be cancelled');
     }
 
-    request.status = 'cancelled';
-    await request.save();
+    await SupplierItemRequest.update(
+        { status: 'cancelled' },
+        { where: { id } }
+    );
+
+    // Get updated request
+    const updatedRequest = await SupplierItemRequest.findByPk(id, {
+        include: [
+            {
+                model: SupplierItem,
+                include: [Supplier]
+            },
+            {
+                model: User,
+                attributes: ['id', 'name', 'email']
+            }
+        ]
+    });
 
     res.json({
         success: true,
-        data: request,
+        data: updatedRequest,
         message: 'Request cancelled successfully'
     });
 });
@@ -303,11 +496,80 @@ export const deleteSupplierItemRequest = asyncHandler(async (req, res) => {
         throw new Error('Supplier item request not found');
     }
 
-    await request.destroy();
+    await SupplierItemRequest.destroy({
+        where: { id }
+    });
 
     res.json({
         success: true,
         message: 'Supplier item request deleted successfully'
+    });
+});
+
+// @desc    Get request statistics
+// @route   GET /api/supplier-item-requests/statistics
+// @access  Private
+export const getRequestStatistics = asyncHandler(async (req, res) => {
+    const userRole = req.user.role?.name;
+    const userId = req.user.id;
+
+    let whereClause = {};
+
+    // Apply supplier filter if user is a supplier
+    if (userRole === 'Supplier') {
+        // Get user details first
+        const user = await User.findByPk(userId);
+        if (!user) {
+            res.status(403);
+            throw new Error('User not found');
+        }
+
+        // Find supplier by email
+        const supplier = await Supplier.findOne({
+            where: {
+                email: user.email
+            }
+        });
+
+        if (supplier) {
+            whereClause.supplier_id = supplier.id;
+        }
+    }
+
+    // Get status counts
+    const statusCounts = await SupplierItemRequest.findAll({
+        where: whereClause,
+        attributes: [
+            'status',
+            [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+        ],
+        group: ['status'],
+        raw: true
+    });
+
+    // Calculate revenue from approved requests
+    const revenueResult = await SupplierItemRequest.findOne({
+        where: {
+            ...whereClause,
+            status: 'approved'
+        },
+        attributes: [
+            [sequelize.fn('SUM', sequelize.col('supplier_quote')), 'totalRevenue']
+        ],
+        raw: true
+    });
+
+    const stats = statusCounts.reduce((acc, curr) => {
+        acc[curr.status] = parseInt(curr.count);
+        acc.total = (acc.total || 0) + parseInt(curr.count);
+        return acc;
+    }, {});
+
+    stats.totalRevenue = parseFloat(revenueResult?.totalRevenue || 0);
+
+    res.json({
+        success: true,
+        data: stats
     });
 });
 
@@ -316,12 +578,17 @@ const sendNotificationToSupplier = async (request) => {
     // Implement your email notification logic here
     const supplier = request.SupplierItem?.Supplier;
     if (supplier && supplier.email) {
+        console.log(`Sending notification to supplier: ${supplier.name}`);
+        console.log(`Request details: ${request.quantity} x ${request.SupplierItem?.name}`);
+
+        // Uncomment and implement your actual email service:
+        /*
         await sendEmailNotification({
             to: supplier.email,
             subject: 'New Item Request Received',
             template: 'new-request-notification',
             data: {
-                supplierName: supplier.company_name,
+                supplierName: supplier.name,
                 itemName: request.SupplierItem?.name,
                 quantity: request.quantity,
                 urgency: request.urgency,
@@ -329,6 +596,7 @@ const sendNotificationToSupplier = async (request) => {
                 requestId: request.id
             }
         });
+        */
     }
 };
 
@@ -336,6 +604,11 @@ const sendNotificationToSupplier = async (request) => {
 const sendStatusUpdateNotification = async (request) => {
     const requester = await User.findByPk(request.created_by);
     if (requester && requester.email) {
+        console.log(`Sending status update to requester: ${requester.name}`);
+        console.log(`Status: ${request.status} for request ID: ${request.id}`);
+
+        // Uncomment and implement your actual email service:
+        /*
         await sendEmailNotification({
             to: requester.email,
             subject: `Your Item Request has been ${request.status}`,
@@ -349,5 +622,6 @@ const sendStatusUpdateNotification = async (request) => {
                 requestId: request.id
             }
         });
+        */
     }
 };

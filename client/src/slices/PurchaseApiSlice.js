@@ -1,18 +1,18 @@
-import { apiSlice } from './apiSlice';
+import { apiSlice } from "./apiSlice";
 
 const SUPPLIER_ITEM_REQUESTS_URL = '/supplier-item-requests';
 
 export const purchaseEndpoints = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    // GET /api/supplier-item-requests
-    getSupplierItemRequests: builder.query({
-      query: ({ status, supplier_id, page, limit, search } = {}) => {
-        const params = new URLSearchParams();
 
-        if (status && status !== 'all') params.append('status', status);
-        if (supplier_id) params.append('supplier_id', supplier_id);
+    // GET all supplier item requests (for admins/managers)
+    getSupplierItemRequests: builder.query({
+      query: ({ status, page, limit, supplier_id, search } = {}) => {
+        const params = new URLSearchParams();
+        if (status) params.append('status', status);
         if (page) params.append('page', page);
         if (limit) params.append('limit', limit);
+        if (supplier_id) params.append('supplier_id', supplier_id);
         if (search) params.append('search', search);
 
         return {
@@ -20,72 +20,79 @@ export const purchaseEndpoints = apiSlice.injectEndpoints({
           method: 'GET',
         };
       },
-      providesTags: ['Purchase'],
+      providesTags: ['SupplierItemRequest'],
     }),
 
-    // GET /api/supplier-item-requests/supplier/my-requests
+    // GET supplier's own requests (for suppliers)
     getMySupplierItemRequests: builder.query({
-      query: ({ status, page, limit } = {}) => {
+      query: ({ status, page, limit, search } = {}) => {
         const params = new URLSearchParams();
-
         if (status && status !== 'all') params.append('status', status);
         if (page) params.append('page', page);
         if (limit) params.append('limit', limit);
+        if (search) params.append('search', search);
 
         return {
-          url: `${SUPPLIER_ITEM_REQUESTS_URL}/supplier/my-requests?${params.toString()}`,
+          url: `${SUPPLIER_ITEM_REQUESTS_URL}/my-requests?${params.toString()}`,
           method: 'GET',
         };
       },
-      providesTags: ['Purchase'],
+      providesTags: ['SupplierItemRequest'],
     }),
 
-    // GET /api/supplier-item-requests/:id
+    // GET single supplier item request
     getSupplierItemRequestById: builder.query({
-      query: (id) => ({
-        url: `${SUPPLIER_ITEM_REQUESTS_URL}/${id}`,
-        method: 'GET',
-      }),
-      providesTags: ['Purchase'],
+      query: (id) => `${SUPPLIER_ITEM_REQUESTS_URL}/${id}`,
+      providesTags: (result, error, id) => [{ type: 'SupplierItemRequest', id }],
     }),
 
-    // POST /api/supplier-item-requests
+    // CREATE supplier item request
     createSupplierItemRequest: builder.mutation({
       query: (data) => ({
         url: SUPPLIER_ITEM_REQUESTS_URL,
         method: 'POST',
         body: data,
       }),
-      invalidatesTags: ['Purchase'],
+      invalidatesTags: ['SupplierItemRequest'],
     }),
 
-    // PUT /api/supplier-item-requests/:id/status
+    // UPDATE request status (for suppliers)
     updateSupplierItemRequestStatus: builder.mutation({
       query: ({ id, ...data }) => ({
         url: `${SUPPLIER_ITEM_REQUESTS_URL}/${id}/status`,
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: ['Purchase'],
+      invalidatesTags: ['SupplierItemRequest'],
     }),
 
-    // PUT /api/supplier-item-requests/:id/cancel
+    // CANCEL request (for admins/managers)
     cancelSupplierItemRequest: builder.mutation({
       query: (id) => ({
         url: `${SUPPLIER_ITEM_REQUESTS_URL}/${id}/cancel`,
         method: 'PUT',
       }),
-      invalidatesTags: ['Purchase'],
+      invalidatesTags: ['SupplierItemRequest'],
     }),
 
-    // DELETE /api/supplier-item-requests/:id
+    // DELETE request (admin only)
     deleteSupplierItemRequest: builder.mutation({
       query: (id) => ({
         url: `${SUPPLIER_ITEM_REQUESTS_URL}/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['Purchase'],
+      invalidatesTags: ['SupplierItemRequest'],
     }),
+
+    // GET request statistics
+    getRequestStatistics: builder.query({
+      query: () => ({
+        url: `${SUPPLIER_ITEM_REQUESTS_URL}/statistics`,
+        method: 'GET',
+      }),
+      providesTags: ['SupplierItemRequest'],
+    }),
+
   }),
 });
 
@@ -97,4 +104,5 @@ export const {
   useUpdateSupplierItemRequestStatusMutation,
   useCancelSupplierItemRequestMutation,
   useDeleteSupplierItemRequestMutation,
+  useGetRequestStatisticsQuery,
 } = purchaseEndpoints;

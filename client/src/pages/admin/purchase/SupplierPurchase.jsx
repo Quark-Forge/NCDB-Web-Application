@@ -24,7 +24,7 @@ import ErrorMessage from '../../../components/common/ErrorMessage';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import Pagination from '../../../components/common/Pagination';
 import Table from '../../../components/common/Table';
-import StatusUpdateModal from '../../../components/supplier/purchase/StatusUpdateModal';
+import StatusUpdateModal from '../../../components/supplier/requests/StatusUpdateModal';
 
 const SupplierPurchases = () => {
     const [page, setPage] = useState(1);

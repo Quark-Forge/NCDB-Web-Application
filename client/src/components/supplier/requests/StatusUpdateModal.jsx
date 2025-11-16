@@ -1,8 +1,6 @@
-// StatusUpdateModal.jsx
 import { useState } from 'react';
-import { X, DollarSign, FileText } from 'lucide-react';
+import { X, DollarSign, FileText, AlertCircle } from 'lucide-react';
 import Button from '../../common/Button';
-import Card from '../../common/Card';
 
 const StatusUpdateModal = ({ isOpen, onClose, request, action, onConfirm }) => {
     const [formData, setFormData] = useState({
@@ -10,11 +8,27 @@ const StatusUpdateModal = ({ isOpen, onClose, request, action, onConfirm }) => {
         rejection_reason: '',
         notes_from_supplier: ''
     });
+    const [errors, setErrors] = useState({});
 
     if (!isOpen) return null;
 
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        // Validate form
+        const newErrors = {};
+        if (action === 'approve' && !formData.supplier_quote) {
+            newErrors.supplier_quote = 'Supplier quote is required';
+        }
+        if (action === 'reject' && !formData.rejection_reason) {
+            newErrors.rejection_reason = 'Rejection reason is required';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
         onConfirm(request.id, action === 'approve' ? 'approved' : 'rejected', formData);
     };
 
@@ -24,6 +38,23 @@ const StatusUpdateModal = ({ isOpen, onClose, request, action, onConfirm }) => {
             ...prev,
             [name]: value
         }));
+        // Clear error when user starts typing
+        if (errors[name]) {
+            setErrors(prev => ({
+                ...prev,
+                [name]: ''
+            }));
+        }
+    };
+
+    const getTitle = () => {
+        return action === 'approve' ? 'Approve Request' : 'Reject Request';
+    };
+
+    const getDescription = () => {
+        return action === 'approve'
+            ? 'Please provide the quote and any additional notes for this request.'
+            : 'Please provide a reason for rejecting this request.';
     };
 
     return (
@@ -32,7 +63,7 @@ const StatusUpdateModal = ({ isOpen, onClose, request, action, onConfirm }) => {
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
                     <h2 className="text-xl font-semibold text-gray-900">
-                        {action === 'approve' ? 'Approve Request' : 'Reject Request'}
+                        {getTitle()}
                     </h2>
                     <button
                         onClick={onClose}
@@ -61,7 +92,9 @@ const StatusUpdateModal = ({ isOpen, onClose, request, action, onConfirm }) => {
                         {request?.notes_from_requester && (
                             <div>
                                 <span>Requester Notes:</span>
-                                <p className="text-gray-500 mt-1">{request.notes_from_requester}</p>
+                                <p className="text-gray-500 mt-1 text-xs bg-gray-50 p-2 rounded">
+                                    {request.notes_from_requester}
+                                </p>
                             </div>
                         )}
                     </div>
@@ -73,7 +106,7 @@ const StatusUpdateModal = ({ isOpen, onClose, request, action, onConfirm }) => {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 <DollarSign className="h-4 w-4 inline mr-1" />
-                                Supplier Quote (LKR)
+                                Supplier Quote (LKR) *
                             </label>
                             <input
                                 type="number"
@@ -83,9 +116,15 @@ const StatusUpdateModal = ({ isOpen, onClose, request, action, onConfirm }) => {
                                 step="0.01"
                                 min="0"
                                 placeholder="Enter quote amount"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                required
+                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.supplier_quote ? 'border-red-500' : 'border-gray-300'
+                                    }`}
                             />
+                            {errors.supplier_quote && (
+                                <p className="text-red-500 text-sm mt-1 flex items-center">
+                                    <AlertCircle className="h-4 w-4 mr-1" />
+                                    {errors.supplier_quote}
+                                </p>
+                            )}
                         </div>
                     )}
 
@@ -100,9 +139,15 @@ const StatusUpdateModal = ({ isOpen, onClose, request, action, onConfirm }) => {
                                 onChange={handleInputChange}
                                 rows={3}
                                 placeholder="Please provide a reason for rejecting this request..."
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                                required
+                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${errors.rejection_reason ? 'border-red-500' : 'border-gray-300'
+                                    }`}
                             />
+                            {errors.rejection_reason && (
+                                <p className="text-red-500 text-sm mt-1 flex items-center">
+                                    <AlertCircle className="h-4 w-4 mr-1" />
+                                    {errors.rejection_reason}
+                                </p>
+                            )}
                         </div>
                     )}
 
