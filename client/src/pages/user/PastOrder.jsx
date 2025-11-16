@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { useGetMyOrdersQuery } from "../../slices/ordersApiSlice";
+import { useGetMyOrdersQuery, useCancelUserOrderMutation } from "../../slices/ordersApiSlice";
 import { useAddToCartMutation } from "../../slices/cartApiSlice";
 import {
   Copy,
@@ -12,13 +12,17 @@ import {
   RefreshCw,
   AlertCircle,
   Check,
-  XCircle
+  XCircle,
+  Ban
 } from "lucide-react";
 import { toast } from "react-toastify";
+import DeleteConfirmation from "../../components/common/DeleteConfirmation";
 
 function OrderCard({ order }) {
   const [addToCart, { isLoading: isAddingToCart }] = useAddToCartMutation();
+  const [cancelOrder, { isLoading: isCancelling }] = useCancelUserOrderMutation();
   const [addedItems, setAddedItems] = useState(new Set());
+  const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
 
   const formatDate = (dateString) => {
     if (!dateString) return "Not available";
@@ -47,6 +51,32 @@ function OrderCard({ order }) {
       case 'delivered': return 'text-green-600 bg-green-50 border-green-200';
       case 'cancelled': return 'text-red-600 bg-red-50 border-red-200';
       default: return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
+  };
+
+  // Check if order can be cancelled (only before shipping)
+  const canCancelOrder = () => {
+    const cancellableStatuses = ['pending', 'confirmed']; // Only these statuses can be cancelled
+    return cancellableStatuses.includes(order.status);
+  };
+
+  const handleCancelOrder = async () => {
+    if (!canCancelOrder()) {
+      toast.error('This order cannot be cancelled as it has already been shipped.');
+      return;
+    }
+
+    setShowCancelConfirmation(true);
+  };
+
+  const confirmCancelOrder = async () => {
+    try {
+      await cancelOrder(order.id).unwrap();
+      toast.success('Order cancelled successfully!');
+      setShowCancelConfirmation(false);
+    } catch (error) {
+      console.error('Error cancelling order:', error);
+      toast.error(error.data?.message || 'Failed to cancel order. Please try again.');
     }
   };
 
@@ -80,101 +110,140 @@ function OrderCard({ order }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6 shadow-sm hover:shadow-md transition-shadow">
-      {/* Order Header */}
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex items-center gap-3">
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${getStatusColor(order.status)}`}>
-            {getStatusIcon(order.status)}
-            <span className="text-sm font-medium capitalize">
-              {order.status}
-            </span>
+    <>
+      <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6 shadow-sm hover:shadow-md transition-shadow">
+        {/* Order Header */}
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex items-center gap-3">
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${getStatusColor(order.status)}`}>
+              {getStatusIcon(order.status)}
+              <span className="text-sm font-medium capitalize">
+                {order.status}
+              </span>
+            </div>
+            <span className="text-sm text-gray-500">•</span>
+            <div className="flex items-center gap-1 text-gray-500">
+              <Calendar className="w-4 h-4" />
+              <span className="text-sm">{formatDate(order.order_date || order.createdAt)}</span>
+            </div>
           </div>
-          <span className="text-sm text-gray-500">•</span>
-          <div className="flex items-center gap-1 text-gray-500">
-            <Calendar className="w-4 h-4" />
-            <span className="text-sm">{formatDate(order.order_date || order.createdAt)}</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={copyOrderId}
+              className="flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <Copy className="w-4 h-4" />
+              <span className="text-sm">Copy ID</span>
+            </button>
           </div>
         </div>
-        <button
-          onClick={copyOrderId}
-          className="flex items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          <Copy className="w-4 h-4" />
-          <span className="text-sm">Copy ID</span>
-        </button>
-      </div>
 
-      {/* Order Items */}
-      <div className="space-y-4 mb-4">
-        {order.OrderItems?.map((item, index) => (
-          <div key={index} className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
-            <img
-              src={item.Product?.base_image_url || '../../images/product.png'}
-              alt={item.Product?.name || "Product"}
-              className="w-16 h-16 object-cover rounded-lg border-2 border-white shadow-sm"
-            />
-            <div className="flex-1 min-w-0">
-              <h4 className="font-medium text-gray-900 text-sm line-clamp-2 mb-1">
-                {item.Product?.name || "Unknown Product"}
-              </h4>
-              <div className="flex items-center gap-3 text-xs text-gray-500">
-                <span>Qty: {item.quantity}</span>
-                <span>•</span>
-                <span>LKR {parseFloat(item.price).toLocaleString()}</span>
+        {/* Order Items */}
+        <div className="space-y-4 mb-4">
+          {order.OrderItems?.map((item, index) => (
+            <div key={index} className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+              <img
+                src={item.Product?.base_image_url || '../../images/product.png'}
+                alt={item.Product?.name || "Product"}
+                className="w-16 h-16 object-cover rounded-lg border-2 border-white shadow-sm"
+              />
+              <div className="flex-1 min-w-0">
+                <h4 className="font-medium text-gray-900 text-sm line-clamp-2 mb-1">
+                  {item.Product?.name || "Unknown Product"}
+                </h4>
+                <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <span>Qty: {item.quantity}</span>
+                  <span>•</span>
+                  <span>LKR {parseFloat(item.price).toLocaleString()}</span>
+                </div>
               </div>
-            </div>
-            <div className="text-right">
-              <p className="font-semibold text-gray-900 text-sm">
-                LKR {(parseFloat(item.price) * (item.quantity || 0)).toLocaleString()}
-              </p>
-              {/* Only show Add to Cart button for non-cancelled orders */}
-              {order.status !== 'cancelled' && (
-                <button
-                  onClick={() => handleAddToCart(item)}
-                  disabled={isAddingToCart || isItemAdded(item)}
-                  className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs mt-2 transition-colors ${isItemAdded(item)
+              <div className="text-right">
+                <p className="font-semibold text-gray-900 text-sm">
+                  LKR {(parseFloat(item.price) * (item.quantity || 0)).toLocaleString()}
+                </p>
+                {/* Only show Add to Cart button for non-cancelled orders */}
+                {order.status !== 'cancelled' && (
+                  <button
+                    onClick={() => handleAddToCart(item)}
+                    disabled={isAddingToCart || isItemAdded(item)}
+                    className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs mt-2 transition-colors ${isItemAdded(item)
                       ? 'bg-green-100 text-green-700 cursor-not-allowed'
                       : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
-                >
-                  {isAddingToCart ? (
-                    <RefreshCw className="w-3 h-3 animate-spin" />
-                  ) : isItemAdded(item) ? (
-                    <Check className="w-3 h-3" />
-                  ) : (
-                    <ShoppingCart className="w-3 h-3" />
-                  )}
-                  <span>
-                    {isItemAdded(item) ? 'Added' : 'Add to Cart'}
-                  </span>
-                </button>
-              )}
+                      }`}
+                  >
+                    {isAddingToCart ? (
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                    ) : isItemAdded(item) ? (
+                      <Check className="w-3 h-3" />
+                    ) : (
+                      <ShoppingCart className="w-3 h-3" />
+                    )}
+                    <span>
+                      {isItemAdded(item) ? 'Added' : 'Add to Cart'}
+                    </span>
+                  </button>
+                )}
+              </div>
             </div>
+          ))}
+        </div>
+
+        {/* Order Footer */}
+        <div className="flex justify-between items-center pt-4 border-t border-gray-100">
+          <div>
+            <p className="text-lg font-bold text-gray-900">
+              LKR {orderTotal.toLocaleString()}
+            </p>
+            <p className="text-sm text-gray-500">Order #{order.order_number}</p>
           </div>
-        ))}
+
+          <div className="flex items-center gap-3">
+            {/* Show cancelled badge for cancelled orders */}
+            {order.status === 'cancelled' && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-red-100 text-red-700 rounded-full">
+                <XCircle className="w-4 h-4" />
+                <span className="text-sm font-medium">Order Cancelled</span>
+              </div>
+            )}
+
+            {/* Cancel Order Button - Only show for cancellable orders */}
+            {canCancelOrder() && (
+              <button
+                onClick={handleCancelOrder}
+                disabled={isCancelling}
+                className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:bg-red-300 disabled:cursor-not-allowed"
+              >
+                {isCancelling ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Ban className="w-4 h-4" />
+                )}
+                <span className="text-sm font-medium">
+                  {isCancelling ? 'Cancelling...' : 'Cancel Order'}
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Order Footer */}
-      <div className="flex justify-between items-center pt-4 border-t border-gray-100">
-        <div>
-          <p className="text-lg font-bold text-gray-900">
-            LKR {orderTotal.toLocaleString()}
-          </p>
-          <p className="text-sm text-gray-500">Order #{order.order_number}</p>
-        </div>
-        {/* Show cancelled badge for cancelled orders */}
-        {order.status === 'cancelled' && (
-          <div className="flex items-center gap-2 px-3 py-1 bg-red-100 text-red-700 rounded-full">
-            <XCircle className="w-4 h-4" />
-            <span className="text-sm font-medium">Order Cancelled</span>
-          </div>
-        )}
-      </div>
-    </div>
+      {/* Cancel Order Confirmation Modal */}
+      <DeleteConfirmation
+        isOpen={showCancelConfirmation}
+        onClose={() => setShowCancelConfirmation(false)}
+        onConfirm={confirmCancelOrder}
+        title="Cancel Order"
+        description="Are you sure you want to cancel order"
+        itemName={`#${order.order_number}`}
+        confirmText="Cancel Order"
+        cancelText="Keep Order"
+        isLoading={isCancelling}
+      />
+    </>
   );
 }
 
+// PastOrders component remains the same as before
 function PastOrders() {
   const { data: ordersData, isLoading, error, refetch } = useGetMyOrdersQuery();
   const [activeTab, setActiveTab] = useState("all");
@@ -318,8 +387,8 @@ function PastOrders() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-6 py-3 rounded-xl border transition-all duration-200 min-w-max ${activeTab === tab.id
-                  ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-100"
-                  : "bg-white text-gray-700 border-gray-200 hover:border-blue-200 hover:shadow-md"
+                ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-100"
+                : "bg-white text-gray-700 border-gray-200 hover:border-blue-200 hover:shadow-md"
                 }`}
             >
               {tab.icon}
@@ -327,8 +396,8 @@ function PastOrders() {
               {tab.count > 0 && (
                 <span
                   className={`inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-full text-xs font-medium ${activeTab === tab.id
-                      ? "bg-white text-blue-600"
-                      : "bg-blue-100 text-blue-600"
+                    ? "bg-white text-blue-600"
+                    : "bg-blue-100 text-blue-600"
                     }`}
                 >
                   {tab.count}
@@ -345,8 +414,8 @@ function PastOrders() {
               key={filter.id}
               onClick={() => setTimeFilter(filter.id)}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${timeFilter === filter.id
-                  ? "bg-blue-600 text-white shadow-lg shadow-blue-100"
-                  : "bg-white text-gray-600 border border-gray-200 hover:border-blue-200"
+                ? "bg-blue-600 text-white shadow-lg shadow-blue-100"
+                : "bg-white text-gray-600 border border-gray-200 hover:border-blue-200"
                 }`}
             >
               {filter.label}

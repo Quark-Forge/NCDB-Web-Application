@@ -73,6 +73,15 @@ export const ordersEndpoints = apiSlice.injectEndpoints({
             providesTags: (result, error, orderId) => [{ type: "Order", id: orderId }],
         }),
 
+        // PUT Cancel Order
+        cancelUserOrder: builder.mutation({
+            query: (orderId) => ({
+                url: `${ORDER_URL}/${orderId}/cancel`,
+                method: "PUT",
+            }),
+            invalidatesTags: ["Order"],
+        }),
+
         // GET ${ORDER_URL}/stats
         getOrderStats: builder.query({
             query: (params = {}) => {
@@ -97,5 +106,6 @@ export const {
     useUpdateOrderStatusMutation,
     useGetMyOrdersQuery,
     useGetOrderDetailsQuery,
+    useCancelUserOrderMutation,
     useGetOrderStatsQuery
 } = ordersEndpoints;

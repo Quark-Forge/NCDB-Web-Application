@@ -19,8 +19,9 @@ const CartItemsList = ({
             }, 0);
     };
 
-    const freeShippingThreshold = 3348.40;
+    // Free shipping threshold removed
     const currentTotal = calculateTotal();
+    
 
     return (
         <>
