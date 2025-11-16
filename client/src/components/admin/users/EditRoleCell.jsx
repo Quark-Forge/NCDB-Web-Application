@@ -9,6 +9,9 @@ const EditRoleCell = ({ user, roles, refetchUsers }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [updateUserRole] = useUpdateUserRoleMutation();
 
+  // Filter out the "Supplier" role from available options
+  const availableRoles = roles?.filter(role => role.name !== 'Supplier') || [];
+
   const handleUpdate = async () => {
     if (selectedRole === user.role_id) {
       setIsEditing(false);
@@ -28,6 +31,18 @@ const EditRoleCell = ({ user, roles, refetchUsers }) => {
     }
   };
 
+  // Get current role name for display
+  const getCurrentRoleName = () => {
+    const currentRole = roles?.find((r) => r.id === user.role_id);
+    if (currentRole?.name === 'Supplier') {
+      return 'Supplier (Cannot be changed)';
+    }
+    return currentRole?.name || user.role_name;
+  };
+
+  // Check if user is a supplier (cannot change role)
+  const isSupplier = roles?.find((r) => r.id === user.role_id)?.name === 'Supplier';
+
   return (
     <div className="flex items-center gap-2">
       {isEditing ? (
@@ -38,7 +53,7 @@ const EditRoleCell = ({ user, roles, refetchUsers }) => {
             className="px-4 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 shadow-sm transition-all duration-200 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent appearance-none cursor-pointer w-30"
             disabled={isLoading}
           >
-            {roles?.map((role) => (
+            {availableRoles.map((role) => (
               <option key={role.id} value={role.id}>
                 {role.name}
               </option>
@@ -66,15 +81,18 @@ const EditRoleCell = ({ user, roles, refetchUsers }) => {
         </div>
       ) : (
         <>
-          <span className="text-sm font-medium text-gray-700 capitalize">
-            {roles?.find((r) => r.id === user.role_id)?.name || user.role_name}
+          <span className={`text-sm font-medium capitalize ${isSupplier ? 'text-gray-500 italic' : 'text-gray-700'
+            }`}>
+            {getCurrentRoleName()}
           </span>
-          <button
-            onClick={() => setIsEditing(true)}
-            className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
-          >
-            <Pencil size={14} />
-          </button>
+          {!isSupplier && (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
+            >
+              <Pencil size={14} />
+            </button>
+          )}
         </>
       )}
     </div>

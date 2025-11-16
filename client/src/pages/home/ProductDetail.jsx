@@ -13,7 +13,8 @@ import {
     Shield,
     Plus,
     Minus,
-    CircleAlert
+    CircleAlert,
+    Image
 } from 'lucide-react';
 import { useGetSupplierItemByIdQuery } from '../../slices/supplierItemsApiSlice';
 import {
@@ -241,6 +242,9 @@ const ProductDetail = () => {
         }
     };
 
+    // Check if image exists
+    const hasImage = selectedSupplier?.image_url || product.image_url || product.base_image_url;
+
     if (isLoading) {
         return (
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -319,11 +323,18 @@ const ProductDetail = () => {
                 {/* Product Images */}
                 <div>
                     <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
-                        <img
-                            src={selectedSupplier?.image_url || product.image_url || '../../images/product.png'}
-                            alt={product.name}
-                            className="w-full h-96 object-contain rounded-lg"
-                        />
+                        {hasImage ? (
+                            <img
+                                src={selectedSupplier?.image_url || product.image_url || product.base_image_url}
+                                alt={product.name}
+                                className="w-full h-96 object-contain rounded-lg"
+                            />
+                        ) : (
+                            <div className="w-full h-96 flex flex-col items-center justify-center text-gray-400 rounded-lg border-2 border-dashed border-gray-300">
+                                <Image className="h-16 w-16 mb-4" />
+                                <p className="text-lg font-medium">No Image Available</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -413,8 +424,8 @@ const ProductDetail = () => {
                                     onClick={handleWishlistToggle}
                                     disabled={isWishlistLoading || userInfo?.user_role !== 'Customer'}
                                     className={`p-3 border rounded-lg transition-colors ${isInWishlist
-                                            ? 'border-red-300 bg-red-50 text-red-600 hover:bg-red-100'
-                                            : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                                        ? 'border-red-300 bg-red-50 text-red-600 hover:bg-red-100'
+                                        : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                                 >
                                     {isWishlistLoading ? (
@@ -422,8 +433,8 @@ const ProductDetail = () => {
                                     ) : (
                                         <Heart
                                             className={`h-5 w-5 ${isInWishlist
-                                                    ? 'fill-red-500 text-red-500'
-                                                    : 'text-gray-700'
+                                                ? 'fill-red-500 text-red-500'
+                                                : 'text-gray-700'
                                                 }`}
                                         />
                                     )}
