@@ -1,5 +1,8 @@
 import asyncHandler from "express-async-handler";
 import { Supplier, User, Role } from "../models/index.js";
+import { hashPassword } from "../utils/hash.js";
+import { sendUserCredentials } from "../utils/sendEmail.js";
+import { supplierCredentialsTemplate } from "../templates/emailTemplates.js";
 
 // Helper to format supplier response
 const formatSupplierResponse = (supplier) => ({
@@ -12,7 +15,6 @@ const formatSupplierResponse = (supplier) => ({
   createdAt: supplier.createdAt,
   updatedAt: supplier.updatedAt,
   deletedAt: supplier.deletedAt,
-  // Include user details if populated
   user: supplier.User ? {
     id: supplier.User.id,
     email: supplier.User.email,
@@ -20,6 +22,15 @@ const formatSupplierResponse = (supplier) => ({
     role_id: supplier.User.role_id
   } : undefined
 });
+
+// Helper function to get supplier role ID
+const getSupplierRoleId = async () => {
+  const supplierRole = await Role.findOne({ where: { name: 'Supplier' } });
+  if (!supplierRole) {
+    throw new Error('Supplier role not found in database');
+  }
+  return supplierRole.id;
+};
 
 // Add new supplier
 export const addSupplier = asyncHandler(async (req, res) => {
@@ -31,11 +42,9 @@ export const addSupplier = asyncHandler(async (req, res) => {
     throw new Error('Name, contact number, address and password are required');
   }
 
-  // Check for existing supplier by contact number or email
+  // Check for existing supplier by contact number
   const existingSupplier = await Supplier.findOne({
-    where: {
-      contact_number
-    }
+    where: { contact_number }
   });
 
   if (existingSupplier) {
@@ -52,27 +61,33 @@ export const addSupplier = asyncHandler(async (req, res) => {
     }
   }
 
+  let newSupplier;
+  let userAccount;
+
   try {
     // Start a transaction to ensure both operations succeed or fail together
     const result = await Supplier.sequelize.transaction(async (t) => {
+      // Hash the password before storing
+      const hashedPassword = await hashPassword(password);
+
       // Create user first
-      const user = await User.create({
+      userAccount = await User.create({
         name,
         email: email || `${contact_number}@supplier.temp`,
         contact_number,
         address,
-        password,
+        password: hashedPassword,
         is_verified: true,
-        role_id: role_id || await getSupplierRoleId() // Get supplier role ID if not provided
+        role_id: role_id || await getSupplierRoleId()
       }, { transaction: t });
 
       // Create supplier with user_id
-      const newSupplier = await Supplier.create({
+      newSupplier = await Supplier.create({
         name,
         contact_number,
         address,
         email: email || `${contact_number}@supplier.temp`,
-        user_id: user.id,
+        user_id: userAccount.id,
         is_active: true
       }, { transaction: t });
 
@@ -88,12 +103,39 @@ export const addSupplier = asyncHandler(async (req, res) => {
       }]
     });
 
+    // Send email with credentials to supplier
+    try {
+      const loginUrl = `${process.env.FRONTEND_URL}/auth/login`;
+      const htmlMessage = supplierCredentialsTemplate(
+        name,
+        userAccount.email,
+        password, // Send the plain password (this is the only time it's available)
+        loginUrl
+      );
+
+      await sendUserCredentials(userAccount.email, 'Your Supplier Account Credentials', htmlMessage);
+
+      console.log(`Supplier credentials email sent to: ${userAccount.email}`);
+    } catch (emailError) {
+      console.error('Failed to send supplier credentials email:', emailError);
+      // Don't throw error, just log it - the supplier was created successfully
+    }
+
     res.status(201).json({
-      message: 'Supplier created successfully',
+      message: 'Supplier created successfully. Login credentials have been sent to the supplier.',
       data: formatSupplierResponse(completeSupplier)
     });
 
   } catch (error) {
+    // If there was an error and we created the user, clean up
+    if (userAccount) {
+      try {
+        await User.destroy({ where: { id: userAccount.id }, force: true });
+      } catch (cleanupError) {
+        console.error('Error cleaning up user account:', cleanupError);
+      }
+    }
+
     if (error.name === 'SequelizeUniqueConstraintError') {
       res.status(409);
       throw new Error('Duplicate entry - contact number or email already exists');
@@ -101,15 +143,6 @@ export const addSupplier = asyncHandler(async (req, res) => {
     throw error;
   }
 });
-
-// Helper function to get supplier role ID
-const getSupplierRoleId = async () => {
-  const supplierRole = await Role.findOne({ where: { name: 'Supplier' } });
-  if (!supplierRole) {
-    throw new Error('Supplier role not found in database');
-  }
-  return supplierRole.id;
-};
 
 // Update existing supplier
 export const updateSupplier = asyncHandler(async (req, res) => {
@@ -171,7 +204,11 @@ export const updateSupplier = asyncHandler(async (req, res) => {
         supplier.user.address = address || supplier.user.address;
         supplier.user.contact_number = contact_number || supplier.user.contact_number;
         if (email) supplier.user.email = email;
-        if (password) supplier.user.password = password;
+
+        // Hash password if provided
+        if (password) {
+          supplier.user.password = await hashPassword(password);
+        }
 
         await supplier.user.save({ transaction: t });
       }

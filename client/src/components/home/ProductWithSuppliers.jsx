@@ -1,9 +1,8 @@
 import ProductCard from "./ProductCard";
 
-
-const ProductWithSuppliers = ({ product }) => {
+const ProductWithSuppliers = ({ product, viewMode = 'grid' }) => {
     if (!product.SupplierItems || product.SupplierItems.length === 0) {
-        return <ProductCard product={product} />;
+        return <ProductCard product={product} viewMode={viewMode} />;
     }
 
     return (
@@ -13,6 +12,7 @@ const ProductWithSuppliers = ({ product }) => {
                     key={`${product.id}-${supplierItem.id}`}
                     product={product}
                     supplierItem={supplierItem}
+                    viewMode={viewMode}
                 />
             ))}
         </>

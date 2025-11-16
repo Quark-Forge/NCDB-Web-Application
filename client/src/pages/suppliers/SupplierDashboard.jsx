@@ -163,44 +163,6 @@ const SupplierDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Supplier Dashboard</h1>
-              <p className="text-gray-600">Welcome back! Here's your business overview</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button className="p-2 text-gray-400 hover:text-gray-600 relative">
-                <Bell className="h-6 w-6" />
-                <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
-              </button>
-              <Dropdown
-                options={[
-                  { label: 'Profile', onClick: () => navigate('/supplier/profile') },
-                  { label: 'Settings', onClick: () => navigate('/supplier/settings') },
-                  { label: 'Logout', onClick: () => navigate('/logout') }
-                ]}
-                value={null}
-                onChange={() => { }}
-                buttonClassName="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100"
-                renderSelected={() => (
-                  <>
-                    <img
-                      className="h-8 w-8 rounded-full"
-                      src="../../images/user.png"
-                      alt="Profile"
-                    />
-                    <Settings className="h-4 w-4 text-gray-400" />
-                  </>
-                )}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

@@ -14,9 +14,9 @@ import { authorize, protect } from '../middleware/authMiddleware.js';
 const router = express.Router();
 
 // Routes
+router.get('/low-stock', protect, authorize('Admin', 'Inventory Manager'), getLowStockProducts);
 router.get('/', protect, authorize('Admin', 'Inventory Manager'), getAllSupplierItems);
 router.get('/:id', getSupplierItemById);
-router.get('/low-stock', protect, authorize('Admin', 'Inventory Manager'), getLowStockProducts);
 router.get('/my-items',protect, authorize('Supplier'), getMySupplierItems);
 router.get('/critical-stock', protect, authorize('Admin', 'Inventory Manager'), getCriticalStockProducts);
 router.get('/:supplier_id/items', protect, authorize('Admin', 'Inventory Manager'), getSupplierItemsBySupplier);
