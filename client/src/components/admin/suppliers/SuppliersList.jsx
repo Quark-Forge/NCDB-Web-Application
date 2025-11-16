@@ -1,4 +1,3 @@
-// components/admin/CategoriesList.jsx
 import { Frown, Loader2 } from 'lucide-react';
 import SupplierCard from './SupplierCard';
 
@@ -6,7 +5,6 @@ const SuppliersList = ({
   isLoading,
   filteredSuppliers,
   searchTerm,
-  handleEdit,
   handleDelete
 }) => {
   if (isLoading) {
@@ -21,9 +19,9 @@ const SuppliersList = ({
     return (
       <div className="flex flex-col items-center justify-center p-8 md:p-12 text-center">
         <Frown className="h-8 w-8 md:h-12 md:w-12 text-gray-400 mb-3 md:mb-4" />
-        <h3 className="text-base md:text-lg font-medium text-gray-700">No categories found</h3>
+        <h3 className="text-base md:text-lg font-medium text-gray-700">No suppliers found</h3>
         <p className="text-sm md:text-base text-gray-500 mt-1">
-          {searchTerm ? "Try a different search term" : "No categories available"}
+          {searchTerm ? "Try a different search term" : "No suppliers available"}
         </p>
       </div>
     );
@@ -32,7 +30,6 @@ const SuppliersList = ({
   return (
     <SupplierCard
       filteredSuppliers={filteredSuppliers}
-      handleEdit={handleEdit}
       handleDelete={handleDelete}
     />
   );

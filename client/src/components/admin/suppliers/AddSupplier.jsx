@@ -1,12 +1,12 @@
 import { toast } from "react-toastify";
 import { useCreateSupplierMutation } from "../../../slices/suppliersApiSlice";
-import { Loader2, X } from "lucide-react";
+import { Loader2, X, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 
 const AddSupplier = ({ closeModals, setShowCreateModal, formData, handleInputChange, refetch, resetForm }) => {
-
     const [createSupplier, { isLoading: isCreating }] = useCreateSupplierMutation();
     const [errors, setErrors] = useState({});
+    const [showPassword, setShowPassword] = useState(false);
 
     // Validation functions
     const validateField = (name, value) => {
@@ -20,16 +20,14 @@ const AddSupplier = ({ closeModals, setShowCreateModal, formData, handleInputCha
                     errorMessage = 'Supplier name must be at least 2 characters';
                 } else if (value.trim().length > 100) {
                     errorMessage = 'Supplier name must be less than 100 characters';
-                } else if (!/^[a-zA-Z\s&.-]+$/.test(value.trim())) {
-                    errorMessage = 'Supplier name can only contain letters, spaces, &, ., and -';
                 }
                 break;
 
             case 'contact_number':
                 if (!value.trim()) {
                     errorMessage = 'Contact number is required';
-                } else if (!/^\+?[0-9\s\-()]{10}$/.test(value.trim())) {
-                    errorMessage = 'Please enter a valid contact number (10 digits)';
+                } else if (!/^\+?[0-9\s\-()]{10,15}$/.test(value.trim())) {
+                    errorMessage = 'Please enter a valid contact number (10-15 digits)';
                 }
                 break;
 
@@ -38,8 +36,8 @@ const AddSupplier = ({ closeModals, setShowCreateModal, formData, handleInputCha
                     errorMessage = 'Email is required';
                 } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) {
                     errorMessage = 'Please enter a valid email address';
-                } else if (value.trim().length > 100) {
-                    errorMessage = 'Email must be less than 100 characters';
+                } else if (value.trim().length > 200) {
+                    errorMessage = 'Email must be less than 200 characters';
                 }
                 break;
 
@@ -53,6 +51,14 @@ const AddSupplier = ({ closeModals, setShowCreateModal, formData, handleInputCha
                 }
                 break;
 
+            case 'password':
+                if (!value.trim()) {
+                    errorMessage = 'Password is required';
+                } else if (value.length < 8) {
+                    errorMessage = 'Password must be at least 8 characters';
+                }
+                break;
+
             default:
                 break;
         }
@@ -63,14 +69,11 @@ const AddSupplier = ({ closeModals, setShowCreateModal, formData, handleInputCha
     // Enhanced input change handler with validation
     const handleInputChangeWithValidation = (e) => {
         const { name, value } = e.target;
-        
-        // Call the original handleInputChange from parent
+
         handleInputChange(e);
-        
-        // Validate the field
+
         const errorMessage = validateField(name, value);
-        
-        // Update errors state
+
         setErrors(prev => ({
             ...prev,
             [name]: errorMessage
@@ -79,16 +82,14 @@ const AddSupplier = ({ closeModals, setShowCreateModal, formData, handleInputCha
 
     // Check if form is valid
     const isFormValid = () => {
-        const requiredFields = ['name', 'contact_number', 'email', 'address'];
-        
-        // Check if all required fields have values
-        const hasAllValues = requiredFields.every(field => 
+        const requiredFields = ['name', 'contact_number', 'email', 'address', 'password'];
+
+        const hasAllValues = requiredFields.every(field =>
             formData[field] && formData[field].toString().trim() !== ''
         );
-        
-        // Check if there are no error messages
+
         const hasNoErrors = Object.values(errors).every(error => error === '');
-        
+
         return hasAllValues && hasNoErrors;
     };
 
@@ -96,29 +97,19 @@ const AddSupplier = ({ closeModals, setShowCreateModal, formData, handleInputCha
         e.preventDefault();
         try {
             await createSupplier(formData).unwrap();
-            
-            // Success operations
-            toast.success('Supplier created successfully!');
-            
-            // Close modal first
+
+            toast.success('Supplier created successfully! They can now login with their credentials.');
+
             setShowCreateModal(false);
-            
-            // Reset form if function is provided
+
             if (resetForm && typeof resetForm === 'function') {
                 resetForm();
-            } else {
-                // Fallback: reset form fields manually if resetForm is not provided
-                const form = document.querySelector('form');
-                if (form) {
-                    form.reset();
-                }
             }
-            
-            // Refetch data
+
             if (refetch && typeof refetch === 'function') {
                 refetch();
             }
-            
+
         } catch (err) {
             console.error('Error creating supplier:', err);
             toast.error(err?.data?.message || 'Error creating supplier');
@@ -126,11 +117,11 @@ const AddSupplier = ({ closeModals, setShowCreateModal, formData, handleInputCha
     };
 
     return (
-         <div className="fixed inset-0 backdrop-brightness-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg md:rounded-xl max-w-md w-full">
+        <div className="fixed inset-0 backdrop-brightness-40 bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
                 <div className="p-6">
                     <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl md:text-2xl font-bold text-gray-800">Create New Supplier</h2>
+                        <h2 className="text-xl font-bold text-gray-800">Create New Supplier</h2>
                         <button
                             onClick={closeModals}
                             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -150,9 +141,8 @@ const AddSupplier = ({ closeModals, setShowCreateModal, formData, handleInputCha
                                 value={formData.name}
                                 onChange={handleInputChangeWithValidation}
                                 required
-                                className={`block w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
-                                    errors.name ? 'border-red-500' : 'border-gray-300'
-                                }`}
+                                className={`block w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${errors.name ? 'border-red-500' : 'border-gray-300'
+                                    }`}
                                 placeholder="Enter supplier name"
                             />
                             {errors.name && (
@@ -170,9 +160,8 @@ const AddSupplier = ({ closeModals, setShowCreateModal, formData, handleInputCha
                                 value={formData.contact_number}
                                 onChange={handleInputChangeWithValidation}
                                 required
-                                className={`block w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
-                                    errors.contact_number ? 'border-red-500' : 'border-gray-300'
-                                }`}
+                                className={`block w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${errors.contact_number ? 'border-red-500' : 'border-gray-300'
+                                    }`}
                                 placeholder="Enter contact number"
                             />
                             {errors.contact_number && (
@@ -182,7 +171,7 @@ const AddSupplier = ({ closeModals, setShowCreateModal, formData, handleInputCha
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Email *
+                                Email Address *
                             </label>
                             <input
                                 type="email"
@@ -190,14 +179,42 @@ const AddSupplier = ({ closeModals, setShowCreateModal, formData, handleInputCha
                                 value={formData.email}
                                 onChange={handleInputChangeWithValidation}
                                 required
-                                className={`block w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
-                                    errors.email ? 'border-red-500' : 'border-gray-300'
-                                }`}
+                                className={`block w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${errors.email ? 'border-red-500' : 'border-gray-300'
+                                    }`}
                                 placeholder="Enter email address"
                             />
                             {errors.email && (
                                 <p className="text-red-500 text-xs mt-1">{errors.email}</p>
                             )}
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Password *
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    name="password"
+                                    value={formData.password}
+                                    onChange={handleInputChangeWithValidation}
+                                    required
+                                    className={`block w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${errors.password ? 'border-red-500' : 'border-gray-300'
+                                        }`}
+                                    placeholder="Enter password for login"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                                >
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </div>
+                            {errors.password && (
+                                <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+                            )}
+                            <p className="text-xs text-gray-500 mt-1">Minimum 8 characters required</p>
                         </div>
 
                         <div>
@@ -210,14 +227,28 @@ const AddSupplier = ({ closeModals, setShowCreateModal, formData, handleInputCha
                                 onChange={handleInputChangeWithValidation}
                                 rows={3}
                                 required
-                                className={`block w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
-                                    errors.address ? 'border-red-500' : 'border-gray-300'
-                                }`}
+                                className={`block w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${errors.address ? 'border-red-500' : 'border-gray-300'
+                                    }`}
                                 placeholder="Enter supplier address"
                             />
                             {errors.address && (
                                 <p className="text-red-500 text-xs mt-1">{errors.address}</p>
                             )}
+                        </div>
+
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div className="flex items-start">
+                                <div className="flex-shrink-0">
+                                    <svg className="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div className="ml-3">
+                                    <p className="text-sm text-blue-700">
+                                        A user account will be created automatically. The supplier can login using the email and password provided.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="flex justify-end space-x-4 pt-6">
@@ -241,9 +272,7 @@ const AddSupplier = ({ closeModals, setShowCreateModal, formData, handleInputCha
                 </div>
             </div>
         </div>
-    )
-}
-
-
+    );
+};
 
 export default AddSupplier;

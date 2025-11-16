@@ -1,6 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import { SupplierItem, SupplierItemRequest, User, Supplier } from '../models/index.js';
 import { Op } from 'sequelize';
+import sequelize from 'sequelize';
 
 // @desc    Create a new supplier item request
 // @route   POST /api/supplier-item-requests
@@ -146,16 +147,13 @@ export const getMySupplierItemRequests = asyncHandler(async (req, res) => {
         res.status(403);
         throw new Error('User not found');
     }
-        console.log('email',user.email);
+
     // Find supplier by email (since suppliers have email field)
     const supplier = await Supplier.findOne({
         where: {
             email: user.email
         }
     });
-
-    console.log('supplier',supplier);
-    
 
     if (!supplier) {
         res.status(403);
@@ -204,7 +202,7 @@ export const getMySupplierItemRequests = asyncHandler(async (req, res) => {
         distinct: true
     });
 
-    // Get stats for supplier dashboard
+    // Get stats for supplier dashboard - FIXED: Now using imported sequelize
     const stats = await SupplierItemRequest.findAll({
         where: { supplier_id: supplier.id },
         attributes: [
@@ -307,8 +305,6 @@ export const updateSupplierItemRequestStatus = asyncHandler(async (req, res) => 
         res.status(403);
         throw new Error('User not found');
     }
-
-    
 
     // Find supplier by email
     const supplier = await Supplier.findOne({
@@ -536,7 +532,7 @@ export const getRequestStatistics = asyncHandler(async (req, res) => {
         }
     }
 
-    // Get status counts
+    // Get status counts - FIXED: Now using imported sequelize
     const statusCounts = await SupplierItemRequest.findAll({
         where: whereClause,
         attributes: [
@@ -547,7 +543,7 @@ export const getRequestStatistics = asyncHandler(async (req, res) => {
         raw: true
     });
 
-    // Calculate revenue from approved requests
+    // Calculate revenue from approved requests - FIXED: Now using imported sequelize
     const revenueResult = await SupplierItemRequest.findOne({
         where: {
             ...whereClause,
