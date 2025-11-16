@@ -12,6 +12,7 @@ const CartItem = ({
     const [removeFromCart] = useRemoveFromCartMutation();
 
     const calculateSubtotal = (item) => {
+        
         const price = parseFloat(item.price || 0);
         return price * (item.quantity || 1);
     };

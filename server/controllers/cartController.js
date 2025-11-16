@@ -84,7 +84,7 @@ export const addToCart = asyncHandler(async (req, res) => {
             },
             defaults: {
                 quantity,
-                price: supplierItem.price,
+                price: supplierItem.discount_price || supplierItem.price,
             },
             transaction
         });

@@ -6,8 +6,7 @@ const CartSummary = ({
     isUpdating,
     onCheckout
 }) => {
-    const freeShippingThreshold = 3348.40;
-    const shippingCost = total >= freeShippingThreshold ? 0 : 300;
+    const shippingCost = 0; // Remove free shipping calculation
     const finalTotal = total + shippingCost;
 
     return (
@@ -21,9 +20,7 @@ const CartSummary = ({
                 </div>
                 <div className="flex justify-between text-sm">
                     <span>Shipping</span>
-                    <span className={shippingCost === 0 ? 'text-green-600 font-medium' : ''}>
-                        {shippingCost === 0 ? 'FREE' : 'Calculated at checkout'}
-                    </span>
+                    <span>Calculated at checkout</span>
                 </div>
                 <hr className="my-4" />
                 <div className="flex justify-between text-lg font-bold">
@@ -35,8 +32,8 @@ const CartSummary = ({
             <button
                 onClick={onCheckout}
                 className={`w-full py-3 rounded-lg font-medium transition-colors ${selectedItemsCount > 0 && !isUpdating
-                        ? 'bg-red-500 text-white hover:bg-red-600'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    ? 'bg-red-500 text-white hover:bg-red-600'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
                 disabled={selectedItemsCount === 0 || isUpdating}
             >

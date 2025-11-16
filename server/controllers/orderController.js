@@ -16,6 +16,14 @@ import {
     User,
     Payment
 } from '../models/index.js';
+import { sendUserCredentials } from '../utils/sendEmail.js';
+import {
+    orderConfirmationTemplate,
+    orderStatusUpdateTemplate,
+    orderCancelledTemplate,
+    orderShippedTemplate,
+    orderDeliveredTemplate
+} from '../templates/orderEmailTemplates.js';
 
 // Valid order status transitions
 const STATUS_TRANSITIONS = {
@@ -24,6 +32,44 @@ const STATUS_TRANSITIONS = {
     shipped: ['delivered'],
     delivered: [],
     cancelled: []
+};
+
+// Helper function to send order emails
+const sendOrderEmail = async (order, user, emailType, additionalData = {}) => {
+    try {
+        let subject, html;
+
+        switch (emailType) {
+            case 'confirmation':
+                subject = `Order Confirmed - #${order.order_number}`;
+                html = orderConfirmationTemplate(order, user, additionalData);
+                break;
+            case 'status_update':
+                subject = `Order Status Updated - #${order.order_number}`;
+                html = orderStatusUpdateTemplate(order, user, additionalData);
+                break;
+            case 'cancelled':
+                subject = `Order Cancelled - #${order.order_number}`;
+                html = orderCancelledTemplate(order, user, additionalData);
+                break;
+            case 'shipped':
+                subject = `Order Shipped - #${order.order_number}`;
+                html = orderShippedTemplate(order, user, additionalData);
+                break;
+            case 'delivered':
+                subject = `Order Delivered - #${order.order_number}`;
+                html = orderDeliveredTemplate(order, user, additionalData);
+                break;
+            default:
+                return;
+        }
+
+        await sendUserCredentials(user.email, subject, html);
+        console.log(`Order email sent: ${emailType} for order #${order.order_number}`);
+    } catch (error) {
+        console.error(`Failed to send ${emailType} email:`, error);
+        // Don't throw error, just log it - email failure shouldn't break the order flow
+    }
 };
 
 // checkout (create order)
@@ -194,6 +240,31 @@ export const checkoutCart = asyncHandler(async (req, res) => {
 
         await transaction.commit();
 
+        // Send order confirmation email
+        try {
+            const user = await User.findByPk(user_id);
+            const orderDetail = await Order.findByPk(order.id, {
+                include: [
+                    {
+                        model: OrderItem,
+                        include: [Product, Supplier]
+                    },
+                    {
+                        model: Address,
+                        where: { id: address_id },
+                    }
+                ]
+            });
+
+            await sendOrderEmail(orderDetail, user, 'confirmation', {
+                shippingCost: shippingAmount,
+                items: orderDetail.OrderItems
+            });
+        } catch (emailError) {
+            console.error('Failed to send order confirmation email:', emailError);
+            // Don't throw error, just log it
+        }
+
         // Return complete order details with payment info
         try {
             const orderDetail = await Order.findByPk(order.id, {
@@ -208,7 +279,7 @@ export const checkoutCart = asyncHandler(async (req, res) => {
                     },
                     {
                         model: Payment,
-                        as: 'payment' // FIX: Added the alias here
+                        as: 'payment'
                     }
                 ]
             });
@@ -289,7 +360,7 @@ export const getAllOrders = asyncHandler(async (req, res) => {
         {
             model: Payment,
             as: 'payment',
-            attributes: ['id', 'payment_status', 'payment_method', 'amount', 'transaction_id', 'payment_date'] // Include specific payment fields
+            attributes: ['id', 'payment_status', 'payment_method', 'amount', 'transaction_id', 'payment_date']
         }
     ];
 
@@ -546,7 +617,7 @@ export const getUserOrders = asyncHandler(async (req, res) => {
         data: formattedOrders
     });
 });
-// GET order details
+
 // GET order details
 export const getOrderDetails = asyncHandler(async (req, res) => {
     const orderId = req.params.id;
@@ -567,8 +638,8 @@ export const getOrderDetails = asyncHandler(async (req, res) => {
                     model: Address
                 },
                 {
-                    model: User, // Include User model to get customer details
-                    attributes: ['id', 'name', 'email', 'contact_number', 'image_url', 'role_id', 'is_verified'] // Correct field names
+                    model: User,
+                    attributes: ['id', 'name', 'email', 'contact_number', 'image_url', 'role_id', 'is_verified']
                 }
             ]
         });
@@ -581,18 +652,6 @@ export const getOrderDetails = asyncHandler(async (req, res) => {
             });
             return;
         }
-
-        // Check permissions (uncomment when ready)
-        // const isAdminOrManager = ['admin', 'order manager', 'inventory manager'].includes(req.user.user_role?.toLowerCase());
-        // const isOrderOwner = order.user_id === req.user.id;
-        // if (!isAdminOrManager && !isOrderOwner) {
-        //     res.status(403).json({
-        //         success: false,
-        //         message: 'Access denied. You can only view your own orders.',
-        //         code: 'ACCESS_DENIED'
-        //     });
-        //     return;
-        // }
 
         const address = order.Address || await Address.findByPk(order.address_id);
         const shippingCost = await ShippingCost.findOne({
@@ -611,7 +670,7 @@ export const getOrderDetails = asyncHandler(async (req, res) => {
             createdAt: order.createdAt,
             updatedAt: order.updatedAt,
 
-            // Customer information - using correct field names from User model
+            // Customer information
             customer: {
                 id: order.User?.id,
                 name: order.User?.name,
@@ -620,7 +679,6 @@ export const getOrderDetails = asyncHandler(async (req, res) => {
                 image_url: order.User?.image_url,
                 role_id: order.User?.role_id,
                 is_verified: order.User?.is_verified,
-                // For frontend compatibility, also provide full_name
                 full_name: order.User?.name
             },
 
@@ -714,7 +772,20 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 
     const transaction = await sequelize.transaction();
     try {
-        const order = await Order.findByPk(orderId, { transaction });
+        const order = await Order.findByPk(orderId, {
+            include: [
+                {
+                    model: User,
+                    attributes: ['id', 'name', 'email']
+                },
+                {
+                    model: OrderItem,
+                    include: [Product]
+                }
+            ],
+            transaction
+        });
+
         if (!order) {
             await transaction.rollback();
             res.status(404).json({
@@ -756,6 +827,7 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
         }
 
         // Update order status
+        const previousStatus = order.status;
         order.status = status;
         await order.save({ transaction });
 
@@ -799,6 +871,35 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 
         await transaction.commit();
 
+        // Send appropriate email notification based on status change
+        try {
+            let emailType;
+            switch (status) {
+                case 'confirmed':
+                    emailType = 'status_update';
+                    break;
+                case 'shipped':
+                    emailType = 'shipped';
+                    break;
+                case 'delivered':
+                    emailType = 'delivered';
+                    break;
+                case 'cancelled':
+                    emailType = 'cancelled';
+                    break;
+                default:
+                    emailType = 'status_update';
+            }
+
+            await sendOrderEmail(order, order.User, emailType, {
+                previousStatus,
+                newStatus: status,
+                items: order.OrderItems
+            });
+        } catch (emailError) {
+            console.error('Failed to send status update email:', emailError);
+        }
+
         res.json({
             success: true,
             message: 'Order status updated',
@@ -826,9 +927,18 @@ export const cancelUserOrder = asyncHandler(async (req, res) => {
 
     const transaction = await sequelize.transaction();
     try {
-        // Load order with items
+        // Load order with items and user info
         const order = await Order.findByPk(orderId, {
-            include: [{ model: OrderItem }],
+            include: [
+                {
+                    model: OrderItem,
+                    include: [Product]
+                },
+                {
+                    model: User,
+                    attributes: ['id', 'name', 'email']
+                }
+            ],
             transaction
         });
 
@@ -909,6 +1019,16 @@ export const cancelUserOrder = asyncHandler(async (req, res) => {
 
         await transaction.commit();
 
+        // Send cancellation email
+        try {
+            await sendOrderEmail(order, order.User, 'cancelled', {
+                items: order.OrderItems,
+                cancelledBy: 'customer'
+            });
+        } catch (emailError) {
+            console.error('Failed to send cancellation email:', emailError);
+        }
+
         res.json({
             success: true,
             message: 'Order cancelled successfully',
@@ -929,11 +1049,10 @@ export const cancelUserOrder = asyncHandler(async (req, res) => {
     }
 });
 
-
 // GET order statistics
 export const getOrderStats = asyncHandler(async (req, res) => {
     try {
-        const { range = '30d' } = req.query; // '7d', '30d', '90d', 'all'
+        const { range = '30d' } = req.query;
 
         // Calculate date range
         const now = new Date();
@@ -950,7 +1069,7 @@ export const getOrderStats = asyncHandler(async (req, res) => {
                 startDate.setDate(now.getDate() - 90);
                 break;
             case 'all':
-                startDate = new Date(0); // Beginning of time
+                startDate = new Date(0);
                 break;
             default:
                 startDate.setDate(now.getDate() - 30);

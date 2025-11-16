@@ -36,6 +36,10 @@ export const getSupplierItemById = asyncHandler(async (req, res) => {
         {
           model: Supplier,
           attributes: ['id', 'name']
+        },
+        {
+          model: Product,
+          attributes: ['id', 'name']
         }
       ],
       paranoid: false
@@ -99,8 +103,7 @@ export const getMySupplierItems = asyncHandler(async (req, res) => {
     data: {
       supplierItems,
       supplier: {
-        id: supplier.id,
-        company_name: supplier.company_name
+        id: supplier.id
       }
     },
     count: supplierItems.length

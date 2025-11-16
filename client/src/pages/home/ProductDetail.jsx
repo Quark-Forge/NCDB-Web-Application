@@ -66,6 +66,7 @@ const ProductDetail = () => {
         image_url: supplierItem.image_url || supplierItem.Product?.base_image_url,
         specifications: supplierItem.Product?.specifications,
     };
+    
 
     const selectedSupplier = {
         id: supplierItem.supplier_id,
