@@ -12,7 +12,7 @@ const toTitleCase = (str) => {
 // Add new product
 export const addProduct = asyncHandler(async (req, res) => {
     const requiredFields = [
-        'name', 'sku', 'description', 'category_id',
+        'name', 'sku', 'category_id',
         'supplier_id', 'supplier_sku', 'purchase_price',
         'price', 'quantity_per_unit', 'unit_symbol'
     ];

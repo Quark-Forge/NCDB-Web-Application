@@ -8,6 +8,7 @@ import OrderSummary from '../../components/checkout/OrderSummary';
 import PaymentMethod from '../../components/checkout/PaymentMethod';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import AddressModal from '../../components/checkout/AddressModal';
+import Alert from '../../components/common/Alert';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -18,6 +19,13 @@ const Checkout = () => {
   const [paymentMethod, setPaymentMethod] = useState('cash_on_delivery');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    type: 'success',
+    title: '',
+    message: '',
+    onConfirm: null
+  });
 
   const { data: addressData, isLoading: addressLoading, error: addressError, refetch: refetchAddresses } = useGetShippingAddressQuery();
   const [checkoutOrder] = useCheckoutOrderMutation();
@@ -37,6 +45,16 @@ const Checkout = () => {
     }
   }, [addresses.length, addressLoading, addressError]);
 
+  const showCustomAlert = (type, title, message, onConfirm = null) => {
+    setAlertConfig({
+      type,
+      title,
+      message,
+      onConfirm
+    });
+    setShowAlert(true);
+  };
+
   const calculateSubtotal = () => {
     return selectedItems.reduce((total, item) => {
       const price = parseFloat(item.price || 0);
@@ -50,12 +68,20 @@ const Checkout = () => {
 
   const handlePlaceOrder = async () => {
     if (!selectedAddress) {
-      alert('Please select a shipping address');
+      showCustomAlert(
+        'error',
+        'Address Required',
+        'Please select a shipping address to continue with your order.'
+      );
       return;
     }
 
     if (selectedItems.length === 0) {
-      alert('No items to checkout');
+      showCustomAlert(
+        'error',
+        'No Items',
+        'There are no items to checkout. Please add items to your cart first.'
+      );
       return;
     }
 
@@ -77,14 +103,28 @@ const Checkout = () => {
 
       if (result.success) {
         localStorage.removeItem("checkoutItems");
-        alert('Order placed successfully!');
-        navigate('/user/myorders');
+
+        // Show success alert
+        showCustomAlert(
+          'success',
+          'Order Placed Successfully!',
+          `Your order has been placed successfully. Order ID: ${result.data?.order_number || 'N/A'}`,
+          () => navigate('/user/myorders')
+        );
       } else {
-        alert(result.message || 'Failed to place order');
+        showCustomAlert(
+          'error',
+          'Order Failed',
+          result.message || 'Failed to place order. Please try again.'
+        );
       }
     } catch (error) {
       console.error('Error placing order:', error);
-      alert(error.data?.message || 'Failed to place order. Please try again.');
+      showCustomAlert(
+        'error',
+        'Order Failed',
+        error.data?.message || 'Failed to place order. Please try again.'
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -224,6 +264,19 @@ const Checkout = () => {
           }}
         />
       )}
+
+      {/* Common Alert Component */}
+      <Alert
+        isOpen={showAlert}
+        onClose={() => setShowAlert(false)}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        confirmText={alertConfig.type === 'success' ? 'View Orders' : 'OK'}
+        onConfirm={alertConfig.onConfirm || (() => setShowAlert(false))}
+        showConfirmButton={true}
+        showCancelButton={false}
+      />
     </div>
   );
 };

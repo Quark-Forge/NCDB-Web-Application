@@ -5,7 +5,7 @@ import { authorize, protect } from '../middleware/authMiddleware.js';
 const router = express.Router();
 
 router.route('/')
-      .post(protect, authorize('Admin', 'Inventory Manager') , addSupplier)
+      .post(protect, authorize('Admin'), addSupplier)
       .get(protect, authorize('Admin', 'Order Manager', 'Inventory Manager') , getAllSuppliers);
 router.route('/active')
       .get(protect, authorize('Admin', 'Order Manager', 'Inventory Manager') , getAllActiveSuppliers);

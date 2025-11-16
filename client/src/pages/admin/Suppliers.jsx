@@ -10,10 +10,17 @@ import SuppliersList from "../../components/admin/suppliers/SuppliersList";
 import AddSupplier from "../../components/admin/suppliers/AddSupplier";
 import DeleteConfirmation from "../../components/common/DeleteConfirmation";
 import Pagination from "../../components/common/Pagination";
+import { useSelector } from 'react-redux';
 
 const Suppliers = () => {
   const { data: suppliersData, isLoading, error, refetch } = useGetAllSuppliersQuery();
   const [deleteSupplier] = useDeleteSupplierMutation();
+
+  // Get user info from Redux store or your state management
+  const { userInfo } = useSelector((state) => state.auth);
+  
+  // Check if current user is admin
+  const isAdmin = userInfo?.role === 'admin';
 
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -137,13 +144,17 @@ const Suppliers = () => {
                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
               />
             </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Supplier
-            </button>
+            
+            {/* Only show Add Supplier button for admin */}
+            {isAdmin && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Supplier
+              </button>
+            )}
           </div>
         </div>
 
@@ -161,6 +172,10 @@ const Suppliers = () => {
                 <p>• Suppliers can manage their own profile information through their user accounts</p>
                 <p>• Use the "Add Supplier" button to create new supplier accounts</p>
                 <p>• Suppliers will receive login credentials to access their accounts</p>
+                {/* Show admin-specific message */}
+                {isAdmin && (
+                  <p className="font-medium">• You have admin privileges to add and manage suppliers</p>
+                )}
               </div>
             </div>
           </div>
@@ -173,6 +188,7 @@ const Suppliers = () => {
             filteredSuppliers={paginatedSuppliers}
             searchTerm={searchTerm}
             handleDelete={handleDelete}
+            isAdmin={isAdmin} // Pass isAdmin prop to control delete actions too
           />
         </div>
 
@@ -186,8 +202,8 @@ const Suppliers = () => {
           />
         )}
 
-        {/* Modals */}
-        {showCreateModal && (
+        {/* Modals - Only show create modal for admin */}
+        {isAdmin && showCreateModal && (
           <AddSupplier
             closeModals={closeModals}
             setShowCreateModal={setShowCreateModal}
