@@ -1,5 +1,5 @@
 import asyncHandler from 'express-async-handler';
-import { SupplierItem, SupplierItemRequest, User, Supplier } from '../models/index.js';
+import { SupplierItem, SupplierItemRequest, User, Supplier, Product } from '../models/index.js';
 import { Op } from 'sequelize';
 import sequelize from 'sequelize';
 
@@ -90,7 +90,8 @@ export const getSupplierItemRequests = asyncHandler(async (req, res) => {
             { '$SupplierItem.description$': { [Op.like]: `%${search}%` } },
             { '$SupplierItem.Supplier.company_name$': { [Op.like]: `%${search}%` } },
             { '$User.name$': { [Op.like]: `%${search}%` } },
-            { notes_from_requester: { [Op.like]: `%${search}%` } }
+            { notes_from_requester: { [Op.like]: `%${search}%` } },
+            { '$SupplierItem.Product.name$': { [Op.like]: `%${search}%` } } // Add product name to search
         ];
     }
 
@@ -109,7 +110,13 @@ export const getSupplierItemRequests = asyncHandler(async (req, res) => {
         include: [
             {
                 model: SupplierItem,
-                include: [Supplier]
+                include: [
+                    Supplier,
+                    {
+                        model: Product,
+                        attributes: ['id', 'name', 'sku', 'description']
+                    }
+                ]
             },
             {
                 model: User,
@@ -122,9 +129,23 @@ export const getSupplierItemRequests = asyncHandler(async (req, res) => {
         distinct: true
     });
 
+    // Transform the response to include product name at the root level for easy access
+    const transformedRequests = requests.map(request => {
+        const requestData = request.toJSON();
+
+        // Add product information directly to the request object
+        if (requestData.SupplierItem?.Product) {
+            requestData.product_name = requestData.SupplierItem.Product.name;
+            requestData.product_sku = requestData.SupplierItem.Product.sku;
+            requestData.product_description = requestData.SupplierItem.Product.description;
+        }
+
+        return requestData;
+    });
+
     res.json({
         success: true,
-        data: requests,
+        data: transformedRequests,
         count: count,
         pagination: {
             page: pageNum,

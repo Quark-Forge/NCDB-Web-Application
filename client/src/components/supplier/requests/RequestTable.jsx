@@ -1,4 +1,4 @@
-import { MoreVertical, Eye, CheckCircle, XCircle, User, Calendar } from 'lucide-react';
+import { MoreVertical, Eye, CheckCircle, XCircle, User, Calendar, Clock } from 'lucide-react';
 import Badges from '../../common/Badges';
 import Dropdown from '../../common/Dropdown';
 import Table from '../../common/Table';
