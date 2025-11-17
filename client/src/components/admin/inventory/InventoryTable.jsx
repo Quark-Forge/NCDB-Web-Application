@@ -1,7 +1,5 @@
-// InventoryTable.js
 import { useState, useRef } from "react";
 import Card from "../../common/Card";
-import { useUpdateSupplierItemMutation } from "../../../slices/supplierItemsApiSlice";
 import Button from "../../common/Button";
 import Badges from "../../common/Badges";
 import Pagination from "../../common/Pagination";
@@ -10,12 +8,16 @@ import PrintableInventoryReport from "./PrintableInventoryReport";
 import { useExport } from "../../../hooks/useExport";
 import { usePrint } from "../../../hooks/usePrint";
 import { toast } from "react-toastify";
+import { useUpdateProductStockMutation } from "../../../slices/ProductsApiSlice";
 
 const InventoryTable = ({ stock, filters }) => {
   const [formVisible, setFormVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [formData, setFormData] = useState({ stockLevel: 0 });
-  const [updateSupplierItem, { isLoading }] = useUpdateSupplierItemMutation();
+  const [formData, setFormData] = useState({
+    quantity: 0,
+    action: 'set'
+  });
+  const [updateProductStock, { isLoading }] = useUpdateProductStockMutation();
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -35,7 +37,10 @@ const InventoryTable = ({ stock, filters }) => {
 
   const openForm = (product) => {
     setSelectedProduct(product);
-    setFormData({ stockLevel: product.stockLevel });
+    setFormData({
+      quantity: product.stockLevel,
+      action: 'set'
+    });
     setFormVisible(true);
   };
 
@@ -69,18 +74,19 @@ const InventoryTable = ({ stock, filters }) => {
     if (!selectedProduct) return;
 
     try {
-      
-      await updateSupplierItem({
+      await updateProductStock({
+        id: selectedProduct.productId,
         supplier_id: selectedProduct.supplierId,
-        product_id: selectedProduct.productId,
-        stock_level: Number(formData.stockLevel),
+        quantity: Number(formData.quantity),
+        action: formData.action,
       }).unwrap();
 
       setFormVisible(false);
-      toast.success("Stock level updated successfully!");
+      toast.success("Stock updated successfully!");
     } catch (error) {
       console.error("Update failed:", error);
-      toast.error("Failed to update stock level");
+      const errorMessage = error.data?.message || "Failed to update stock";
+      toast.error(errorMessage);
     }
   };
 
@@ -89,6 +95,25 @@ const InventoryTable = ({ stock, filters }) => {
     if (stockLevel < 5) return { variant: "danger", label: "Critical" };
     if (stockLevel < 10) return { variant: "warning", label: "Low Stock" };
     return { variant: "success", label: "In Stock" };
+  };
+
+  // Calculate new stock based on action
+  const calculateNewStock = () => {
+    if (!selectedProduct) return formData.quantity;
+
+    const currentStock = selectedProduct.stockLevel;
+    const quantity = Number(formData.quantity);
+
+    switch (formData.action) {
+      case 'add':
+        return currentStock + quantity;
+      case 'subtract':
+        return Math.max(0, currentStock - quantity);
+      case 'set':
+        return quantity;
+      default:
+        return currentStock;
+    }
   };
 
   // CSV Export Configuration
@@ -240,20 +265,43 @@ const InventoryTable = ({ stock, filters }) => {
                 <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
                   <p className="text-sm font-medium text-gray-900">{selectedProduct.productName}</p>
                   <p className="text-xs text-gray-500 mt-1">SKU: {selectedProduct.supplierSku}</p>
+                  <p className="text-xs text-gray-500">Current Stock: {selectedProduct.stockLevel}</p>
                 </div>
               </div>
 
               <div>
-                <label htmlFor="stockLevel" className="block text-sm font-medium text-gray-700 mb-2">Stock Level</label>
+                <label htmlFor="action" className="block text-sm font-medium text-gray-700 mb-2">Action</label>
+                <select
+                  id="action"
+                  value={formData.action}
+                  onChange={(e) => setFormData({ ...formData, action: e.target.value })}
+                  className="block w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="set">Set to</option>
+                  <option value="add">Add</option>
+                  <option value="subtract">Subtract</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-2">
+                  {formData.action === 'set' ? 'New Stock Level' :
+                    formData.action === 'add' ? 'Quantity to Add' : 'Quantity to Subtract'}
+                </label>
                 <input
                   type="number"
-                  id="stockLevel"
+                  id="quantity"
                   min="0"
-                  value={formData.stockLevel}
-                  onChange={(e) => setFormData({ ...formData, stockLevel: e.target.value })}
+                  value={formData.quantity}
+                  onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                   className="block w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   required
                 />
+                {formData.action !== 'set' && (
+                  <p className="text-sm text-gray-500 mt-2">
+                    New stock will be: <span className="font-semibold">{calculateNewStock()}</span>
+                  </p>
+                )}
               </div>
 
               <div className="flex justify-end space-x-3 pt-4">

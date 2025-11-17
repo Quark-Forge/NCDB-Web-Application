@@ -20,7 +20,8 @@ const Suppliers = () => {
   const { userInfo } = useSelector((state) => state.auth);
   
   // Check if current user is admin
-  const isAdmin = userInfo?.role === 'admin';
+  const isAdmin = userInfo?.user_role === 'Admin';
+  
 
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -170,7 +171,7 @@ const Suppliers = () => {
               <h3 className="text-sm font-medium text-blue-800">Supplier Management</h3>
               <div className="mt-1 text-sm text-blue-700">
                 <p>• Suppliers can manage their own profile information through their user accounts</p>
-                <p>• Use the "Add Supplier" button to create new supplier accounts</p>
+                <p>• Admin can use "Add Supplier" button to create new supplier accounts</p>
                 <p>• Suppliers will receive login credentials to access their accounts</p>
                 {/* Show admin-specific message */}
                 {isAdmin && (
@@ -214,7 +215,7 @@ const Suppliers = () => {
           />
         )}
 
-        {showDeleteModal && (
+        {showDeleteModal && isAdmin && (
           <DeleteConfirmation
             isOpen={showDeleteModal}
             onClose={() => setShowDeleteModal(false)}

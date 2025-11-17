@@ -13,5 +13,3 @@ import './usersApiSlice';
 import './wishlistApiSlice';
 import './ordersApiSlice';
 import './paymentApiSlice';
-
-console.log('All API slices loaded successfully');
