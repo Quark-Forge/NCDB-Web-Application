@@ -1,4 +1,3 @@
-// components/common/PrintableInventoryReport.jsx
 import React from 'react';
 
 const PrintableInventoryReport = React.forwardRef(({ stock, totalItems, filters }, ref) => {
@@ -68,7 +67,9 @@ const PrintableInventoryReport = React.forwardRef(({ stock, totalItems, filters 
                         <th>SKU</th>
                         <th>Stock Level</th>
                         <th>Status</th>
+                        <th>Purchase Price</th>
                         <th>Price</th>
+                        <th>Discounted Price</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -79,7 +80,9 @@ const PrintableInventoryReport = React.forwardRef(({ stock, totalItems, filters 
                             <td>{item.supplierSku}</td>
                             <td className="text-center">{item.stockLevel}</td>
                             <td className="capitalize">{getStockStatus(item.stockLevel)}</td>
+                            <td className="text-right">{item.purchasePrice ? `Rs ${item.purchasePrice}` : 'N/A'}</td>
                             <td className="text-right">{item.price ? `Rs ${item.price}` : 'N/A'}</td>
+                            <td className="text-right">{item.discountedPrice ? `Rs ${item.discountedPrice}` : 'N/A'}</td>
                         </tr>
                     ))}
                 </tbody>
