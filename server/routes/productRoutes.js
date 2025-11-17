@@ -23,9 +23,6 @@ router.route('/:id')
 router.route('/:product_id/suppliers/:supplier_id').delete(protect, authorize('Admin', 'Inventory Manager'), deleteProduct);
 router.route('/:product_id/suppliers/:supplier_id').put(protect, authorize('Admin', 'Inventory Manager'), restoreProduct);
 
-
-
-
 router.route('/:id/stock').put(protect, authorize('Admin', 'Inventory Manager'), updateProductStock);
 
 

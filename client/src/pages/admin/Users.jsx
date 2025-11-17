@@ -38,6 +38,12 @@ const Users = () => {
     setShowDeleteModal(true);
   }
 
+  useEffect(() => {
+    if (searchTerm) {
+      setPage(1);
+    }
+  }, [searchTerm]);
+
   const onConfirm = async () => {
     try {
       await deleteUser(userId).unwrap();
@@ -51,7 +57,7 @@ const Users = () => {
   };
 
   const handlePageChange = (page) => {
-    setCurrentPage(page);
+    setPage(page);
   };
 
   return (
