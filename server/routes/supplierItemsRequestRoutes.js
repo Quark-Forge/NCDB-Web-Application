@@ -15,7 +15,12 @@ const router = express.Router();
 
 // All routes are protected
 
+// Cancel route (admins and inventory managers)
+router.route('/:id/cancel')
+    .put(protect, authorize('Admin', 'Inventory Manager'), cancelSupplierItemRequest);
+
 // Routes for Admins and Inventory Managers
+
 router.route('/')
     .post(protect, authorize('Admin', 'Inventory Manager'), createSupplierItemRequest)
     .get(protect, authorize('Admin', 'Inventory Manager'), getSupplierItemRequests);
@@ -36,9 +41,5 @@ router.route('/:id')
 // Status update route (suppliers only)
 router.route('/:id/status')
     .put(protect, authorize('Supplier'), updateSupplierItemRequestStatus);
-
-// Cancel route (admins and inventory managers)
-router.route('/:id/cancel')
-    .put(protect, authorize('Admin', 'Inventory Manager'), cancelSupplierItemRequest);
 
 export default router;

@@ -2,6 +2,14 @@ import asyncHandler from 'express-async-handler';
 import { SupplierItem, SupplierItemRequest, User, Supplier, Product } from '../models/index.js';
 import { Op } from 'sequelize';
 import sequelize from 'sequelize';
+import { sendUserCredentials } from '../utils/sendEmail.js';
+import {
+    supplierRequestNotificationTemplate,
+    requestStatusUpdateTemplate,
+    requestApprovedTemplate,
+    requestRejectedTemplate,
+    requestCancelledTemplate
+} from '../templates/supplierRequestEmailTemplates.js';
 
 // @desc    Create a new supplier item request
 // @route   POST /api/supplier-item-requests
@@ -17,7 +25,20 @@ export const createSupplierItemRequest = asyncHandler(async (req, res) => {
     }
 
     const supplierItem = await SupplierItem.findByPk(supplier_item_id, {
-        include: [{ model: Supplier }]
+        include: [
+            {
+                model: Supplier,
+                include: [
+                    {
+                        model: User,
+                        as: 'user'
+                    }
+                ]
+            },
+            {
+                model: Product
+            }
+        ]
     });
 
     if (!supplierItem) {
@@ -45,7 +66,13 @@ export const createSupplierItemRequest = asyncHandler(async (req, res) => {
         include: [
             {
                 model: SupplierItem,
-                include: [Supplier]
+                include: [
+                    Supplier,
+                    {
+                        model: Product,
+                        attributes: ['id', 'name', 'sku', 'description']
+                    }
+                ]
             },
             {
                 model: User,
@@ -74,7 +101,6 @@ export const createSupplierItemRequest = asyncHandler(async (req, res) => {
 // @access  Private (Admin, Inventory Manager)
 export const getSupplierItemRequests = asyncHandler(async (req, res) => {
     const { status, page, limit, supplier_id, search } = req.query;
-    const userRole = req.user.role?.name;
 
     let whereClause = {};
 
@@ -91,7 +117,7 @@ export const getSupplierItemRequests = asyncHandler(async (req, res) => {
             { '$SupplierItem.Supplier.company_name$': { [Op.like]: `%${search}%` } },
             { '$User.name$': { [Op.like]: `%${search}%` } },
             { notes_from_requester: { [Op.like]: `%${search}%` } },
-            { '$SupplierItem.Product.name$': { [Op.like]: `%${search}%` } } // Add product name to search
+            { '$SupplierItem.Product.name$': { [Op.like]: `%${search}%` } }
         ];
     }
 
@@ -196,7 +222,8 @@ export const getMySupplierItemRequests = asyncHandler(async (req, res) => {
             { '$SupplierItem.name$': { [Op.like]: `%${search}%` } },
             { '$SupplierItem.description$': { [Op.like]: `%${search}%` } },
             { '$User.name$': { [Op.like]: `%${search}%` } },
-            { notes_from_requester: { [Op.like]: `%${search}%` } }
+            { notes_from_requester: { [Op.like]: `%${search}%` } },
+            { '$SupplierItem.Product.name$': { [Op.like]: `%${search}%` } }
         ];
     }
 
@@ -210,7 +237,13 @@ export const getMySupplierItemRequests = asyncHandler(async (req, res) => {
         include: [
             {
                 model: SupplierItem,
-                include: [Supplier]
+                include: [
+                    Supplier,
+                    {
+                        model: Product,
+                        attributes: ['id', 'name', 'sku', 'description']
+                    }
+                ]
             },
             {
                 model: User,
@@ -223,7 +256,21 @@ export const getMySupplierItemRequests = asyncHandler(async (req, res) => {
         distinct: true
     });
 
-    // Get stats for supplier dashboard - FIXED: Now using imported sequelize
+    // Transform the response to include product name at the root level for easy access
+    const transformedRequests = requests.map(request => {
+        const requestData = request.toJSON();
+
+        // Add product information directly to the request object
+        if (requestData.SupplierItem?.Product) {
+            requestData.product_name = requestData.SupplierItem.Product.name;
+            requestData.product_sku = requestData.SupplierItem.Product.sku;
+            requestData.product_description = requestData.SupplierItem.Product.description;
+        }
+
+        return requestData;
+    });
+
+    // Get stats for supplier dashboard
     const stats = await SupplierItemRequest.findAll({
         where: { supplier_id: supplier.id },
         attributes: [
@@ -242,7 +289,7 @@ export const getMySupplierItemRequests = asyncHandler(async (req, res) => {
 
     res.json({
         success: true,
-        data: requests,
+        data: transformedRequests,
         count: count,
         stats: formattedStats,
         supplier: {
@@ -263,14 +310,18 @@ export const getMySupplierItemRequests = asyncHandler(async (req, res) => {
 // @access  Private (Admin, Inventory Manager, Supplier - only their own)
 export const getSupplierItemRequestById = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const userRole = req.user.role?.name;
-    const userId = req.user.id;
 
     const request = await SupplierItemRequest.findByPk(id, {
         include: [
             {
                 model: SupplierItem,
-                include: [Supplier]
+                include: [
+                    Supplier,
+                    {
+                        model: Product,
+                        attributes: ['id', 'name', 'sku', 'description']
+                    }
+                ]
             },
             {
                 model: User,
@@ -282,28 +333,6 @@ export const getSupplierItemRequestById = asyncHandler(async (req, res) => {
     if (!request) {
         res.status(404);
         throw new Error('Supplier item request not found');
-    }
-
-    // Authorization check for suppliers
-    if (userRole === 'Supplier') {
-        // Get user details first
-        const user = await User.findByPk(userId);
-        if (!user) {
-            res.status(403);
-            throw new Error('User not found');
-        }
-
-        // Find supplier by email
-        const supplier = await Supplier.findOne({
-            where: {
-                email: user.email
-            }
-        });
-
-        if (!supplier || request.supplier_id !== supplier.id) {
-            res.status(403);
-            throw new Error('Not authorized to access this request');
-        }
     }
 
     res.json({
@@ -343,7 +372,13 @@ export const updateSupplierItemRequestStatus = asyncHandler(async (req, res) => 
         include: [
             {
                 model: SupplierItem,
-                include: [Supplier]
+                include: [
+                    Supplier,
+                    {
+                        model: Product,
+                        attributes: ['id', 'name', 'sku', 'description']
+                    }
+                ]
             },
             {
                 model: User,
@@ -403,7 +438,13 @@ export const updateSupplierItemRequestStatus = asyncHandler(async (req, res) => 
         include: [
             {
                 model: SupplierItem,
-                include: [Supplier]
+                include: [
+                    Supplier,
+                    {
+                        model: Product,
+                        attributes: ['id', 'name', 'sku', 'description']
+                    }
+                ]
             },
             {
                 model: User,
@@ -431,14 +472,18 @@ export const updateSupplierItemRequestStatus = asyncHandler(async (req, res) => 
 // @access  Private (Admin, Inventory Manager - only their own requests)
 export const cancelSupplierItemRequest = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const userId = req.user.id;
-    const userRole = req.user.role?.name;
 
     const request = await SupplierItemRequest.findByPk(id, {
         include: [
             {
                 model: SupplierItem,
-                include: [Supplier]
+                include: [
+                    Supplier,
+                    {
+                        model: Product,
+                        attributes: ['id', 'name', 'sku', 'description']
+                    }
+                ]
             },
             {
                 model: User,
@@ -450,17 +495,6 @@ export const cancelSupplierItemRequest = asyncHandler(async (req, res) => {
     if (!request) {
         res.status(404);
         throw new Error('Supplier item request not found');
-    }
-
-    // Authorization check
-    if (userRole !== 'Admin' && userRole !== 'Inventory Manager') {
-        res.status(403);
-        throw new Error('Not authorized to cancel requests');
-    }
-
-    if (userRole === 'Inventory Manager' && request.created_by !== userId) {
-        res.status(403);
-        throw new Error('Can only cancel your own requests');
     }
 
     if (request.status !== 'pending') {
@@ -478,7 +512,13 @@ export const cancelSupplierItemRequest = asyncHandler(async (req, res) => {
         include: [
             {
                 model: SupplierItem,
-                include: [Supplier]
+                include: [
+                    Supplier,
+                    {
+                        model: Product,
+                        attributes: ['id', 'name', 'sku', 'description']
+                    }
+                ]
             },
             {
                 model: User,
@@ -486,6 +526,13 @@ export const cancelSupplierItemRequest = asyncHandler(async (req, res) => {
             }
         ]
     });
+
+    // Send cancellation notification
+    try {
+        await sendCancellationNotification(updatedRequest);
+    } catch (emailError) {
+        console.error('Failed to send cancellation notification:', emailError);
+    }
 
     res.json({
         success: true,
@@ -499,12 +546,6 @@ export const cancelSupplierItemRequest = asyncHandler(async (req, res) => {
 // @access  Private (Admin only)
 export const deleteSupplierItemRequest = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const userRole = req.user.role?.name;
-
-    if (userRole !== 'Admin') {
-        res.status(403);
-        throw new Error('Only administrators can delete requests');
-    }
 
     const request = await SupplierItemRequest.findByPk(id);
 
@@ -514,7 +555,8 @@ export const deleteSupplierItemRequest = asyncHandler(async (req, res) => {
     }
 
     await SupplierItemRequest.destroy({
-        where: { id }
+        where: { id },
+        force: true
     });
 
     res.json({
@@ -527,25 +569,15 @@ export const deleteSupplierItemRequest = asyncHandler(async (req, res) => {
 // @route   GET /api/supplier-item-requests/statistics
 // @access  Private
 export const getRequestStatistics = asyncHandler(async (req, res) => {
-    const userRole = req.user.role?.name;
     const userId = req.user.id;
 
     let whereClause = {};
 
     // Apply supplier filter if user is a supplier
-    if (userRole === 'Supplier') {
-        // Get user details first
-        const user = await User.findByPk(userId);
-        if (!user) {
-            res.status(403);
-            throw new Error('User not found');
-        }
-
-        // Find supplier by email
+    const user = await User.findByPk(userId);
+    if (user) {
         const supplier = await Supplier.findOne({
-            where: {
-                email: user.email
-            }
+            where: { email: user.email }
         });
 
         if (supplier) {
@@ -553,7 +585,7 @@ export const getRequestStatistics = asyncHandler(async (req, res) => {
         }
     }
 
-    // Get status counts - FIXED: Now using imported sequelize
+    // Get status counts
     const statusCounts = await SupplierItemRequest.findAll({
         where: whereClause,
         attributes: [
@@ -564,7 +596,7 @@ export const getRequestStatistics = asyncHandler(async (req, res) => {
         raw: true
     });
 
-    // Calculate revenue from approved requests - FIXED: Now using imported sequelize
+    // Calculate revenue from approved requests
     const revenueResult = await SupplierItemRequest.findOne({
         where: {
             ...whereClause,
@@ -592,28 +624,18 @@ export const getRequestStatistics = asyncHandler(async (req, res) => {
 
 // Helper function to send notification to supplier
 const sendNotificationToSupplier = async (request) => {
-    // Implement your email notification logic here
     const supplier = request.SupplierItem?.Supplier;
     if (supplier && supplier.email) {
-        console.log(`Sending notification to supplier: ${supplier.name}`);
-        console.log(`Request details: ${request.quantity} x ${request.SupplierItem?.name}`);
+        try {
+            const subject = `New Item Request Received - Request #${request.id}`;
+            const html = supplierRequestNotificationTemplate(request, supplier);
 
-        // Uncomment and implement your actual email service:
-        /*
-        await sendEmailNotification({
-            to: supplier.email,
-            subject: 'New Item Request Received',
-            template: 'new-request-notification',
-            data: {
-                supplierName: supplier.name,
-                itemName: request.SupplierItem?.name,
-                quantity: request.quantity,
-                urgency: request.urgency,
-                notes: request.notes_from_requester,
-                requestId: request.id
-            }
-        });
-        */
+            await sendUserCredentials(supplier.email, subject, html);
+            console.log(`Notification sent to supplier: ${supplier.name}`);
+        } catch (emailError) {
+            console.error('Failed to send supplier notification:', emailError);
+            throw emailError;
+        }
     }
 };
 
@@ -621,24 +643,49 @@ const sendNotificationToSupplier = async (request) => {
 const sendStatusUpdateNotification = async (request) => {
     const requester = await User.findByPk(request.created_by);
     if (requester && requester.email) {
-        console.log(`Sending status update to requester: ${requester.name}`);
-        console.log(`Status: ${request.status} for request ID: ${request.id}`);
+        try {
+            let subject, html;
 
-        // Uncomment and implement your actual email service:
-        /*
-        await sendEmailNotification({
-            to: requester.email,
-            subject: `Your Item Request has been ${request.status}`,
-            template: 'request-status-update',
-            data: {
-                requesterName: requester.name,
-                status: request.status,
-                itemName: request.SupplierItem?.name,
-                rejectionReason: request.rejection_reason,
-                supplierQuote: request.supplier_quote,
-                requestId: request.id
+            switch (request.status) {
+                case 'approved':
+                    subject = `Your Item Request has been Approved - Request #${request.id}`;
+                    html = requestApprovedTemplate(request, requester);
+                    break;
+                case 'rejected':
+                    subject = `Your Item Request has been Rejected - Request #${request.id}`;
+                    html = requestRejectedTemplate(request, requester);
+                    break;
+                case 'cancelled':
+                    subject = `Your Item Request has been Cancelled - Request #${request.id}`;
+                    html = requestCancelledTemplate(request, requester);
+                    break;
+                default:
+                    subject = `Your Item Request Status Updated - Request #${request.id}`;
+                    html = requestStatusUpdateTemplate(request, requester);
             }
-        });
-        */
+
+            await sendUserCredentials(requester.email, subject, html);
+            console.log(`Status update sent to requester: ${requester.name}`);
+        } catch (emailError) {
+            console.error('Failed to send status update notification:', emailError);
+            throw emailError;
+        }
+    }
+};
+
+// Helper function to send cancellation notification
+const sendCancellationNotification = async (request) => {
+    const supplier = request.SupplierItem?.Supplier;
+    if (supplier && supplier.email) {
+        try {
+            const subject = `Item Request Cancelled - Request #${request.id}`;
+            const html = requestCancelledTemplate(request, supplier);
+
+            await sendUserCredentials(supplier.email, subject, html);
+            console.log(`Cancellation notification sent to supplier: ${supplier.name}`);
+        } catch (emailError) {
+            console.error('Failed to send cancellation notification:', emailError);
+            throw emailError;
+        }
     }
 };
