@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import {
   Search,
   Filter,
-  MoreVertical,
   Eye,
   CheckCircle,
   XCircle,
@@ -88,6 +87,11 @@ const Requests = () => {
     refetch();
   };
 
+  const handleViewDetails = (request) => {
+    console.log('View details:', request);
+    // Implement view details functionality
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -155,41 +159,44 @@ const Requests = () => {
         />
 
         {/* Requests Table */}
-        <RequestTable
-          requests={data?.data || []}
-          onStatusUpdate={(request, action) =>
-            setStatusUpdateModal({ isOpen: true, request, action })
-          }
-        />
+        <Card>
+          <RequestTable
+            requests={data?.data || []}
+            onStatusUpdate={(request, action) =>
+              setStatusUpdateModal({ isOpen: true, request, action })
+            }
+            onViewDetails={handleViewDetails}
+          />
 
-        {/* Empty State */}
-        {(!data?.data || data.data.length === 0) && (
-          <Card className="text-center py-12">
-            <div className="text-gray-400 mb-4">
-              <Package className="h-12 w-12 mx-auto" />
+          {/* Empty State */}
+          {(!data?.data || data.data.length === 0) && (
+            <div className="text-center py-12">
+              <div className="text-gray-400 mb-4">
+                <Package className="h-12 w-12 mx-auto" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No requests found
+              </h3>
+              <p className="text-gray-500 mb-4">
+                {statusFilter !== 'all' || debouncedSearchTerm
+                  ? 'No requests match your current filters.'
+                  : "You don't have any purchase requests yet."
+                }
+              </p>
+              {(statusFilter !== 'all' || debouncedSearchTerm) && (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setStatusFilter('all');
+                    setSearchTerm('');
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              )}
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No requests found
-            </h3>
-            <p className="text-gray-500 mb-4">
-              {statusFilter !== 'all' || debouncedSearchTerm
-                ? 'No requests match your current filters.'
-                : "You don't have any purchase requests yet."
-              }
-            </p>
-            {(statusFilter !== 'all' || debouncedSearchTerm) && (
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setStatusFilter('all');
-                  setSearchTerm('');
-                }}
-              >
-                Clear Filters
-              </Button>
-            )}
-          </Card>
-        )}
+          )}
+        </Card>
 
         {/* Pagination */}
         {data?.data?.length > 0 && (
