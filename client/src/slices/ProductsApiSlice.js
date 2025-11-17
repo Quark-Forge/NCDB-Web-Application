@@ -81,6 +81,16 @@ export const productsEndpoints = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Product'],
     }),
+
+    // PUT /api/products/:id/stock - Update stock with actions
+    updateProductStock: builder.mutation({
+      query: ({ id, supplier_id, quantity, action }) => ({
+        url: `${PRODUCTS_URL}/${id}/stock`,
+        method: 'PUT',
+        body: { supplier_id, quantity, action },
+      }),
+      invalidatesTags: ['Product', 'SupplierItem'],
+    }),
   }),
 });
 
@@ -91,4 +101,5 @@ export const {
   useUpdateProductMutation,
   useDeleteProductMutation,
   useRestoreProductMutation,
+  useUpdateProductStockMutation,
 } = productsEndpoints;
