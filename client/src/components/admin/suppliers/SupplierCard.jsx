@@ -2,7 +2,7 @@ import { Eye, Trash2, CheckCircle, XCircle } from "lucide-react";
 import SupplierDetailModel from './SupplierDetailModel';
 import { useState } from 'react';
 import { useSelector } from "react-redux";
-const allowedRoles = ['Admin', 'Inventory Manager'];
+const allowedRoles = ['Admin'];
 
 const SupplierCard = ({ filteredSuppliers, handleDelete }) => {
     const { userInfo } = useSelector((state) => state.auth);
