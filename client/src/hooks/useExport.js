@@ -11,7 +11,7 @@ export const useExport = () => {
                 delimiter = ',',
                 includeHeaders = true,
                 dateFields = [],
-                formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-US', {
+                formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-LK', {
                     year: 'numeric',
                     month: '2-digit',
                     day: '2-digit',
@@ -24,16 +24,6 @@ export const useExport = () => {
             const csvRows = data.map(item => {
                 return headers.map(header => {
                     let value = item[header.key];
-
-                    // Handle nested objects
-                    if (header.nestedKey && item[header.parentKey]) {
-                        value = item[header.parentKey][header.nestedKey];
-                    }
-
-                    // Handle function values
-                    if (header.formatter) {
-                        value = header.formatter(value, item);
-                    }
 
                     // Format dates
                     if (dateFields.includes(header.key) && value) {

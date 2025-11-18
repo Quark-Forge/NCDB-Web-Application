@@ -51,10 +51,6 @@ const PurchaseFilters = ({
 
                 {/* Action Buttons */}
                 <div className="flex gap-3">
-                    <Button variant="secondary" size="md">
-                        <Download className="h-4 w-4 mr-2" />
-                        Export
-                    </Button>
                     <Button
                         variant="primary"
                         size="md"

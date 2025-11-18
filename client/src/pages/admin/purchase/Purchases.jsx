@@ -3,6 +3,7 @@ import {
   useCancelSupplierItemRequestMutation,
   useDeleteSupplierItemRequestMutation,
   useGetSupplierItemRequestsQuery,
+  useUpdateSupplierItemRequestMutation,
 } from '../../../slices/PurchaseApiSlice';
 import PurchaseHeader from '../../../components/admin/purchase/PurchaseHeader';
 import PurchaseFilters from '../../../components/admin/purchase/PurchaseFilters';
@@ -11,6 +12,8 @@ import PurchaseModals from '../../../components/admin/purchase/PurchaseModals';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import ErrorMessage from '../../../components/common/ErrorMessage';
 import ProductRequestForm from '../../../components/admin/purchase/ProductRequestForm';
+import RequestDetailsModal from '../../../components/admin/purchase/RequestDetailsModal';
+import EditRequestModal from '../../../components/admin/purchase/EditRequestModal';
 
 const Purchases = () => {
   const [page, setPage] = useState(1);
@@ -20,15 +23,19 @@ const Purchases = () => {
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, request: null });
   const [cancelModal, setCancelModal] = useState({ isOpen: false, request: null });
   const [showRequestForm, setShowRequestForm] = useState(false);
+  const [detailsModal, setDetailsModal] = useState({ isOpen: false, request: null });
+  const [editModal, setEditModal] = useState({ isOpen: false, request: null });
 
   const { data, error, isLoading, refetch } = useGetSupplierItemRequestsQuery({
     status: statusFilter !== 'all' ? statusFilter : undefined,
     page,
-    limit
+    limit,
+    search: searchTerm || undefined
   });
 
   const [cancelRequest] = useCancelSupplierItemRequestMutation();
   const [deleteRequest] = useDeleteSupplierItemRequestMutation();
+  const [updateRequest] = useUpdateSupplierItemRequestMutation();
 
   const handleCancel = async () => {
     try {
@@ -37,6 +44,7 @@ const Purchases = () => {
       refetch();
     } catch (error) {
       console.error('Failed to cancel request:', error);
+      alert('Failed to cancel request. Please try again.');
     }
   };
 
@@ -47,6 +55,21 @@ const Purchases = () => {
       refetch();
     } catch (error) {
       console.error('Failed to delete request:', error);
+      alert('Failed to delete request. Please try again.');
+    }
+  };
+
+  const handleEditRequest = async (formData) => {
+    try {
+      await updateRequest({
+        id: editModal.request.id,
+        ...formData
+      }).unwrap();
+      setEditModal({ isOpen: false, request: null });
+      refetch();
+    } catch (error) {
+      console.error('Failed to update request:', error);
+      throw error; // Re-throw to handle in the modal
     }
   };
 
@@ -56,13 +79,11 @@ const Purchases = () => {
   };
 
   const handleViewDetails = (request) => {
-    console.log('View details:', request);
-    // Implement view details modal or navigation
+    setDetailsModal({ isOpen: true, request });
   };
 
-  const handleEditRequest = (request) => {
-    console.log('Edit request:', request);
-    // Implement edit functionality
+  const handleEditClick = (request) => {
+    setEditModal({ isOpen: true, request });
   };
 
   if (isLoading) {
@@ -103,7 +124,7 @@ const Purchases = () => {
           onPageChange={setPage}
           onCancelRequest={setCancelModal}
           onDeleteRequest={setDeleteModal}
-          onEditRequest={handleEditRequest}
+          onEditRequest={handleEditClick}
           onViewDetails={handleViewDetails}
         />
 
@@ -116,6 +137,22 @@ const Purchases = () => {
           onConfirmDelete={handleDelete}
         />
 
+        {/* Request Details Modal */}
+        <RequestDetailsModal
+          isOpen={detailsModal.isOpen}
+          request={detailsModal.request}
+          onClose={() => setDetailsModal({ isOpen: false, request: null })}
+        />
+
+        {/* Edit Request Modal */}
+        <EditRequestModal
+          isOpen={editModal.isOpen}
+          request={editModal.request}
+          onClose={() => setEditModal({ isOpen: false, request: null })}
+          onSave={handleEditRequest}
+        />
+
+        {/* New Request Form */}
         {showRequestForm && (
           <ProductRequestForm
             onClose={() => setShowRequestForm(false)}

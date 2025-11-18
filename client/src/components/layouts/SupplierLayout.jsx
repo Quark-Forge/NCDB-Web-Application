@@ -26,12 +26,6 @@ const adminNavConfig = {
             icon: <LayoutDashboard size={18} />
         },
         {
-            to: '/suppliers/sales',
-            label: 'Sales',
-            allowedRoles: ['Supplier'],
-            icon: <CircleDollarSign size={18} />
-        },
-        {
             to: '/suppliers/requests',
             label: 'Product Requests',
             allowedRoles: ['Supplier'],

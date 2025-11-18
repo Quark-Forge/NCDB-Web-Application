@@ -56,6 +56,16 @@ export const purchaseEndpoints = apiSlice.injectEndpoints({
       invalidatesTags: ['SupplierItemRequest'],
     }),
 
+    // UPDATE supplier item request (for admins/managers)
+    updateSupplierItemRequest: builder.mutation({
+      query: ({ id, ...data }) => ({
+        url: `${SUPPLIER_ITEM_REQUESTS_URL}/${id}`,
+        method: 'PUT',
+        body: data,
+      }),
+      invalidatesTags: ['SupplierItemRequest'],
+    }),
+
     // UPDATE request status (for suppliers)
     updateSupplierItemRequestStatus: builder.mutation({
       query: ({ id, ...data }) => ({
@@ -87,7 +97,7 @@ export const purchaseEndpoints = apiSlice.injectEndpoints({
     // GET request statistics
     getRequestStatistics: builder.query({
       query: () => ({
-        url: `${SUPPLIER_ITEM_REQUESTS_URL}/statistics`,
+        url: `${SUPPLIER_ITEM_REQUESTS_URL}/stats`,
         method: 'GET',
       }),
       providesTags: ['SupplierItemRequest'],
@@ -101,6 +111,7 @@ export const {
   useGetMySupplierItemRequestsQuery,
   useGetSupplierItemRequestByIdQuery,
   useCreateSupplierItemRequestMutation,
+  useUpdateSupplierItemRequestMutation,
   useUpdateSupplierItemRequestStatusMutation,
   useCancelSupplierItemRequestMutation,
   useDeleteSupplierItemRequestMutation,
