@@ -4,6 +4,7 @@ import { Plus, Search, ChevronDown, ChevronUp, Trash, Pencil } from 'lucide-reac
 import Button from '../../../components/common/Button';
 import Table from '../../../components/common/Table';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
+import Pagination from '../../../components/common/Pagination';
 import DeleteConfirmation from '../../../components/common/DeleteConfirmation';
 import { useAddShippingCostMutation, useDeleteShippingCostMutation, useGetShippingCostQuery, useUpdateShippingCostMutation } from '../../../slices/shippingCostApiSlice';
 import Card from '../../../components/common/Card';

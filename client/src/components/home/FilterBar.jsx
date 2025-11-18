@@ -24,8 +24,8 @@ const FilterBar = ({ category, sort, setCategory, setSort, priceRange, setPriceR
     };
 
     const handlePriceReset = () => {
-        setLocalPriceRange([0, 1000]);
-        setPriceRange([0, 1000]);
+        setLocalPriceRange([0, 10000]);
+        setPriceRange([0, 10000]);
     };
 
     const selectedSortLabel = sortOptions.find(option => option.value === sort)?.label || 'Select sort option';
@@ -48,7 +48,7 @@ const FilterBar = ({ category, sort, setCategory, setSort, priceRange, setPriceR
                     <input
                         type="range"
                         min="0"
-                        max="1000"
+                        max="10000"
                         value={localPriceRange[0]}
                         onChange={(e) => setLocalPriceRange([parseInt(e.target.value), localPriceRange[1]])}
                         className="w-full h-1.5 bg-gray-200 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:cursor-pointer"
@@ -56,7 +56,7 @@ const FilterBar = ({ category, sort, setCategory, setSort, priceRange, setPriceR
                     <input
                         type="range"
                         min="0"
-                        max="1000"
+                        max="10000"
                         value={localPriceRange[1]}
                         onChange={(e) => setLocalPriceRange([localPriceRange[0], parseInt(e.target.value)])}
                         className="w-full h-1.5 bg-gray-200 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:cursor-pointer"
