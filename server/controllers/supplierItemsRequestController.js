@@ -112,9 +112,8 @@ export const getSupplierItemRequests = asyncHandler(async (req, res) => {
     // Handle search
     if (search) {
         whereClause[Op.or] = [
-            { '$SupplierItem.name$': { [Op.like]: `%${search}%` } },
             { '$SupplierItem.description$': { [Op.like]: `%${search}%` } },
-            { '$SupplierItem.Supplier.company_name$': { [Op.like]: `%${search}%` } },
+            { '$SupplierItem.Supplier.name$': { [Op.like]: `%${search}%` } },
             { '$User.name$': { [Op.like]: `%${search}%` } },
             { notes_from_requester: { [Op.like]: `%${search}%` } },
             { '$SupplierItem.Product.name$': { [Op.like]: `%${search}%` } }
