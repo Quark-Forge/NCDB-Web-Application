@@ -1,6 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import { SupplierItem, SupplierItemRequest, User, Supplier, Product } from '../models/index.js';
-import { Op } from 'sequelize';
+import { Op, where } from 'sequelize';
 import sequelize from 'sequelize';
 import { sendUserCredentials } from '../utils/sendEmail.js';
 import {
@@ -219,7 +219,6 @@ export const getMySupplierItemRequests = asyncHandler(async (req, res) => {
     // Handle search
     if (search) {
         whereClause[Op.or] = [
-            { '$SupplierItem.name$': { [Op.like]: `%${search}%` } },
             { '$SupplierItem.description$': { [Op.like]: `%${search}%` } },
             { '$User.name$': { [Op.like]: `%${search}%` } },
             { notes_from_requester: { [Op.like]: `%${search}%` } },
@@ -467,6 +466,94 @@ export const updateSupplierItemRequestStatus = asyncHandler(async (req, res) => 
     });
 });
 
+// @desc    Update supplier item request (for admins/managers)
+// @route   PUT /api/supplier-item-requests/:id
+// @access  Private (Admin, Inventory Manager)
+export const updateSupplierItemRequest = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { quantity, urgency, notes_from_requester } = req.body;
+    const userId = req.user.id;
+
+    // Validate required fields
+    if (!quantity && !urgency && !notes_from_requester) {
+        res.status(400);
+        throw new Error('At least one field (quantity, urgency, or notes) must be provided for update');
+    }
+
+    const request = await SupplierItemRequest.findByPk(id, {
+        include: [
+            {
+                model: SupplierItem,
+                include: [
+                    Supplier,
+                    {
+                        model: Product,
+                        attributes: ['id', 'name', 'sku', 'description']
+                    }
+                ]
+            },
+            {
+                model: User,
+                attributes: ['id', 'name', 'email']
+            }
+        ]
+    });
+
+    if (!request) {
+        res.status(404);
+        throw new Error('Supplier item request not found');
+    }
+
+    // Only allow updates for pending requests
+    if (request.status !== 'pending') {
+        res.status(400);
+        throw new Error('Only pending requests can be updated');
+    }
+
+    // Validate quantity
+    if (quantity && quantity < 1) {
+        res.status(400);
+        throw new Error('Quantity must be at least 1');
+    }
+
+    // Prepare update data
+    const updateData = {};
+    if (quantity) updateData.quantity = quantity;
+    if (urgency) updateData.urgency = urgency;
+    if (notes_from_requester !== undefined) updateData.notes_from_requester = notes_from_requester;
+
+    // Update the request
+    await SupplierItemRequest.update(updateData, {
+        where: { id }
+    });
+
+    // Get updated request
+    const updatedRequest = await SupplierItemRequest.findByPk(id, {
+        include: [
+            {
+                model: SupplierItem,
+                include: [
+                    Supplier,
+                    {
+                        model: Product,
+                        attributes: ['id', 'name', 'sku', 'description']
+                    }
+                ]
+            },
+            {
+                model: User,
+                attributes: ['id', 'name', 'email']
+            }
+        ]
+    });
+
+    res.json({
+        success: true,
+        data: updatedRequest,
+        message: 'Supplier item request updated successfully'
+    });
+});
+
 // @desc    Cancel a supplier item request
 // @route   PUT /api/supplier-item-requests/:id/cancel
 // @access  Private (Admin, Inventory Manager - only their own requests)
@@ -554,6 +641,11 @@ export const deleteSupplierItemRequest = asyncHandler(async (req, res) => {
         throw new Error('Supplier item request not found');
     }
 
+    if (request.status !== 'cancelled' && request.status !== 'pending') {
+        res.status(400);
+        throw new Error(`Cannot delete request with status "${request.status}". Only cancelled or pending requests can be deleted.`);
+    }
+
     await SupplierItemRequest.destroy({
         where: { id },
         force: true
@@ -596,24 +688,30 @@ export const getRequestStatistics = asyncHandler(async (req, res) => {
         raw: true
     });
 
-    // Calculate revenue from approved requests
+    // Get total request count (including all statuses)
+    const totalCount = await SupplierItemRequest.count({
+        where: whereClause
+    });
+
+    // Calculate revenue from approved requests - FIXED VERSION
     const revenueResult = await SupplierItemRequest.findOne({
         where: {
             ...whereClause,
             status: 'approved'
         },
         attributes: [
-            [sequelize.fn('SUM', sequelize.col('supplier_quote')), 'totalRevenue']
+            [sequelize.fn('SUM', sequelize.literal('supplier_quote * quantity')), 'totalRevenue']
         ],
         raw: true
     });
 
     const stats = statusCounts.reduce((acc, curr) => {
         acc[curr.status] = parseInt(curr.count);
-        acc.total = (acc.total || 0) + parseInt(curr.count);
         return acc;
     }, {});
 
+    // Add total count to stats
+    stats.total = totalCount;
     stats.totalRevenue = parseFloat(revenueResult?.totalRevenue || 0);
 
     res.json({
@@ -621,7 +719,6 @@ export const getRequestStatistics = asyncHandler(async (req, res) => {
         data: stats
     });
 });
-
 // Helper function to send notification to supplier
 const sendNotificationToSupplier = async (request) => {
     const supplier = request.SupplierItem?.Supplier;

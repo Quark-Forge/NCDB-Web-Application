@@ -130,7 +130,7 @@ const Home = () => {
       <main className="mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Hero Section */}
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r p-1 from-blue-600 to-blue-700 bg-clip-text text-transparent">
             Discover Amazing Products
           </h1>
           <p className="text-gray-600 text-lg max-w-2xl mx-auto">
@@ -196,7 +196,7 @@ const Home = () => {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search products by name, category, or description..."
+                placeholder="Search products here..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-12 pr-24 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-colors"

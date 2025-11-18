@@ -1,5 +1,5 @@
-import { useState, useCallback, memo, useRef, useEffect } from 'react';
-import { LayoutDashboard, ShoppingBag, User as UserIcon, Menu, X } from 'lucide-react';
+import { useState, useCallback, memo, useEffect } from 'react';
+import { LayoutDashboard, ShoppingBag, Menu, X, Home, Info, Phone, HelpCircle } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useGetCartQuery } from '../../slices/cartApiSlice';
@@ -33,35 +33,11 @@ const CartButton = memo(({ cartCount, onClick, isLoading }) => (
 const AdminButton = memo(({ onClick, userRole }) => (
   <button
     onClick={onClick}
-    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-all shadow-md hover:shadow-lg transform hover:scale-105 text-sm font-medium"
-    aria-label={`${userRole} dashboard`}
+    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium w-full justify-center"
   >
     <LayoutDashboard className="h-4 w-4" />
     <span>{userRole === 'Supplier' ? 'Supplier' : 'Admin'}</span>
   </button>
-));
-
-const AuthButtons = memo(({ navigate, onMobileMenuClose }) => (
-  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
-    <button
-      className="w-full sm:w-auto bg-blue-600 px-6 py-2 text-white rounded-xl hover:bg-blue-700 transition-all shadow-md hover:shadow-lg text-sm font-medium"
-      onClick={() => {
-        onMobileMenuClose?.();
-        navigate('/auth/login');
-      }}
-    >
-      Sign in
-    </button>
-    <button
-      className="w-full sm:w-auto border-2 border-blue-600 px-6 py-2 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all text-sm font-medium"
-      onClick={() => {
-        onMobileMenuClose?.();
-        navigate('/auth/register');
-      }}
-    >
-      Sign up
-    </button>
-  </div>
 ));
 
 const MobileMenuButton = memo(({ isOpen, onClick }) => (
@@ -74,7 +50,7 @@ const MobileMenuButton = memo(({ isOpen, onClick }) => (
   </button>
 ));
 
-const Navbar = ({ cartItems }) => {
+const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -85,13 +61,21 @@ const Navbar = ({ cartItems }) => {
     refetchOnMountOrArgChange: true,
   });
 
-  // Count only number of distinct cart items
   const cartCount = data?.data?.CartItems?.length || 0;
 
   // Close mobile menu when route changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+  }, [isMobileMenuOpen]);
 
   const handleCartClick = useCallback(() => {
     if (userInfo?.user_role === 'Customer') {
@@ -126,16 +110,14 @@ const Navbar = ({ cartItems }) => {
 
   return (
     <>
-      <nav className="w-full px-4 lg:px-8 py-3 shadow-lg border-b border-gray-100 sticky top-0 z-50 backdrop-blur-sm bg-white/95">
+      <nav className="w-full px-4 lg:px-8 py-3 shadow-lg border-b border-gray-100 sticky top-0 z-50 bg-white">
         <div className="flex items-center justify-between gap-4 mx-auto max-w-7xl">
           {/* Logo and Mobile Menu */}
           <div className="flex items-center gap-4">
             <MobileMenuButton isOpen={isMobileMenuOpen} onClick={toggleMobileMenu} />
-
             <button
               onClick={handleLogoClick}
               className="flex items-center gap-2 text-xl lg:text-2xl font-bold text-blue-600 hover:text-blue-700 transition-colors"
-              aria-label="Home"
             >
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">N</span>
@@ -149,10 +131,13 @@ const Navbar = ({ cartItems }) => {
             {userInfo ? (
               <>
                 {isAdmin && (
-                  <AdminButton
+                  <button
                     onClick={handleAdminPanelClick}
-                    userRole={userInfo.user_role}
-                  />
+                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                  >
+                    <LayoutDashboard className="h-4 w-4" />
+                    <span>{userInfo.user_role === 'Supplier' ? 'Supplier' : 'Admin'}</span>
+                  </button>
                 )}
                 {userInfo.user_role === 'Customer' && (
                   <CartButton
@@ -164,11 +149,24 @@ const Navbar = ({ cartItems }) => {
                 <ProfileDropdown />
               </>
             ) : (
-              <AuthButtons navigate={navigate} />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => navigate('/auth/login')}
+                  className="bg-blue-600 px-4 py-2 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                >
+                  Sign in
+                </button>
+                <button
+                  onClick={() => navigate('/auth/register')}
+                  className="border border-blue-600 px-4 py-2 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium"
+                >
+                  Sign up
+                </button>
+              </div>
             )}
           </div>
 
-          {/* Mobile Cart Button - Always visible except when menu is open */}
+          {/* Mobile Cart Button */}
           {!isMobileMenuOpen && userInfo?.user_role === 'Customer' && (
             <div className="md:hidden">
               <CartButton
@@ -180,9 +178,9 @@ const Navbar = ({ cartItems }) => {
           )}
         </div>
 
-        {/* Mobile Menu Overlay */}
+        {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-40 md:hidden">
+          <div className="fixed inset-0 z-[100] md:hidden">
             {/* Backdrop */}
             <div
               className="absolute inset-0 bg-black bg-opacity-50"
@@ -190,7 +188,7 @@ const Navbar = ({ cartItems }) => {
             />
 
             {/* Menu Panel */}
-            <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-xl transform transition-transform duration-300 ease-in-out">
+            <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-xl overflow-y-auto">
               <div className="p-6 h-full flex flex-col">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
@@ -227,8 +225,19 @@ const Navbar = ({ cartItems }) => {
                   </div>
                 )}
 
-                {/* Menu Content */}
-                <div className="flex-1 space-y-4">
+                {/* Navigation Links */}
+                <div className="space-y-4 flex-1">
+                  <button
+                    onClick={() => {
+                      navigate('/');
+                      closeMobileMenu();
+                    }}
+                    className="w-full flex items-center gap-3 p-3 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <Home className="h-5 w-5" />
+                    <span>Home</span>
+                  </button>
+
                   {userInfo ? (
                     <>
                       {isAdmin && (
@@ -243,41 +252,27 @@ const Navbar = ({ cartItems }) => {
                       <ProfileDropdown onItemClick={closeMobileMenu} />
                     </>
                   ) : (
-                    <AuthButtons navigate={navigate} onMobileMenuClose={closeMobileMenu} />
+                    <div className="space-y-3">
+                      <button
+                        onClick={() => {
+                          navigate('/auth/login');
+                          closeMobileMenu();
+                        }}
+                        className="w-full bg-blue-600 px-4 py-3 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                      >
+                        Sign in
+                      </button>
+                      <button
+                        onClick={() => {
+                          navigate('/auth/register');
+                          closeMobileMenu();
+                        }}
+                        className="w-full border border-blue-600 px-4 py-3 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium"
+                      >
+                        Sign up
+                      </button>
+                    </div>
                   )}
-                </div>
-
-                {/* Quick Links */}
-                <div className="pt-6 border-t border-gray-200">
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => {
-                        navigate('/about');
-                        closeMobileMenu();
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                    >
-                      About Us
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigate('/contact');
-                        closeMobileMenu();
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                    >
-                      Contact
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigate('/help');
-                        closeMobileMenu();
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                    >
-                      Help & Support
-                    </button>
-                  </div>
                 </div>
               </div>
             </div>

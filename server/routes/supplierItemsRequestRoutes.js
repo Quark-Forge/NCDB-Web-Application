@@ -8,7 +8,8 @@ import {
     getSupplierItemRequests,
     getMySupplierItemRequests,
     updateSupplierItemRequestStatus,
-    getRequestStatistics
+    getRequestStatistics,
+    updateSupplierItemRequest
 } from '../controllers/supplierItemsRequestController.js';
 
 const router = express.Router();
@@ -30,12 +31,13 @@ router.route('/my-requests')
     .get(protect, authorize('Supplier'), getMySupplierItemRequests);
 
 // Statistics route
-router.route('/statistics')
+router.route('/stats')
     .get(protect, authorize('Admin', 'Inventory Manager', 'Supplier'), getRequestStatistics);
 
 // Single request routes with role-based access
 router.route('/:id')
     .get(protect, authorize('Admin', 'Inventory Manager', 'Supplier'), getSupplierItemRequestById)
+    .put(protect, authorize('Admin', 'Inventory Manager'), updateSupplierItemRequest)
     .delete(protect, authorize('Admin'), deleteSupplierItemRequest);
 
 // Status update route (suppliers only)
