@@ -7,7 +7,7 @@ import LoadingSpinner from '../../common/LoadingSpinner';
 import ItemSearch from './ItemSearch';
 import RequestSummary from './RequestSummary';
 
-const ProductRequestForm = ({ onClose, onSuccess }) => {
+const ProductRequestForm = ({ onClose, onSuccess, preSelectedItem }) => {
     const [createRequest, { isLoading: isCreating, error: createError }] = useCreateSupplierItemRequestMutation();
     const [formData, setFormData] = useState({
         supplier_item_id: '',
@@ -16,6 +16,18 @@ const ProductRequestForm = ({ onClose, onSuccess }) => {
         notes_from_requester: ''
     });
     const [selectedItem, setSelectedItem] = useState(null);
+
+    // Handle pre-selected item when component mounts or preSelectedItem changes
+    useEffect(() => {
+        if (preSelectedItem) {
+            setSelectedItem(preSelectedItem);
+            setFormData(prev => ({
+                ...prev,
+                supplier_item_id: preSelectedItem.id,
+                quantity: preSelectedItem.stock_level < 5 ? 20 : 10 // Auto-set quantity based on stock level
+            }));
+        }
+    }, [preSelectedItem]);
 
     const handleSelectItem = (item) => {
         setSelectedItem(item);
@@ -69,7 +81,9 @@ const ProductRequestForm = ({ onClose, onSuccess }) => {
             <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden animate-in fade-in-90 zoom-in-90">
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                    <h2 className="text-xl font-semibold text-gray-900">Request New Item</h2>
+                    <h2 className="text-xl font-semibold text-gray-900">
+                        {preSelectedItem ? 'Request Item' : 'Request New Item'}
+                    </h2>
                     <button
                         onClick={onClose}
                         className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -88,16 +102,40 @@ const ProductRequestForm = ({ onClose, onSuccess }) => {
                         />
                     )}
 
-                    {/* Item Selection */}
-                    <ItemSearch
-                        selectedItem={selectedItem}
-                        onSelectItem={handleSelectItem}
-                        onClearItem={() => {
-                            setSelectedItem(null);
-                            setFormData(prev => ({ ...prev, supplier_item_id: '' }));
-                        }}
-                        disabled={isCreating}
-                    />
+                    {/* Item Selection - Hide if pre-selected item is provided */}
+                    {!preSelectedItem ? (
+                        <ItemSearch
+                            selectedItem={selectedItem}
+                            onSelectItem={handleSelectItem}
+                            onClearItem={() => {
+                                setSelectedItem(null);
+                                setFormData(prev => ({ ...prev, supplier_item_id: '' }));
+                            }}
+                            disabled={isCreating}
+                        />
+                    ) : (
+                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <h3 className="font-medium text-blue-900 mb-2">Pre-selected Item</h3>
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div>
+                                    <span className="text-gray-600">Product:</span>
+                                    <span className="font-medium ml-2">{selectedItem?.Product?.name || selectedItem?.productName}</span>
+                                </div>
+                                <div>
+                                    <span className="text-gray-600">Supplier:</span>
+                                    <span className="font-medium ml-2">{selectedItem?.Supplier?.name || selectedItem?.supplierName}</span>
+                                </div>
+                                <div>
+                                    <span className="text-gray-600">Current Stock:</span>
+                                    <span className="font-medium ml-2">{selectedItem?.stock_level}</span>
+                                </div>
+                                <div>
+                                    <span className="text-gray-600">SKU:</span>
+                                    <span className="font-medium ml-2">{selectedItem?.Product?.sku || selectedItem?.supplierSku}</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Quantity */}
                     <div>

@@ -3,20 +3,12 @@ import { Link } from 'react-router-dom';
 import Card from '../../common/Card';
 import Table from '../../common/Table';
 import Badges from '../../common/Badges';
-import Dropdown from '../../common/Dropdown';
 import ExportPrintBar from '../../common/ExportPrintBar';
-import { useUpdatePaymentStatusMutation, useProcessRefundMutation } from '../../../slices/paymentApiSlice';
 import { useExport } from '../../../hooks/useExport';
 import { usePrint } from '../../../hooks/usePrint';
-import { toast } from 'react-toastify';
-import { FiEye, FiPrinter, FiRefreshCw, FiDollarSign } from 'react-icons/fi';
+import { FiEye, FiPrinter } from 'react-icons/fi';
 
 const PaymentTable = ({ payments = [], totalPayments = 0 }) => {
-    const [updatePaymentStatus, { isLoading: isUpdating }] = useUpdatePaymentStatusMutation();
-    const [processRefund, { isLoading: isRefunding }] = useProcessRefundMutation();
-    const [updatingPaymentId, setUpdatingPaymentId] = useState(null);
-    const [refundingPaymentId, setRefundingPaymentId] = useState(null);
-
     const { exportToCSV, isExporting } = useExport();
     const { printRef, handlePrint } = usePrint();
 
@@ -36,14 +28,6 @@ const PaymentTable = ({ payments = [], totalPayments = 0 }) => {
             currency: 'LKR'
         }).format(amount);
     };
-
-    const statusOptions = [
-        { value: 'pending', label: 'Pending' },
-        { value: 'paid', label: 'Paid' },
-        { value: 'failed', label: 'Failed' },
-        { value: 'refunded', label: 'Refunded' },
-        { value: 'partially_refunded', label: 'Partially Refunded' }
-    ];
 
     const statusVariant = {
         pending: 'warning',
@@ -72,6 +56,17 @@ const PaymentTable = ({ payments = [], totalPayments = 0 }) => {
         return methods[method] || method;
     };
 
+    const getStatusLabel = (status) => {
+        const statusLabels = {
+            pending: 'Pending',
+            paid: 'Paid',
+            failed: 'Failed',
+            refunded: 'Refunded',
+            partially_refunded: 'Partially Refunded'
+        };
+        return statusLabels[status] || status;
+    };
+
     const headers = [
         'Transaction ID',
         'Order ID',
@@ -83,55 +78,34 @@ const PaymentTable = ({ payments = [], totalPayments = 0 }) => {
         'Actions'
     ];
 
-    const handleStatusChange = async (paymentId, newStatus) => {
-        setUpdatingPaymentId(paymentId);
-        try {
-            await updatePaymentStatus({
-                id: paymentId,
-                payment_status: newStatus,
-                notes: `Status updated to ${newStatus} by admin`
-            }).unwrap();
-            toast.success(`Payment status updated to ${newStatus}`);
-        } catch (error) {
-            console.error('Failed to update payment status:', error);
-            toast.error(error.data?.message || 'Failed to update payment status');
-        } finally {
-            setUpdatingPaymentId(null);
-        }
-    };
-
-    const handleRefund = async (payment) => {
-        if (window.confirm(`Are you sure you want to refund ${formatCurrency(payment.amount)} for order ${payment.order_number}?`)) {
-            setRefundingPaymentId(payment.id);
-            try {
-                await processRefund({
-                    id: payment.id,
-                    refund_amount: payment.amount,
-                    reason: 'Admin initiated refund'
-                }).unwrap();
-                toast.success('Refund processed successfully!');
-            } catch (error) {
-                console.error('Refund error:', error);
-                toast.error(error.data?.message || 'Failed to process refund');
-            } finally {
-                setRefundingPaymentId(null);
-            }
-        }
-    };
+    // CSV Export Configuration
+    const exportHeaders = [
+        { key: 'transaction_id', label: 'Transaction ID' },
+        { key: 'order_number', label: 'Order ID' },
+        { key: 'date', label: 'Date' },
+        { key: 'customer_name', label: 'Customer' },
+        { key: 'amount', label: 'Amount' },
+        { key: 'payment_status', label: 'Status' },
+        { key: 'payment_method', label: 'Payment Method' },
+        { key: 'order_status', label: 'Order Status' }
+    ];
 
     const handleExport = () => {
+        // Prepare data for export
         const exportData = payments.map(payment => ({
-            'Transaction ID': payment.transaction_id,
-            'Order ID': payment.order_number,
-            'Date': formatDate(payment.date),
-            'Customer': payment.customer_name,
-            'Amount': payment.amount,
-            'Status': payment.payment_status,
-            'Payment Method': getMethodLabel(payment.payment_method),
-            'Order Status': payment.order_status
+            transaction_id: payment.transaction_id,
+            order_number: payment.order_number,
+            date: payment.date,
+            customer_name: payment.customer_name,
+            amount: payment.amount,
+            payment_status: getStatusLabel(payment.payment_status),
+            payment_method: getMethodLabel(payment.payment_method),
+            order_status: payment.order_status
         }));
 
-        exportToCSV(exportData, 'payments_export', 'payments');
+        exportToCSV(exportData, exportHeaders, 'payments', {
+            dateFields: ['date']
+        });
     };
 
     return (
@@ -180,25 +154,9 @@ const PaymentTable = ({ payments = [], totalPayments = 0 }) => {
                                     {formatCurrency(payment.amount)}
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
-                                    <div className="flex items-center">
-                                        {updatingPaymentId === payment.id && isUpdating ? (
-                                            <span className="text-sm text-gray-500">Updating...</span>
-                                        ) : (
-                                            <Dropdown
-                                                options={statusOptions}
-                                                value={payment.payment_status}
-                                                onChange={(value) => handleStatusChange(payment.id, value)}
-                                                renderSelected={(selected) => (
-                                                    <Badges variant={statusVariant[selected.value] || 'default'}>
-                                                        {selected.label}
-                                                    </Badges>
-                                                )}
-                                                buttonClassName="p-1 hover:bg-gray-100 rounded"
-                                                menuClassName="min-w-[160px]"
-                                                disabled={isUpdating}
-                                            />
-                                        )}
-                                    </div>
+                                    <Badges variant={statusVariant[payment.payment_status] || 'default'}>
+                                        {getStatusLabel(payment.payment_status)}
+                                    </Badges>
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
                                     <Badges variant={methodVariant[payment.payment_method] || 'default'}>
@@ -214,20 +172,6 @@ const PaymentTable = ({ payments = [], totalPayments = 0 }) => {
                                         >
                                             <FiEye size={16} />
                                         </Link>
-                                        {payment.payment_status === 'paid' && (
-                                            <button
-                                                onClick={() => handleRefund(payment)}
-                                                disabled={isRefunding && refundingPaymentId === payment.id}
-                                                className="text-green-600 hover:text-green-800 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 rounded px-1 disabled:opacity-50"
-                                                aria-label={`Refund payment ${payment.transaction_id}`}
-                                            >
-                                                {isRefunding && refundingPaymentId === payment.id ? (
-                                                    <FiRefreshCw size={16} className="animate-spin" />
-                                                ) : (
-                                                    <FiDollarSign size={16} />
-                                                )}
-                                            </button>
-                                        )}
                                         <button
                                             onClick={() => {
                                                 // Single payment print functionality
@@ -258,7 +202,7 @@ const PaymentTable = ({ payments = [], totalPayments = 0 }) => {
                                   <tr><th>Date:</th><td>${formatDate(payment.date)}</td></tr>
                                   <tr><th>Customer:</th><td>${payment.customer_name || 'Unknown Customer'}</td></tr>
                                   <tr><th>Amount:</th><td>${formatCurrency(payment.amount)}</td></tr>
-                                  <tr><th>Status:</th><td>${payment.payment_status}</td></tr>
+                                  <tr><th>Status:</th><td>${getStatusLabel(payment.payment_status)}</td></tr>
                                   <tr><th>Method:</th><td>${getMethodLabel(payment.payment_method)}</td></tr>
                                 </table>
                               </div>
@@ -307,7 +251,7 @@ const PaymentTable = ({ payments = [], totalPayments = 0 }) => {
                                         <td className="border border-gray-300 px-4 py-2">{formatDate(payment.date)}</td>
                                         <td className="border border-gray-300 px-4 py-2">{payment.customer_name || 'Unknown Customer'}</td>
                                         <td className="border border-gray-300 px-4 py-2">{formatCurrency(payment.amount)}</td>
-                                        <td className="border border-gray-300 px-4 py-2">{payment.payment_status}</td>
+                                        <td className="border border-gray-300 px-4 py-2">{getStatusLabel(payment.payment_status)}</td>
                                         <td className="border border-gray-300 px-4 py-2">{getMethodLabel(payment.payment_method)}</td>
                                     </tr>
                                 ))}
