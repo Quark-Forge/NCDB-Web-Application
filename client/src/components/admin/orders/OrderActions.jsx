@@ -11,12 +11,6 @@ const OrderActions = ({ onCreateShippingLabel }) => {
                 >
                     <Truck size={18} /> Create Shipping Label
                 </button>
-                <button className="w-full flex items-center justify-center gap-2 bg-gray-100 px-4 py-3 rounded-md hover:bg-gray-200 transition-colors">
-                    <RefreshCw size={18} /> Process Refund
-                </button>
-                <button className="w-full flex items-center justify-center gap-2 bg-gray-100 px-4 py-3 rounded-md hover:bg-gray-200 transition-colors">
-                    <Mail size={18} /> Resend Invoice
-                </button>
             </div>
         </div>
     );

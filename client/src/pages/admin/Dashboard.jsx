@@ -1,4 +1,3 @@
-// Dashboard.jsx
 import { useState } from 'react';
 import { useGetOrderStatsQuery } from '../../slices/ordersApiSlice';
 import { useGetLowStockItemsQuery } from '../../slices/supplierItemsApiSlice';

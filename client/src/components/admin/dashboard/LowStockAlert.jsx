@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 
 const LowStockAlert = ({ lowStockItems }) => {
   const items = [
@@ -6,6 +7,8 @@ const LowStockAlert = ({ lowStockItems }) => {
     { name: 'Wireless Earbuds', stock: 2, threshold: 8 },
     { name: 'Screen Protector', stock: 7, threshold: 20 }
   ];
+
+  const navigate = useNavigate();
 
   return (
     <div className="p-4 space-y-3">
@@ -16,7 +19,10 @@ const LowStockAlert = ({ lowStockItems }) => {
             <p className="font-medium text-sm text-red-800">from {item.supplier.name}</p>
             <p className="text-xs text-red-600">Only {item.stock_level} left</p>
           </div>
-          <button className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700">
+          <button 
+            className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+            onClick={() => navigate('/admin/purchases')}
+            >
             Reorder
           </button>
         </div>
