@@ -109,8 +109,9 @@ export const getAllProducts = asyncHandler(async (req, res) => {
 
         const where = {};
         const supplierItemWhere = {};
-
-        if (search) where.name = { [Op.like]: `%${search.toLowerCase()}%` };
+        const escapeSearch = (str) => str.replace(/([%_])/g, '\\$1');
+        
+        if (search) where.name = { [Op.like]: `%${escapeSearch(search.toLowerCase())}%` };
         if (supplier) supplierItemWhere.supplier_id = supplier;
         if (minStock) supplierItemWhere.stock_level = { [Op.gte]: minStock };
 

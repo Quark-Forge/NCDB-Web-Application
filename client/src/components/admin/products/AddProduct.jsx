@@ -21,7 +21,7 @@ const AddProduct = ({ setShowCreateModal, refetch, categories, suppliers }) => {
         unit_symbol: '',
         stock_level: '0',
         expiry_days: '',
-        lead_time_days: '7'
+        lead_time_days: '1'
     });
 
     const [errors, setErrors] = useState({});

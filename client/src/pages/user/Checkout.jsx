@@ -33,6 +33,7 @@ const Checkout = () => {
   // Handle empty addresses array (new users)
   const addresses = addressData?.data || addressData || [];
 
+
   useEffect(() => {
     const storedItems = localStorage.getItem("checkoutItems");
     if (storedItems) {
@@ -202,9 +203,6 @@ const Checkout = () => {
                     <div>
                       <p className="font-medium text-gray-900">{selectedAddress.shipping_name || selectedAddress.name}</p>
                       <p className="text-sm text-gray-600">{selectedAddress.shipping_phone || selectedAddress.phone}</p>
-                      {selectedAddress.email && (
-                        <p className="text-sm text-gray-600">{selectedAddress.email}</p>
-                      )}
                       <p className="text-sm text-gray-600 mt-2">
                         {selectedAddress.address_line1 || selectedAddress.address}
                         {selectedAddress.address_line2 && `, ${selectedAddress.address_line2}`}
@@ -262,6 +260,7 @@ const Checkout = () => {
             setSelectedAddress(address);
             setShowAddressModal(false);
           }}
+          refetchAddresses={refetchAddresses} // Add this line
         />
       )}
 
