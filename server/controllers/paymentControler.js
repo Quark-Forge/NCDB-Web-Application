@@ -3,7 +3,7 @@ import { Op } from 'sequelize';
 import sequelize from '../config/db.js';
 import { Order, Payment, Address, OrderItem, Product } from '../models/index.js';
 
-// GET payment transactions (specific for payments page)
+// GET payment transactions (specific for payments page) - SIMPLIFIED VERSION
 export const getPaymentTransactions = asyncHandler(async (req, res) => {
   const {
     search,
@@ -15,27 +15,8 @@ export const getPaymentTransactions = asyncHandler(async (req, res) => {
   } = req.query;
 
   const where = {};
-  const include = [
-    {
-      model: Order,
-      as: 'order',
-      attributes: ['id', 'order_number', 'status', 'createdAt'],
-      include: [
-        {
-          model: Address,
-          attributes: ['id', 'shipping_name', 'city']
-        },
-        {
-          model: OrderItem,
-          attributes: ['id'],
-          include: [{
-            model: Product,
-            attributes: ['id', 'name']
-          }]
-        }
-      ]
-    }
-  ];
+  const orderWhere = {};
+  const addressWhere = {};
 
   // Payment status filter
   if (payment_status && payment_status !== 'all') {
@@ -72,21 +53,66 @@ export const getPaymentTransactions = asyncHandler(async (req, res) => {
     };
   }
 
-  // Search filter
+  // Search filter - handle separately to avoid complex nested queries
+  let searchCondition = null;
   if (search && search.trim() !== '') {
-    const searchConditions = [
-      { transaction_id: { [Op.like]: `%${search}%` } },
-      { '$order.order_number$': { [Op.like]: `%${search}%` } },
-      { '$order.Address.shipping_name$': { [Op.like]: `%${search}%` } }
-    ];
-
-    where[Op.or] = searchConditions;
+    searchCondition = {
+      [Op.or]: [
+        { transaction_id: { [Op.like]: `%${search}%` } }
+      ]
+    };
   }
 
   try {
+    // First, get payment IDs that match the search criteria
+    let paymentIds = null;
+    if (searchCondition) {
+      const searchPayments = await Payment.findAll({
+        where: searchCondition,
+        attributes: ['id'],
+        raw: true
+      });
+      paymentIds = searchPayments.map(p => p.id);
+    }
+
+    // Build the main query
+    const paymentWhere = { ...where };
+    if (paymentIds && paymentIds.length > 0) {
+      paymentWhere.id = { [Op.in]: paymentIds };
+    } else if (searchCondition && paymentIds.length === 0) {
+      // If search found no results, return empty
+      return res.json({
+        success: true,
+        data: [],
+        meta: {
+          total: 0,
+          page: parseInt(page),
+          totalPages: 0
+        }
+      });
+    }
+
     const payments = await Payment.findAndCountAll({
-      where,
-      include,
+      where: paymentWhere,
+      include: [
+        {
+          model: Order,
+          as: 'order',
+          attributes: ['id', 'order_number', 'status', 'createdAt'],
+          include: [
+            {
+              model: Address,
+              as: 'Address',
+              attributes: ['id', 'shipping_name', 'city']
+            },
+            {
+              model: OrderItem,
+              as: 'OrderItems',
+              attributes: ['id']
+            }
+          ]
+        }
+      ],
       order: [['createdAt', 'DESC']],
       limit: parseInt(limit),
       offset: (page - 1) * limit,

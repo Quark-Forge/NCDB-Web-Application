@@ -9,6 +9,8 @@ import { useExport } from "../../../hooks/useExport";
 import { usePrint } from "../../../hooks/usePrint";
 import { toast } from "react-toastify";
 import { useUpdateProductStockMutation } from "../../../slices/ProductsApiSlice";
+import { useCreateSupplierItemRequestMutation } from "../../../slices/PurchaseApiSlice";
+import ProductRequestForm from "../purchase/ProductRequestForm";
 
 const InventoryTable = ({ stock, filters }) => {
   const [formVisible, setFormVisible] = useState(false);
@@ -17,7 +19,11 @@ const InventoryTable = ({ stock, filters }) => {
     quantity: 0,
     action: 'set'
   });
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [selectedItemForRequest, setSelectedItemForRequest] = useState(null);
+
   const [updateProductStock, { isLoading }] = useUpdateProductStockMutation();
+  const [createRequest, { isLoading: isCreatingRequest }] = useCreateSupplierItemRequestMutation();
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -42,6 +48,29 @@ const InventoryTable = ({ stock, filters }) => {
       action: 'set'
     });
     setFormVisible(true);
+  };
+
+  const handleSendRequest = (item) => {
+    setSelectedItemForRequest({
+      id: item.productId, // Make sure this is the supplier_item_id, not productId
+      Product: {
+        name: item.productName,
+        sku: item.supplierSku
+      },
+      Supplier: {
+        id: item.supplierId,
+        name: item.supplierName
+      },
+      stock_level: item.stockLevel,
+      supplier_id: item.supplierId
+    });
+    setShowRequestForm(true);
+  };
+
+  const handleRequestSuccess = () => {
+    setShowRequestForm(false);
+    setSelectedItemForRequest(null);
+    toast.success("Purchase request created successfully!");
   };
 
   // Apply search and stock filters
@@ -207,9 +236,19 @@ const InventoryTable = ({ stock, filters }) => {
                       <Badges variant={status.variant} size="sm">{status.label}</Badges>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <Button variant="secondary" size="sm" onClick={() => openForm(item)}>
-                        Update
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button variant="secondary" size="sm" onClick={() => openForm(item)}>
+                          Update
+                        </Button>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => handleSendRequest(item)}
+                          disabled={isCreatingRequest}
+                        >
+                          {isCreatingRequest ? "Sending..." : "Request"}
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -245,6 +284,7 @@ const InventoryTable = ({ stock, filters }) => {
         />
       </div>
 
+      {/* Update Stock Modal */}
       {formVisible && selectedProduct && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
           <div className="absolute inset-0 backdrop-brightness-40 bg-opacity-50" onClick={() => setFormVisible(false)}></div>
@@ -313,6 +353,18 @@ const InventoryTable = ({ stock, filters }) => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Purchase Request Form Modal */}
+      {showRequestForm && selectedItemForRequest && (
+        <ProductRequestForm
+          onClose={() => {
+            setShowRequestForm(false);
+            setSelectedItemForRequest(null);
+          }}
+          onSuccess={handleRequestSuccess}
+          preSelectedItem={selectedItemForRequest}
+        />
       )}
     </>
   );
