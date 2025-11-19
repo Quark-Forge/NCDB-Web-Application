@@ -4,7 +4,6 @@ import { toast } from "react-toastify";
 import { useCreateProductMutation } from "../../../slices/ProductsApiSlice";
 import FormInput from "./FormInput";
 import { validateField, validateAllFields, isFormValid } from "../../../utils/productValidation";
-import ImageUpload from "../../common/ImageUpload";
 
 const AddProduct = ({ setShowCreateModal, refetch, categories, suppliers }) => {
     const [formData, setFormData] = useState({
@@ -127,13 +126,6 @@ const AddProduct = ({ setShowCreateModal, refetch, categories, suppliers }) => {
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Image Upload Section */}
-                        <ImageUpload
-                            currentImage={productImage}
-                            onImageChange={setProductImage}
-                            entityId={createdProductId}
-                            className="mb-6"
-                        />
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormInput
@@ -268,7 +260,7 @@ const AddProduct = ({ setShowCreateModal, refetch, categories, suppliers }) => {
                                 error={errors.lead_time_days}
                                 type="number"
                                 min="0"
-                                placeholder="7"
+                                placeholder="3"
                             />
 
                             <FormInput
