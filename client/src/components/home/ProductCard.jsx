@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Heart, ShoppingCartIcon, ImageOff } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import ProductModal from '../products/ProductModel';
 import { useAddToCartMutation } from '../../slices/cartApiSlice';
 import {
   useAddToWishlistMutation,
