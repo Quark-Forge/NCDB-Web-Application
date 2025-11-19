@@ -18,6 +18,7 @@ const EditProduct = ({
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    purchase_price: '',
     price: '',
     discount_price: '',
     quantity_per_unit: '',
@@ -40,6 +41,7 @@ const EditProduct = ({
       setFormData({
         name: initialProduct.name || '',
         description: initialSupplierItem.description || '',
+        purchase_price: initialSupplierItem.purchase_price || '',
         price: initialSupplierItem.price?.toString() || '',
         discount_price: initialSupplierItem.discount_price?.toString() || '',
         quantity_per_unit: initialSupplierItem.quantity_per_unit?.toString() || '',
@@ -172,6 +174,7 @@ const EditProduct = ({
         supplier_id: initialSupplierItem.supplier_id,
         name: formData.name.trim(),
         description: formData.description.trim() || null,
+        purchase_price: parseFloat(formData.purchase_price),
         price: parseFloat(formData.price),
         discount_price: formData.discount_price ? parseFloat(formData.discount_price) : null,
         quantity_per_unit: parseFloat(formData.quantity_per_unit),
@@ -319,6 +322,20 @@ const EditProduct = ({
                 type="select"
                 required={true}
                 options={categories || []}
+                disabled={isImageUploading}
+              />
+
+              <FormInput
+                label="Purchase Price"
+                name="purchase_price"
+                value={formData.purchase_price}
+                onChange={handleInputChangeWithValidation}
+                error={errors.purchase_price}
+                type="number"
+                required={true}
+                step="0.01"
+                min="0"
+                placeholder="0.00"
                 disabled={isImageUploading}
               />
 
