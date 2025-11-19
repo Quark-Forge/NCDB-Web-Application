@@ -346,138 +346,191 @@ export const checkoutCart = asyncHandler(async (req, res) => {
 
 // GET all orders (Admin)
 export const getAllOrders = asyncHandler(async (req, res) => {
-    const { search, range = '90d', status, product_id, supplier_id, payment_status, page = 1, limit = 10 } = req.query;
-
-    const where = {};
-    const include = [
-        {
-            model: OrderItem,
-            include: []
-        },
-        {
-            model: Address,
-        },
-        {
-            model: Payment,
-            as: 'payment',
-            attributes: ['id', 'payment_status', 'payment_method', 'amount', 'transaction_id', 'payment_date']
-        }
-    ];
-
-    // Status filter
-    if (status) where.status = status;
-
-    // Payment status filter
-    if (payment_status) {
-        include[2].where = include[2].where || {};
-        include[2].where.payment_status = payment_status;
-    }
-
-    // Date range filter - using only range parameter
-    if (range && range !== 'all') {
-        const now = new Date();
-        let startDay = new Date();
-
-        switch (range) {
-            case '7d':
-                startDay.setDate(now.getDate() - 7);
-                break;
-            case '30d':
-                startDay.setDate(now.getDate() - 30);
-                break;
-            case '90d':
-                startDay.setDate(now.getDate() - 90);
-                break;
-            default:
-                startDay.setDate(now.getDate() - 90);
-        }
-
-        startDay.setHours(0, 0, 0, 0);
-        where.createdAt = {
-            [Op.between]: [startDay, now]
-        };
-    }
-
-    // Search filter - Search by order_number and payment transaction_id
-    if (search && search.trim() !== '') {
-        const searchConditions = [];
-
-        // Search by order_number (main search field)
-        searchConditions.push({
-            order_number: { [Op.like]: `%${search}%` }
-        });
-
-        // Also search by database ID if search is numeric
-        if (!isNaN(search)) {
-            searchConditions.push({
-                id: parseInt(search)
-            });
-        }
-
-        // Search by payment transaction_id
-        searchConditions.push({
-            '$payment.transaction_id$': { [Op.like]: `%${search}%` }
-        });
-
-        where[Op.or] = searchConditions;
-    }
-
-    // Product filter
-    if (product_id) {
-        include[0].where = include[0].where || {};
-        include[0].where.product_id = product_id;
-    }
-
-    // Supplier filter
-    if (supplier_id) {
-        include[0].include = include[0].include || [];
-        include[0].include.push({
-            model: Supplier,
-            where: { id: supplier_id }
-        });
-    }
+    const {
+        search,
+        range = '90d',
+        status,
+        product_id,
+        supplier_id,
+        payment_status,
+        page = 1,
+        limit = 10
+    } = req.query;
 
     try {
-        const orders = await Order.findAndCountAll({
+        const where = {};
+        const include = [
+            {
+                model: OrderItem,
+                include: [],
+                required: false
+            },
+            {
+                model: Address,
+                required: false
+            },
+            {
+                model: Payment,
+                as: 'payment',
+                attributes: ['id', 'payment_status', 'payment_method', 'amount', 'transaction_id', 'payment_date'],
+                required: false
+            }
+        ];
+
+        // Status filter
+        if (status) where.status = status;
+
+        // Payment status filter
+        if (payment_status) {
+            include[2].where = include[2].where || {};
+            include[2].where.payment_status = payment_status;
+        }
+
+        // Date range filter
+        if (range && range !== 'all') {
+            const now = new Date();
+            let startDay = new Date();
+
+            switch (range) {
+                case '7d':
+                    startDay.setDate(now.getDate() - 7);
+                    break;
+                case '30d':
+                    startDay.setDate(now.getDate() - 30);
+                    break;
+                case '90d':
+                    startDay.setDate(now.getDate() - 90);
+                    break;
+                default:
+                    startDay.setDate(now.getDate() - 90);
+            }
+
+            startDay.setHours(0, 0, 0, 0);
+            where.createdAt = {
+                [Op.between]: [startDay, now]
+            };
+        }
+
+        // Search filter
+        if (search && search.trim() !== '') {
+            const searchConditions = [];
+
+            // Search by order_number
+            searchConditions.push({
+                order_number: {
+                    [Op.like]: `%${search.trim()}%`
+                }
+            });
+
+            // Search by ID if numeric
+            if (!isNaN(search) && parseInt(search).toString() === search.trim()) {
+                searchConditions.push({
+                    id: search.trim()
+                });
+            }
+
+            // Search by payment transaction_id using separate approach
+            // First, find payments that match the search
+            const matchingPayments = await Payment.findAll({
+                where: {
+                    transaction_id: {
+                        [Op.like]: `%${search.trim()}%`
+                    }
+                },
+                attributes: ['order_id'],
+                raw: true
+            });
+
+            if (matchingPayments.length > 0) {
+                const orderIds = matchingPayments.map(p => p.order_id);
+                searchConditions.push({
+                    id: { [Op.in]: orderIds }
+                });
+            }
+
+            where[Op.or] = searchConditions;
+        }
+
+        // Product filter
+        if (product_id) {
+            include[0].where = include[0].where || {};
+            include[0].where.product_id = product_id;
+            include[0].required = true; // Make it INNER JOIN when filtering
+        }
+
+        // Supplier filter
+        if (supplier_id) {
+            include[0].include = include[0].include || [];
+            include[0].include.push({
+                model: Supplier,
+                where: { id: supplier_id },
+                required: true
+            });
+            include[0].required = true; // Make it INNER JOIN when filtering
+        }
+
+        // Build query options
+        const queryOptions = {
             where,
             include,
             order: [['createdAt', 'DESC']],
             limit: parseInt(limit),
-            offset: (page - 1) * limit,
-            distinct: true
-        });
+            offset: (page - 1) * parseInt(limit),
+            distinct: true,
+            subQuery: false
+        };
 
-        const cities = [...new Set(orders.rows.map(order => order.Address?.city).filter(city => city))];
+        // Execute query
+        const orders = await Order.findAndCountAll(queryOptions);
 
-        // Fetch shipping costs for all cities in one query
-        const shippingCosts = await ShippingCost.findAll({
-            where: { city: cities }
-        });
+        // Extract unique cities for shipping cost lookup
+        const cities = [...new Set(
+            orders.rows
+                .map(order => order.Address?.city)
+                .filter(city => city && city.trim() !== '')
+        )];
 
-        // Create a map of city to shipping cost for quick lookup
+        // Fetch shipping costs in batch
+        let shippingCosts = [];
+        if (cities.length > 0) {
+            shippingCosts = await ShippingCost.findAll({
+                where: {
+                    city: { [Op.in]: cities }
+                }
+            });
+        }
+
+        // Create shipping cost map for quick lookup
         const shippingCostMap = {};
         shippingCosts.forEach(cost => {
             shippingCostMap[cost.city] = cost;
         });
 
-        // Add shipping cost details to each order and format payment data
+        // Process and format orders
         const ordersWithShipping = orders.rows.map(order => {
             const orderData = order.get({ plain: true });
             const city = order.Address?.city;
 
+            // Add shipping cost information
             if (city && shippingCostMap[city]) {
-                orderData.shippingCost = shippingCostMap[city];
+                orderData.shippingCost = {
+                    id: shippingCostMap[city].id,
+                    city: shippingCostMap[city].city,
+                    cost: parseFloat(shippingCostMap[city].cost),
+                    estimated_days: shippingCostMap[city].estimated_days
+                };
             } else {
                 orderData.shippingCost = null;
             }
 
-            // Calculate total with shipping
-            const shippingAmount = orderData.shippingCost ? parseFloat(orderData.shippingCost.cost) : 0;
+            // Calculate final total with shipping
+            const shippingAmount = orderData.shippingCost ?
+                parseFloat(orderData.shippingCost.cost) : 0;
             const orderAmount = parseFloat(orderData.total_amount) || 0;
             orderData.final_total = (orderAmount + shippingAmount).toFixed(2);
 
-            // Format payment information for easier access
-            if (orderData.payment) {
+            // Format payment information
+            if (orderData.payment && orderData.payment.id) {
                 orderData.payment_id = orderData.payment.id;
                 orderData.payment_status = orderData.payment.payment_status;
                 orderData.payment_method = orderData.payment.payment_method;
@@ -485,7 +538,6 @@ export const getAllOrders = asyncHandler(async (req, res) => {
                 orderData.transaction_id = orderData.payment.transaction_id;
                 orderData.payment_date = orderData.payment.payment_date;
             } else {
-                // Handle cases where payment record doesn't exist
                 orderData.payment_id = null;
                 orderData.payment_status = 'pending';
                 orderData.payment_method = null;
@@ -494,24 +546,47 @@ export const getAllOrders = asyncHandler(async (req, res) => {
                 orderData.payment_date = null;
             }
 
+            // Calculate item totals
+            if (orderData.OrderItems && orderData.OrderItems.length > 0) {
+                orderData.items_total = orderData.OrderItems.reduce((sum, item) => {
+                    return sum + (parseFloat(item.price) * item.quantity);
+                }, 0).toFixed(2);
+            } else {
+                orderData.items_total = '0.00';
+            }
+
             return orderData;
         });
 
+        // Return successful response
         res.json({
             success: true,
             data: ordersWithShipping,
             meta: {
                 total: orders.count,
                 page: parseInt(page),
-                totalPages: Math.ceil(orders.count / limit)
+                limit: parseInt(limit),
+                totalPages: Math.ceil(orders.count / limit),
+                hasNext: page * limit < orders.count,
+                hasPrev: page > 1
             }
         });
+
     } catch (error) {
         console.error('Error fetching orders:', error);
+
+        // More specific error messages
+        let errorMessage = 'Error fetching orders';
+        if (error.name === 'SequelizeDatabaseError') {
+            errorMessage = 'Database error occurred while fetching orders';
+        } else if (error.name === 'SequelizeConnectionError') {
+            errorMessage = 'Database connection error';
+        }
+
         res.status(500).json({
             success: false,
-            message: 'Error fetching orders',
-            error: error.message
+            message: errorMessage,
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 });

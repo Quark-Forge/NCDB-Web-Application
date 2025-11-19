@@ -68,7 +68,7 @@ const RecentOrdersTable = () => {
                                     <StatusBadge status={order.status} />
                                 </td>
                                 <td className="px-4 py-4 text-sm font-semibold text-gray-900">
-                                    ${parseFloat(order.total_amount).toFixed(2)}
+                                    LKR{parseFloat(order.total_amount).toFixed(2)}
                                 </td>
                                 <td className="px-4 py-4 text-sm">
                                     <Link
