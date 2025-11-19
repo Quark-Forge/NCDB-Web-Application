@@ -12,9 +12,9 @@ const router = express.Router();
 
 router.route('/')
     .get(protect, authorize('Admin' , 'Order Manager', 'Customer'), getShippingCosts)
-    .post(protect, authorize('Admin'), createShippingCost);
+    .post(protect, authorize('Admin', 'Order Manager'), createShippingCost);
 router.route('/:id')
-    .put(protect, authorize('Admin'), updateShippingCost)
-    .delete(protect, authorize('Admin'), deleteShippingCost);
+    .put(protect, authorize('Admin', 'Order Manager'), updateShippingCost)
+    .delete(protect, authorize('Admin','Order Manager'), deleteShippingCost);
 
 export default router;

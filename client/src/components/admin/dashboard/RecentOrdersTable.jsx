@@ -1,6 +1,8 @@
 import { FiEye, FiClock, FiTruck, FiCheckCircle } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { useGetAllOrdersQuery } from '../../../slices/ordersApiSlice';
+import { useSelector } from 'react-redux';
+
 
 const StatusBadge = ({ status }) => {
     const statusConfig = {
@@ -28,6 +30,8 @@ const RecentOrdersTable = () => {
         page: 1
     });
 
+    const { userInfo } = useSelector((state) => state.auth);
+
     const orders = ordersData?.data || [];
 
     if (isLoading) {
@@ -52,7 +56,12 @@ const RecentOrdersTable = () => {
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            {
+                                userInfo.user_role === 'Admin' || userInfo.user_role === 'Order Manager' && (
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                )
+                            }
+
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -70,14 +79,20 @@ const RecentOrdersTable = () => {
                                 <td className="px-4 py-4 text-sm font-semibold text-gray-900">
                                     LKR{parseFloat(order.total_amount).toFixed(2)}
                                 </td>
-                                <td className="px-4 py-4 text-sm">
-                                    <Link
-                                        to={`/admin/orders/${order.id}`}
-                                        className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                                    >
-                                        <FiEye /> View
-                                    </Link>
-                                </td>
+
+                                {
+                                    (userInfo.user_role === 'Admin' || userInfo.user_role === 'Order Manager') && (
+                                        <td className="px-4 py-4 text-sm">
+                                            <Link
+                                                to={`/admin/orders/${order.id}`}
+                                                className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                            >
+                                                <FiEye /> View
+                                            </Link>
+                                        </td>
+                                    )
+                                }
+
                             </tr>
                         ))}
                     </tbody>
