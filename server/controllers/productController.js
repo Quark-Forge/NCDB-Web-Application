@@ -47,7 +47,7 @@ export const addProduct = asyncHandler(async (req, res) => {
                 });
             }
 
-            // Create new supplier relationship
+            // Create new supplier item
             const newSupplierItem = await SupplierItem.create({
                 ...req.body,
                 product_id: existingProduct.id
@@ -56,7 +56,7 @@ export const addProduct = asyncHandler(async (req, res) => {
             await transaction.commit();
             return res.status(200).json({
                 success: true,
-                message: 'New supplier added for existing product',
+                message: 'New supplier item added for existing product',
                 data: {
                     product: existingProduct,
                     supplier_item: newSupplierItem
@@ -392,6 +392,7 @@ export const updateProduct = asyncHandler(async (req, res) => {
 
         // SupplierItem fields
         const numericFields = {
+            purchase_price: updates.purchase_price,
             price: updates.price,
             discount_price: updates.discount_price,
             quantity_per_unit: updates.quantity_per_unit,
