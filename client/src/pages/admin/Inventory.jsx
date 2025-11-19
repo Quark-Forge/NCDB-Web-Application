@@ -49,8 +49,8 @@ const Inventory = () => {
     purchasePrice: p.purchase_price,
     price: p.price,
     discountedPrice: p.discount_price,
+    lastUpdated: p.updatedAt, // Add this field for export
   }));
-  
 
   return (
     <div className="space-y-6">
