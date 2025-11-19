@@ -8,11 +8,14 @@ import RecentOrdersTable from '../../components/admin/dashboard/RecentOrdersTabl
 import OrderStatusChart from '../../components/admin/dashboard/OrderStatusChart';
 import TopProducts from '../../components/admin/dashboard/TopProducts';
 import LowStockAlert from '../../components/admin/dashboard/LowStockAlert';
+import { useSelector } from 'react-redux';
 
 const Dashboard = () => {
   const [dateRange, setDateRange] = useState('30d');
   const { data, error, isLoading, refetch } = useGetOrderStatsQuery({ range: dateRange });
   const { data: lowStockData } = useGetLowStockItemsQuery({ threshold: 10, page: 1, limit: 5 });
+
+  const { userInfo } = useSelector((state) => state.auth);
 
   if (isLoading) {
     return (
@@ -104,15 +107,21 @@ const Dashboard = () => {
             <TopProducts topProducts={stats.top_selling_products} />
           </div>
 
+
+          {
+            (userInfo.user_role === 'Admin' || userInfo.user_role === 'Inventory Manager') && (
+              <div className="bg-white rounded-lg shadow">
+                <div className="p-4 border-b">
+                  <h3 className="font-semibold text-gray-800">Low Stock Alert</h3>
+                </div>
+                <LowStockAlert
+                  lowStockItems={lowStockItems}
+                />
+              </div>
+            )
+          }
           {/* Low Stock Alert */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-4 border-b">
-              <h3 className="font-semibold text-gray-800">Low Stock Alert</h3>
-            </div>
-            <LowStockAlert
-              lowStockItems={lowStockItems}
-            />
-          </div>
+
         </div>
       </div>
     </div>

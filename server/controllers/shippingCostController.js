@@ -1,4 +1,4 @@
-import { ShippingCost } from "../models/index.js";
+import { ShippingCost, Address, Order } from "../models/index.js";
 import asyncHandler from "express-async-handler";
 
 // Validation helper function
@@ -63,7 +63,7 @@ export const getShippingCosts = asyncHandler(async (req, res) => {
 
 export const updateShippingCost = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { city, cost, estimated_delivery_days } = req.body; // Destructure body
+    const { city, cost, estimated_delivery_days } = req.body;
 
     // Validate ID exists
     if (!id) {
@@ -135,6 +135,32 @@ export const deleteShippingCost = asyncHandler(async (req, res) => {
             success: false,
             message: "Shipping cost not found"
         });
+    }
+
+    // Check if there are any addresses using this shipping cost
+    const addressesWithShippingCost = await Address.findAll({
+        where: {
+            shipping_cost_id: id
+        },
+        attributes: ['id']
+    });
+
+    if (addressesWithShippingCost.length > 0) {
+        const addressIds = addressesWithShippingCost.map(addr => addr.id);
+
+        // Check if any orders use these addresses
+        const ordersWithShippingCost = await Order.findOne({
+            where: {
+                address_id: addressIds
+            }
+        });
+
+        if (ordersWithShippingCost) {
+            return res.status(400).json({
+                success: false,
+                message: "Cannot delete shipping cost. There are existing orders associated with addresses using this shipping city."
+            });
+        }
     }
 
     await shippingCost.destroy();
