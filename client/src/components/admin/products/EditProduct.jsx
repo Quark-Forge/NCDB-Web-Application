@@ -33,22 +33,31 @@ const EditProduct = ({
   const [hasImageChanged, setHasImageChanged] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // State to track discount toggle
+  const [hasDiscount, setHasDiscount] = useState(false);
+
   const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
   const [deleteProductImage, { isLoading: isDeletingImage }] = useDeleteProductImageMutation();
 
   useEffect(() => {
     if (initialProduct && initialSupplierItem) {
+      const initialDiscountPrice = initialSupplierItem.discount_price?.toString() || '';
+      const discountExists = initialDiscountPrice && parseFloat(initialDiscountPrice) > 0;
+
       setFormData({
         name: initialProduct.name || '',
         description: initialSupplierItem.description || '',
         purchase_price: initialSupplierItem.purchase_price || '',
         price: initialSupplierItem.price?.toString() || '',
-        discount_price: initialSupplierItem.discount_price?.toString() || '',
+        discount_price: discountExists ? initialDiscountPrice : '',
         quantity_per_unit: initialSupplierItem.quantity_per_unit?.toString() || '',
         unit_symbol: initialSupplierItem.unit_symbol || '',
         category_id: initialProduct.category_id?.toString() || '',
         image_url: initialSupplierItem.image_url || initialProduct.base_image_url || null,
       });
+
+      // Set discount state based on existing discount
+      setHasDiscount(discountExists);
 
       // Set initial image for ImageUpload component
       const initialImage = initialSupplierItem.image_url || initialProduct.base_image_url;
@@ -57,6 +66,36 @@ const EditProduct = ({
       }
     }
   }, [initialProduct, initialSupplierItem]);
+
+  // Handle discount toggle
+  const handleDiscountToggle = (enabled) => {
+    setHasDiscount(enabled);
+
+    if (!enabled) {
+      // Clear discount price when disabling discount
+      setFormData(prev => ({
+        ...prev,
+        discount_price: ''
+      }));
+
+      // Clear discount validation errors
+      setErrors(prev => ({
+        ...prev,
+        discount_price: ''
+      }));
+    } else {
+      // When enabling discount, set a default value if none exists
+      const currentPrice = parseFloat(formData.price) || 0;
+      const suggestedDiscount = currentPrice * 0.9; // 10% discount as default
+
+      if (!formData.discount_price && currentPrice > 0) {
+        setFormData(prev => ({
+          ...prev,
+          discount_price: suggestedDiscount.toFixed(2)
+        }));
+      }
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -93,8 +132,6 @@ const EditProduct = ({
   const handleImageChange = (imageUrl) => {
     setProductImage(imageUrl);
     setHasImageChanged(true);
-
-    // Also update the formData for image_url to maintain consistency
     setFormData(prev => ({
       ...prev,
       image_url: imageUrl || null
@@ -113,15 +150,12 @@ const EditProduct = ({
   const handleDeleteImage = async () => {
     try {
       setIsImageUploading(true);
-
-      // If there's an existing image, delete it from Cloudinary
       const currentImageUrl = initialSupplierItem?.image_url || initialProduct?.base_image_url;
 
       if (currentImageUrl && currentImageUrl.includes('cloudinary.com')) {
         await deleteProductImage(initialProduct.id).unwrap();
       }
 
-      // Clear local state immediately for better UX
       setProductImage(null);
       setFormData(prev => ({
         ...prev,
@@ -130,8 +164,6 @@ const EditProduct = ({
       setHasImageChanged(true);
 
       toast.success('Image deleted successfully');
-
-      // Force immediate refetch of product data
       setTimeout(() => {
         refetch();
       }, 500);
@@ -153,7 +185,6 @@ const EditProduct = ({
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Don't submit if image is currently uploading
     if (isImageUploading) {
       toast.error('Please wait for image upload to complete');
       setIsSubmitting(false);
@@ -169,6 +200,11 @@ const EditProduct = ({
     }
 
     try {
+      // THE KEY CHANGE: Set discount_price to null if no discount is selected
+      const discountPriceValue = hasDiscount && formData.discount_price
+        ? parseFloat(formData.discount_price)
+        : null; // This will be null when no discount
+
       const updatedData = {
         id: initialProduct.id,
         supplier_id: initialSupplierItem.supplier_id,
@@ -176,7 +212,7 @@ const EditProduct = ({
         description: formData.description.trim() || null,
         purchase_price: parseFloat(formData.purchase_price),
         price: parseFloat(formData.price),
-        discount_price: formData.discount_price ? parseFloat(formData.discount_price) : null,
+        discount_price: discountPriceValue, // This will be null if no discount
         quantity_per_unit: parseFloat(formData.quantity_per_unit),
         unit_symbol: formData.unit_symbol.trim(),
         category_id: formData.category_id,
@@ -353,18 +389,50 @@ const EditProduct = ({
                 disabled={isImageUploading}
               />
 
-              <FormInput
-                label="Discount Price"
-                name="discount_price"
-                value={formData.discount_price}
-                onChange={handleInputChangeWithValidation}
-                error={errors.discount_price}
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00 (optional)"
-                disabled={isImageUploading}
-              />
+              {/* Discount Toggle and Input */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Discount Price
+                  </label>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-500">No Discount</span>
+                    <button
+                      type="button"
+                      onClick={() => handleDiscountToggle(!hasDiscount)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${hasDiscount ? 'bg-blue-600' : 'bg-gray-200'
+                        }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${hasDiscount ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                      />
+                    </button>
+                    <span className="text-sm text-gray-500">Add Discount</span>
+                  </div>
+                </div>
+
+                {hasDiscount && (
+                  <FormInput
+                    name="discount_price"
+                    value={formData.discount_price}
+                    onChange={handleInputChangeWithValidation}
+                    error={errors.discount_price}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Enter discount price"
+                    disabled={isImageUploading}
+                  // No label since we have the toggle above
+                  />
+                )}
+
+                {hasDiscount && formData.price && formData.discount_price && (
+                  <div className="text-xs text-gray-500">
+                    Discount: {((1 - parseFloat(formData.discount_price) / parseFloat(formData.price)) * 100).toFixed(1)}% off
+                  </div>
+                )}
+              </div>
 
               <FormInput
                 label="Quantity per Unit"

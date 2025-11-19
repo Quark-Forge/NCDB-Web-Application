@@ -27,7 +27,7 @@ export const addProduct = asyncHandler(async (req, res) => {
 
     const transaction = await sequelize.transaction();
     try {
-        const { sku, name, supplier_id } = req.body;
+        const { sku, name, supplier_id, discount_price } = req.body;
 
         // Check for existing product
         const existingProduct = await Product.findOne({ where: { sku }, transaction });
@@ -47,11 +47,20 @@ export const addProduct = asyncHandler(async (req, res) => {
                 });
             }
 
-            // Create new supplier item
-            const newSupplierItem = await SupplierItem.create({
+            // Handle null discount_price properly
+            const supplierItemData = {
                 ...req.body,
                 product_id: existingProduct.id
-            }, { transaction });
+            };
+
+            // Explicitly set discount_price to null if it's not provided or is 0
+            if (discount_price === null || discount_price === undefined || discount_price === '') {
+                supplierItemData.discount_price = null;
+            } else {
+                supplierItemData.discount_price = parseFloat(discount_price);
+            }
+
+            const newSupplierItem = await SupplierItem.create(supplierItemData, { transaction });
 
             await transaction.commit();
             return res.status(200).json({
@@ -74,10 +83,20 @@ export const addProduct = asyncHandler(async (req, res) => {
             created_by: req.user.id
         }, { transaction });
 
-        const newSupplierItem = await SupplierItem.create({
+        // Handle discount_price properly for new supplier item
+        const supplierItemData = {
             ...req.body,
             product_id: newProduct.id
-        }, { transaction });
+        };
+
+        // Explicitly set discount_price to null if it's not provided or is 0
+        if (discount_price === null || discount_price === undefined || discount_price === '') {
+            supplierItemData.discount_price = null;
+        } else {
+            supplierItemData.discount_price = parseFloat(discount_price);
+        }
+
+        const newSupplierItem = await SupplierItem.create(supplierItemData, { transaction });
 
         await transaction.commit();
 
@@ -110,7 +129,7 @@ export const getAllProducts = asyncHandler(async (req, res) => {
         const where = {};
         const supplierItemWhere = {};
         const escapeSearch = (str) => str.replace(/([%_])/g, '\\$1');
-        
+
         if (search) where.name = { [Op.like]: `%${escapeSearch(search.toLowerCase())}%` };
         if (supplier) supplierItemWhere.supplier_id = supplier;
         if (minStock) supplierItemWhere.stock_level = { [Op.gte]: minStock };
@@ -305,7 +324,7 @@ export const getAllProductsWithDeleted = asyncHandler(async (req, res) => {
 // Update product
 export const updateProduct = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { supplier_id, image_url, ...updates } = req.body;
+    const { supplier_id, image_url, discount_price, ...updates } = req.body;
 
     // Validate that supplier_id is provided
     if (!supplier_id) {
@@ -390,11 +409,30 @@ export const updateProduct = asyncHandler(async (req, res) => {
             }
         }
 
+        // Handle discount_price properly
+        if (discount_price !== undefined) {
+            if (discount_price === null || discount_price === '' || discount_price === 0) {
+                // Set to null in database
+                supplierItemUpdates.discount_price = null;
+            } else {
+                // Parse as number
+                const numValue = Number(discount_price);
+                if (isNaN(numValue)) {
+                    await transaction.rollback();
+                    return res.status(400).json({
+                        success: false,
+                        message: "Discount price must be a valid number",
+                        code: "INVALID_DISCOUNT_PRICE"
+                    });
+                }
+                supplierItemUpdates.discount_price = numValue;
+            }
+        }
+
         // SupplierItem fields
         const numericFields = {
             purchase_price: updates.purchase_price,
             price: updates.price,
-            discount_price: updates.discount_price,
             quantity_per_unit: updates.quantity_per_unit,
         };
 
@@ -493,12 +531,6 @@ export const updateProduct = asyncHandler(async (req, res) => {
         return res.status(500).json(response);
     }
 });
-
-const extractPublicId = (url) => {
-    if (!url) return null;
-    const matches = url.match(/\/upload\/(?:v\d+\/)?(.+?)\.(?:jpg|jpeg|png|gif|webp)/);
-    return matches ? matches[1] : null;
-};
 
 // Admin-only endpoint for SKU updates
 export const updateProductSku = asyncHandler(async (req, res) => {

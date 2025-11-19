@@ -21,7 +21,7 @@ const LowStockAlert = ({ lowStockItems }) => {
           </div>
           <button 
             className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
-            onClick={() => navigate('/admin/purchases')}
+            onClick={() => navigate('/admin/inventory')}
             >
             Reorder
           </button>

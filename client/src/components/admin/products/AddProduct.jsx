@@ -27,7 +27,40 @@ const AddProduct = ({ setShowCreateModal, refetch, categories, suppliers }) => {
     const [productImage, setProductImage] = useState(null);
     const [createdProductId, setCreatedProductId] = useState(null);
 
+    // State to track discount toggle
+    const [hasDiscount, setHasDiscount] = useState(false);
+
     const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
+
+    // Handle discount toggle
+    const handleDiscountToggle = (enabled) => {
+        setHasDiscount(enabled);
+
+        if (!enabled) {
+            // Clear discount price when disabling discount
+            setFormData(prev => ({
+                ...prev,
+                discount_price: ''
+            }));
+
+            // Clear discount validation errors
+            setErrors(prev => ({
+                ...prev,
+                discount_price: ''
+            }));
+        } else {
+            // When enabling discount, set a default value if none exists
+            const currentPrice = parseFloat(formData.price) || 0;
+            const suggestedDiscount = currentPrice * 0.9; // 10% discount as default
+
+            if (!formData.discount_price && currentPrice > 0) {
+                setFormData(prev => ({
+                    ...prev,
+                    discount_price: suggestedDiscount.toFixed(2)
+                }));
+            }
+        }
+    };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -72,6 +105,11 @@ const AddProduct = ({ setShowCreateModal, refetch, categories, suppliers }) => {
         }
 
         try {
+            // Set discount_price to null if no discount is selected
+            const discountPriceValue = hasDiscount && formData.discount_price
+                ? parseFloat(formData.discount_price)
+                : null; // This will be null when no discount
+
             const submitData = {
                 name: formData.name.trim(),
                 sku: formData.sku.trim().toUpperCase(),
@@ -81,7 +119,7 @@ const AddProduct = ({ setShowCreateModal, refetch, categories, suppliers }) => {
                 supplier_sku: formData.supplier_sku.trim(),
                 purchase_price: parseFloat(formData.purchase_price),
                 price: parseFloat(formData.price),
-                discount_price: formData.discount_price ? parseFloat(formData.discount_price) : undefined,
+                discount_price: discountPriceValue, // This will be null if no discount
                 quantity_per_unit: parseFloat(formData.quantity_per_unit),
                 unit_symbol: formData.unit_symbol.trim(),
                 stock_level: parseInt(formData.stock_level) || 0,
@@ -206,17 +244,49 @@ const AddProduct = ({ setShowCreateModal, refetch, categories, suppliers }) => {
                                 placeholder="0.00"
                             />
 
-                            <FormInput
-                                label="Discount Price"
-                                name="discount_price"
-                                value={formData.discount_price}
-                                onChange={handleInputChangeWithValidation}
-                                error={errors.discount_price}
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                placeholder="0.00 (optional)"
-                            />
+                            {/* Discount Toggle and Input */}
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        Discount Price
+                                    </label>
+                                    <div className="flex items-center space-x-2">
+                                        <span className="text-sm text-gray-500">No Discount</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDiscountToggle(!hasDiscount)}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${hasDiscount ? 'bg-blue-600' : 'bg-gray-200'
+                                                }`}
+                                        >
+                                            <span
+                                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${hasDiscount ? 'translate-x-6' : 'translate-x-1'
+                                                    }`}
+                                            />
+                                        </button>
+                                        <span className="text-sm text-gray-500">Add Discount</span>
+                                    </div>
+                                </div>
+
+                                {hasDiscount && (
+                                    <FormInput
+                                        name="discount_price"
+                                        value={formData.discount_price}
+                                        onChange={handleInputChangeWithValidation}
+                                        error={errors.discount_price}
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        placeholder="Enter discount price"
+                                    // No label since we have the toggle above
+                                    />
+                                )}
+
+                                {hasDiscount && formData.price && formData.discount_price && (
+                                    <div className="text-xs text-gray-500">
+                                        Discount: {((1 - parseFloat(formData.discount_price) / parseFloat(formData.price)) * 100).toFixed(1)}% off
+                                    </div>
+                                )}
+                            </div>
 
                             <FormInput
                                 label="Quantity per Unit"
